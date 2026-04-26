@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Fraunces", "Inter", serif;
+
+  --color-ink-950: #04060c;
+  --color-ink-900: #070b16;
+  --color-ink-800: #0c1322;
+  --color-ink-700: #131c2f;
+  --color-ink-600: #1c2742;
+
+  --color-glow-cyan: #7ee0ff;
+  --color-glow-magenta: #ff7ee0;
+  --color-glow-violet: #b78bff;
+  --color-glow-warm: #ffd9a8;
+}
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+    background: var(--color-ink-950);
+    color: rgb(245 245 250);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    margin: 0;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: var(--color-glow-cyan);
+    color: var(--color-ink-950);
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+    font-feature-settings: "ss01", "ss02";
+    letter-spacing: -0.02em;
+  }
+
+  .glass {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+  }
+
+  .glass-strong {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .glow-cyan {
+    box-shadow: 0 0 40px -10px var(--color-glow-cyan), 0 0 80px -30px var(--color-glow-cyan);
+  }
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+
+@keyframes drift-up {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
