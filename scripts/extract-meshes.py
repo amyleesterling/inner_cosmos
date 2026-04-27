@@ -30,6 +30,8 @@ SOURCE = "precomputed://gs://iarpa_microns/minnie/minnie65/seg_m1300"
 CELLS = [
     # Higher face budgets here — at ~30K the dendrites looked piecewise-linear
     # under zoom. ~100K keeps spines visible without making files unreasonable.
+    # Astrocytes have so many fine processes that they need substantially more
+    # detail than a typical neuron to read as fluffy rather than blobby.
     ("lightning-tree", 864691135572530981, 120000),
     ("coral-fan",      864691136662432990, 100000),
     ("candelabra",     864691135572094189, 100000),
@@ -37,7 +39,7 @@ CELLS = [
     # 864691135104015693 was visibly cut off at volume edge; this one is
     # at ~172um from the volume center and intact (see find-central-cell.py).
     ("dust-star",      864691135279086497, 80000),
-    ("forest-floor",   864691135113162137, 130000),
+    ("forest-floor",   864691135113162137, 350000),
 ]
 
 

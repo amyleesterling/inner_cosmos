@@ -1,8 +1,11 @@
+export type CellCategory = "excitatory" | "inhibitory" | "other";
+
 export interface FeaturedNeuron {
   id: string;              // route slug
   segId: string;            // Real MICrONS minnie65 segment ID (sourced from microns-explorer.org/gallery-mm3)
   nickname: string;
   scientificType: string;
+  category: CellCategory;
   morphologyPreset: "pyramidal" | "basket" | "chandelier" | "martinotti" | "stellate" | "astrocyte";
   color: string;            // hex
   shapeAnalogy: string;     // "Lightning Tree", "Coral Fan", etc.
@@ -12,6 +15,18 @@ export interface FeaturedNeuron {
   /** filename in gs://microns-static-links/mm3/ — the curated gallery state file */
   galleryState: string;
 }
+
+export const CATEGORY_LABEL: Record<CellCategory, string> = {
+  excitatory: "Excitatory",
+  inhibitory: "Inhibitory",
+  other: "Other",
+};
+
+export const CATEGORY_BLURB: Record<CellCategory, string> = {
+  excitatory: "These cells push their targets toward firing — the cortex's signal carriers.",
+  inhibitory: "These cells push their targets away from firing — the cortex's regulators and timekeepers.",
+  other: "Not neurons. The cells around the cells.",
+};
 
 /** Build a Neuroglancer URL that opens this cell's curated MICrONS gallery view. */
 export function neuroglancerUrl(galleryState: string): string {
@@ -35,14 +50,15 @@ export const featuredNeurons: FeaturedNeuron[] = [
     galleryState: "layer5_thick_tufted.json",
     nickname: "Lightning Tree",
     scientificType: "Layer 5 Thick-Tufted Pyramidal",
+    category: "excitatory",
     morphologyPreset: "pyramidal",
     color: "#7ee0ff",
-    shapeAnalogy: "A pyramid soma with one tall trunk that splinters into a crown of thin branches at the top.",
-    oneLiner: "The brain's loudest voice — these cells shout when you see, hear, or remember.",
+    shapeAnalogy: "A pyramid soma with one thick apical dendrite rising toward the cortical surface and splintering into a tuft. Basal dendrites spread out near the soma.",
+    oneLiner: "Tall apical dendrite, sprawling basal arbor. A major output cell of cortex.",
     whatItDoes:
-      "Pyramidal neurons are the principal output cells of the cortex. They take in thousands of signals through their dendrites and fire long axons that reach far across the brain — the wiring of conscious thought.",
+      "Layer 5 thick-tufted pyramidal neurons are major output cells of cortex. They gather thousands of inputs across their dendrites and forward processed visual information to other regions of the brain.",
     whyItMatters:
-      "About 80% of the cells in your cortex are pyramidal. When you see a face or learn a name, it's their forest of connections that holds the memory.",
+      "These are some of the largest, longest-reaching cells in cortex. The mesh you're looking at is reconstructed straight from electron microscopy — every dendrite, every spine.",
   },
   {
     id: "coral-fan",
@@ -50,14 +66,15 @@ export const featuredNeurons: FeaturedNeuron[] = [
     galleryState: "basket_cells.json",
     nickname: "Coral Fan",
     scientificType: "Parvalbumin Basket Cell",
+    category: "inhibitory",
     morphologyPreset: "basket",
     color: "#ff7ee0",
-    shapeAnalogy: "A round cell body wrapped in a dense radial spray, like coral on the seafloor.",
-    oneLiner: "The brain's metronome — keeps thousands of cells firing on the beat.",
+    shapeAnalogy: "A round cell body wrapped in a dense radial spray of axon collaterals, like coral on the seafloor.",
+    oneLiner: "A fast inhibitory interneuron that helps cortex stay in time.",
     whatItDoes:
-      "Basket cells are inhibitory: they wrap their axons around the bodies of pyramidal neurons and silence them in tight rhythm. They're how cortex stays in sync.",
+      "Parvalbumin basket cells target the cell body and proximal dendrites of nearby neurons. From that close-in spot they can strongly regulate when those cells fire.",
     whyItMatters:
-      "Without basket cells, the cortex would seize. With them, you get the gamma rhythms that bind perception together.",
+      "They balance excitation in cortical circuits and coordinate the fast network rhythms cortex uses to organize itself.",
   },
   {
     id: "candelabra",
@@ -65,14 +82,15 @@ export const featuredNeurons: FeaturedNeuron[] = [
     galleryState: "chandelier_cells.json",
     nickname: "Candelabra",
     scientificType: "Chandelier Cell",
+    category: "inhibitory",
     morphologyPreset: "chandelier",
     color: "#b78bff",
-    shapeAnalogy: "Vertical bundles of axons hanging straight down, like a candelabra.",
-    oneLiner: "A neuron with the most precise switch in the brain.",
+    shapeAnalogy: "Vertical rows of candle-like axon cartridges hanging down, hence the classic 'chandelier' name.",
+    oneLiner: "An inhibitory interneuron that aims at the most powerful control point on its targets.",
     whatItDoes:
-      "Chandelier cells aim their axons at one specific spot — the axon initial segment of pyramidal neurons. This is the trigger zone where action potentials are born. They're a kill switch with millimeter-perfect aim.",
+      "Chandelier cells contact the axon initial segment of pyramidal cells — the trigger zone where action potentials begin. Because of where they connect, they can strongly influence whether their targets send signals onward.",
     whyItMatters:
-      "Chandelier cells are unusually scarce and unusually powerful. Their dysfunction shows up in schizophrenia, autism, and epilepsy.",
+      "Among the most morphologically distinctive cells in cortex. Reconstructions like this one let us see those axon cartridges in three dimensions.",
   },
   {
     id: "reaching-hand",
@@ -80,14 +98,15 @@ export const featuredNeurons: FeaturedNeuron[] = [
     galleryState: "martinotti_cells.json",
     nickname: "Reaching Hand",
     scientificType: "Martinotti Cell",
+    category: "inhibitory",
     morphologyPreset: "martinotti",
     color: "#9af5d8",
-    shapeAnalogy: "A bipolar body with axons that arc upward toward the cortical surface.",
-    oneLiner: "A long-distance whisperer that quiets neighbors above.",
+    shapeAnalogy: "A small soma with axons that reach upward toward superficial cortical layers.",
+    oneLiner: "Less a stop sign at the cell body, more a dimmer switch on the branches.",
     whatItDoes:
-      "Martinotti cells send their axons up toward layer 1 of cortex, blanket-suppressing the apical dendrites of pyramidal cells across a wide area. They're how the brain says 'shhh, I'm focusing.'",
+      "Martinotti cells are somatostatin-associated inhibitory interneurons. They commonly target the distal dendrites of pyramidal neurons, regulating signals as they arrive on the dendritic tuft.",
     whyItMatters:
-      "These cells implement a kind of attention gate — without them, every input would shout at once.",
+      "Their long, climbing axons let one cell shape activity across a wide swath of cortical column.",
   },
   {
     id: "dust-star",
@@ -95,14 +114,15 @@ export const featuredNeurons: FeaturedNeuron[] = [
     galleryState: "layer4_cells.json",
     nickname: "Dust Star",
     scientificType: "Layer 4 Cell",
+    category: "excitatory",
     morphologyPreset: "stellate",
     color: "#ffd9a8",
-    shapeAnalogy: "A small round body with short, evenly-distributed dendrites reaching in every direction.",
-    oneLiner: "The first stop for messages from your senses.",
+    shapeAnalogy: "A small round body with short, densely-branched dendrites reaching outward in every direction.",
+    oneLiner: "From layer 4 — where sensory signals from the thalamus first arrive in cortex.",
     whatItDoes:
-      "Layer 4 cells are where the cortex first hears from the rest of the brain. Sensory information from the thalamus lands here before it spreads upward through the cortex. Every photon, sound wave, or touch begins its cortical journey on cells like this one.",
+      "Layer 4 cells live in the layer especially involved in receiving and transforming sensory input in primary sensory cortex. In visual cortex, they participate in the early processing of visual signals arriving from the thalamus.",
     whyItMatters:
-      "Layer 4 is the brain's sensory inbox. Without it, the world wouldn't reach the cortex.",
+      "'Layer 4 cell' is a broad anatomical label that covers several subtypes — the safest description for this one is the layer, the volume, and the shape you can see in front of you.",
   },
   {
     id: "forest-floor",
@@ -110,14 +130,15 @@ export const featuredNeurons: FeaturedNeuron[] = [
     galleryState: "astrocytes.json",
     nickname: "Forest Floor",
     scientificType: "Protoplasmic Astrocyte",
+    category: "other",
     morphologyPreset: "astrocyte",
     color: "#c2c8ff",
-    shapeAnalogy: "Star-shaped, with a fluff of fine processes wrapping every nearby synapse.",
-    oneLiner: "Not a neuron — but no neuron works without one.",
+    shapeAnalogy: "Star-shaped, with a fluff of fine processes that contact many nearby synapses at once.",
+    oneLiner: "Not a neuron — a star-shaped glial cell that surrounds synapses and supports the circuit.",
     whatItDoes:
-      "Astrocytes wrap each synapse, listen in, and feed their neighbors energy. They tune signals, recycle neurotransmitter, and form the chemical climate of the brain.",
+      "Protoplasmic astrocytes are gray-matter glial cells. They surround synapses, contact blood vessels, regulate the chemical environment around neurons, and help keep cortical circuits healthy.",
     whyItMatters:
-      "For decades they were dismissed as glue. We now know astrocytes do half the work of thinking, and we are still discovering what.",
+      "For most of the last century these cells were dismissed as packing glue. We now know they're active partners in how the brain works — and we're still learning what they do.",
   },
 ];
 
