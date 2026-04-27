@@ -3,19 +3,11 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { featuredNeurons, meshUrl } from "../data/neurons";
 
-const PALETTE = [
-  new THREE.Color("#7ee0ff"),
-  new THREE.Color("#b78bff"),
-  new THREE.Color("#ff7ee0"),
-  new THREE.Color("#ffd9a8"),
-  new THREE.Color("#9af5d8"),
-];
-
 const HERO_ID = "lightning-tree";
+const BASE = import.meta.env.BASE_URL;
 
-// Where each cell sits in the cortical column. Lightning Tree at origin, the
-// rest in a small cluster around it. After GLB normalization each cell is
-// roughly [-1, 1] in size so spacing is in those units.
+// Same cluster layout as before, but offset/scaled separately from the brain
+// coordinate frame — stages 2-4 leave the brain frame entirely.
 const CELL_POSITIONS: Record<string, [number, number, number]> = {
   "lightning-tree": [0, 0, 0],
   "coral-fan": [0.65, -0.3, -0.45],
@@ -25,81 +17,18 @@ const CELL_POSITIONS: Record<string, [number, number, number]> = {
   "forest-floor": [0.4, 0.6, 0.55],
 };
 
-// Brain-shaped point cloud — coronal-ish ellipsoid, surface-biased
-function buildBrainPoints(): THREE.Points {
-  const count = 28000;
-  const positions = new Float32Array(count * 3);
-  const colors = new Float32Array(count * 3);
-  let i = 0;
-  while (i < count) {
-    const x = Math.random() * 2 - 1;
-    const y = Math.random() * 2 - 1;
-    const z = Math.random() * 2 - 1;
-    if (x * x + y * y + z * z > 1) continue;
-    const r = Math.sqrt(x * x + y * y + z * z);
-    const surfaceBias = Math.pow(r, 1.5);
-    if (Math.random() >= surfaceBias * 0.9) continue;
-    positions[i * 3] = x * 6.5;
-    positions[i * 3 + 1] = y * 4.5 + Math.abs(x) * 0.5;
-    positions[i * 3 + 2] = z * 5;
-    const c = PALETTE[Math.floor(Math.random() * PALETTE.length)];
-    colors[i * 3] = c.r;
-    colors[i * 3 + 1] = c.g;
-    colors[i * 3 + 2] = c.b;
-    i++;
-  }
-  const geom = new THREE.BufferGeometry();
-  geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  geom.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-  const mat = new THREE.PointsMaterial({
-    size: 0.05,
-    vertexColors: true,
-    transparent: true,
-    opacity: 0.7,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    sizeAttenuation: true,
-  });
-  return new THREE.Points(geom, mat);
-}
+// Brain-frame cell-cluster anchor — used for camera framing in stage 1
+// (camera ends pointed at V1 right hemisphere) and stage 2 (cells re-center
+// to origin, camera resets to look at the cluster).
 
-// Highlighted region (visual cortex): cluster placed on the back-bottom of brain
-function buildRegionHighlight(): THREE.Points {
-  const count = 1800;
-  const positions = new Float32Array(count * 3);
-  const center = new THREE.Vector3(-4.5, 0.5, 0);
-  for (let i = 0; i < count; i++) {
-    const r = 0.6 + Math.random() * 0.3;
-    const theta = Math.random() * Math.PI * 2;
-    const phi = (Math.random() - 0.5) * 0.8;
-    positions[i * 3] = center.x + Math.cos(theta) * r * 0.7;
-    positions[i * 3 + 1] = center.y + Math.sin(phi) * r;
-    positions[i * 3 + 2] = center.z + Math.sin(theta) * r * 0.7;
-  }
-  const geom = new THREE.BufferGeometry();
-  geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  const mat = new THREE.PointsMaterial({
-    color: new THREE.Color("#7ee0ff"),
-    size: 0.06,
-    transparent: true,
-    opacity: 0,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    sizeAttenuation: true,
-  });
-  return new THREE.Points(geom, mat);
-}
-
-// Camera waypoints per stage (position + lookAt). After stage 1 we leave the
-// brain coordinate frame and enter the cortical-column frame (origin = where
-// the Lightning Tree's soma sits).
-const STAGE_CAMERAS: Array<{ pos: [number, number, number]; look: [number, number, number] }> = [
-  { pos: [0, 4, 22], look: [0, 0, 0] },             // 0 — whole brain
-  { pos: [-2, 2, 8], look: [-4.5, 0.5, 0] },         // 1 — region highlight
-  { pos: [0.4, 0.2, 3.6], look: [0, 0, 0] },         // 2 — circuit (6 real cells)
-  { pos: [0, 0.1, 2.4], look: [0, 0, 0] },           // 3 — hero cell (Lightning Tree)
-  { pos: [0.18, 0.55, 0.65], look: [0.05, 0.45, 0] },// 4 — synapse zoom on dendrite
-];
+type BrainManifest = {
+  axes: { X: string; Y: string; Z: string };
+  landmarks: {
+    visp_right: [number, number, number];
+    visp_left: [number, number, number];
+  };
+  nInteriorDots: number;
+};
 
 interface Props {
   stage: number;
@@ -116,16 +45,14 @@ export default function ZoomScene({ stage }: Props) {
     if (!container) return;
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x04060c, 0.02);
+    scene.fog = new THREE.FogExp2(0x04060c, 0.015);
 
     const camera = new THREE.PerspectiveCamera(
       55,
       container.clientWidth / container.clientHeight,
-      0.01,
+      0.005,
       200,
     );
-    camera.position.set(...STAGE_CAMERAS[0].pos);
-    camera.lookAt(...STAGE_CAMERAS[0].look);
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -138,8 +65,7 @@ export default function ZoomScene({ stage }: Props) {
     renderer.setClearColor(0x000000, 0);
     container.appendChild(renderer.domElement);
 
-    // Lighting (only matters for cell meshes; points are unlit)
-    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
     const key = new THREE.DirectionalLight(0xffffff, 0.85);
     key.position.set(2, 4, 5);
     scene.add(key);
@@ -147,31 +73,163 @@ export default function ZoomScene({ stage }: Props) {
     fill.position.set(-3, 1, -2);
     scene.add(fill);
 
-    const brainPoints = buildBrainPoints();
-    const region = buildRegionHighlight();
-    scene.add(brainPoints);
-    scene.add(region);
+    // ---- Brain mesh + interior neuron dots --------------------------------
+    let brainShell: THREE.Group | null = null;
+    let brainShellWireMaterials: THREE.MeshBasicMaterial[] = [];
+    let brainShellSolidMaterials: THREE.MeshStandardMaterial[] = [];
+    let brainPoints: THREE.Points | null = null;
+    let brainPointsMaterial: THREE.PointsMaterial | null = null;
+    const v1Right = new THREE.Vector3(0.31, 0.28, 0.29); // updated when manifest loads
+    let manifestLoaded = false;
+    let dotsLoaded = false;
+    let brainLoaded = false;
 
-    // Real cell groups, populated as their GLBs load
-    const cellGroups: Record<string, THREE.Group> = {};
-    let cellsLoaded = 0;
+    const updateProgress = () => {
+      const cells = Object.keys(cellGroups).length;
+      const total = featuredNeurons.length + 2; // brain + dots
+      let done = cells;
+      if (manifestLoaded && brainLoaded) done++;
+      if (manifestLoaded && dotsLoaded) done++;
+      setProgress(done / total);
+    };
 
     const loader = new GLTFLoader();
+
+    // 1) Brain manifest (gives us V1 location + axes)
+    fetch(`${BASE}meshes/mouse-brain.json`)
+      .then((r) => r.json())
+      .then((m: BrainManifest) => {
+        v1Right.fromArray(m.landmarks.visp_right);
+        manifestLoaded = true;
+        updateProgress();
+      })
+      .catch((e) => console.error("brain manifest", e));
+
+    // 2) Brain shell mesh
+    loader.load(
+      `${BASE}meshes/mouse-brain.glb`,
+      (gltf) => {
+        brainShell = new THREE.Group();
+        const sourceMeshes: THREE.Mesh[] = [];
+        gltf.scene.traverse((obj) => {
+          if (obj instanceof THREE.Mesh) sourceMeshes.push(obj);
+        });
+        for (const obj of sourceMeshes) {
+          const mat = new THREE.MeshStandardMaterial({
+            color: new THREE.Color("#9bb6dc"),
+            emissive: new THREE.Color("#1a2640"),
+            roughness: 0.85,
+            metalness: 0.0,
+            transparent: true,
+            opacity: 0.0,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+          });
+          obj.material = mat;
+          brainShellSolidMaterials.push(mat);
+
+          const wireMat = new THREE.MeshBasicMaterial({
+            color: new THREE.Color("#7ee0ff"),
+            wireframe: true,
+            transparent: true,
+            opacity: 0.0,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+          });
+          const wireMesh = new THREE.Mesh(obj.geometry, wireMat);
+          obj.add(wireMesh);
+          brainShellWireMaterials.push(wireMat);
+          brainShell.add(obj);
+        }
+        scene.add(brainShell);
+        brainLoaded = true;
+        updateProgress();
+      },
+      undefined,
+      (e) => console.error("brain mesh", e),
+    );
+
+    // 3) Brain interior point cloud — colored by distance to V1
+    fetch(`${BASE}meshes/brain-points.bin`)
+      .then((r) => r.arrayBuffer())
+      .then((buf) => {
+        const positions = new Float32Array(buf);
+        const n = positions.length / 3;
+        const colors = new Float32Array(n * 3);
+        // Initial color is a soft white-blue; we tint per-stage in animate().
+        const baseColor = new THREE.Color("#a8c8ff");
+        for (let i = 0; i < n; i++) {
+          colors[i * 3] = baseColor.r;
+          colors[i * 3 + 1] = baseColor.g;
+          colors[i * 3 + 2] = baseColor.b;
+        }
+        const geom = new THREE.BufferGeometry();
+        geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+        geom.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+
+        const mat = new THREE.PointsMaterial({
+          size: 0.012,
+          vertexColors: true,
+          transparent: true,
+          opacity: 0,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          sizeAttenuation: true,
+        });
+        brainPointsMaterial = mat;
+        brainPoints = new THREE.Points(geom, mat);
+        scene.add(brainPoints);
+        dotsLoaded = true;
+        updateProgress();
+
+        // Pre-compute distance to V1 for color shifting once manifest loads.
+        // This may run before manifest is loaded — schedule a lazy retint.
+        retintByV1();
+      })
+      .catch((e) => console.error("brain points", e));
+
+    function retintByV1() {
+      if (!brainPoints) return;
+      const geom = brainPoints.geometry;
+      const positions = geom.getAttribute("position") as THREE.BufferAttribute;
+      const colors = geom.getAttribute("color") as THREE.BufferAttribute;
+      const cyan = new THREE.Color("#7ee0ff");
+      const dim = new THREE.Color("#3b475e");
+      for (let i = 0; i < positions.count; i++) {
+        const dx = positions.getX(i) - v1Right.x;
+        const dy = positions.getY(i) - v1Right.y;
+        const dz = positions.getZ(i) - v1Right.z;
+        const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        // Inside ~0.18 units of V1 → cyan; outside → dim
+        const t = Math.max(0, Math.min(1, (d - 0.05) / 0.25));
+        const r = cyan.r * (1 - t) + dim.r * t;
+        const g = cyan.g * (1 - t) + dim.g * t;
+        const b = cyan.b * (1 - t) + dim.b * t;
+        // Store the V1-tinted color in attribute slot 0 (we'll lerp toward
+        // it in stage 1 and away in stages 0/2). Actually we need TWO color
+        // attributes; simpler: store ONLY the V1 tint and adjust per-stage
+        // via material color blend… but we already use vertexColors.
+        // For simplicity, just store the V1 tint and let opacity sell it.
+        colors.setXYZ(i, r, g, b);
+      }
+      colors.needsUpdate = true;
+    }
+
+    // ---- Real cell cluster (existing) -------------------------------------
+    const cellGroups: Record<string, THREE.Group> = {};
+
     featuredNeurons.forEach((n) => {
-      const url = meshUrl(n);
       loader.load(
-        url,
+        meshUrl(n),
         (gltf) => {
           const cellColor = new THREE.Color(n.color);
           const group = new THREE.Group();
           group.position.set(...CELL_POSITIONS[n.id]);
 
-          // Re-center via bounding box
           const bbox = new THREE.Box3().setFromObject(gltf.scene);
           const center = new THREE.Vector3();
           bbox.getCenter(center);
 
-          // Collect first, mutate after — adding wire children mid-traverse loops forever.
           const sourceMeshes: THREE.Mesh[] = [];
           gltf.scene.traverse((obj) => {
             if (obj instanceof THREE.Mesh) sourceMeshes.push(obj);
@@ -208,95 +266,123 @@ export default function ZoomScene({ stage }: Props) {
 
           cellGroups[n.id] = group;
           scene.add(group);
-          cellsLoaded++;
-          setProgress(cellsLoaded / featuredNeurons.length);
+          updateProgress();
         },
         undefined,
-        (err) => console.error(`failed to load ${url}`, err),
+        (err) => console.error(`failed to load ${meshUrl(n)}`, err),
       );
     });
 
-    // Per-stage opacity targets per layer
-    const stageOpacities = [
-      // 0 — whole brain
-      { brain: 0.7, region: 0.0, cells: 0.0, hero: 0.0 },
-      // 1 — region highlight inside brain
-      { brain: 0.55, region: 0.95, cells: 0.0, hero: 0.0 },
-      // 2 — cluster of 6 real cells
-      { brain: 0.0, region: 0.0, cells: 0.9, hero: 0.9 },
-      // 3 — single hero cell, others dim for context
-      { brain: 0.0, region: 0.0, cells: 0.07, hero: 0.95 },
-      // 4 — synapse zoom (same hero cell, super close so dendritic spines = synapses)
-      { brain: 0.0, region: 0.0, cells: 0.0, hero: 0.95 },
+    // ---- Per-stage targets ------------------------------------------------
+    type Targets = {
+      brainSolid: number;       // brain shell solid opacity
+      brainWire: number;        // brain shell wireframe opacity
+      brainDots: number;        // interior dots opacity
+      dotSize: number;          // point size
+      cells: number;            // non-hero cells opacity
+      hero: number;             // hero cell opacity
+    };
+    const stageOpacities: Targets[] = [
+      { brainSolid: 0.10, brainWire: 0.30, brainDots: 0.85, dotSize: 0.011, cells: 0, hero: 0 }, // 0 — whole brain
+      { brainSolid: 0.06, brainWire: 0.22, brainDots: 0.95, dotSize: 0.018, cells: 0, hero: 0 }, // 1 — V1 close
+      { brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0.9,  hero: 0.9  }, // 2 — circuit
+      { brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0.07, hero: 0.95 }, // 3 — single neuron
+      { brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0.0,  hero: 0.95 }, // 4 — synapse
     ];
 
-    const setCellOpacity = (id: string, isHero: boolean, opacity: number) => {
+    // Camera waypoints (positions + look-at). Stage 1's are computed lazily
+    // after V1 is known, so we read them per-frame in animate().
+    const stageCameras = (s: number, v1: THREE.Vector3): { pos: THREE.Vector3; look: THREE.Vector3 } => {
+      switch (s) {
+        case 0:
+          return { pos: new THREE.Vector3(1.6, 1.0, 2.6), look: new THREE.Vector3(0, 0, 0) };
+        case 1:
+          // Approach V1 from 3/4 angle, framed close.
+          return {
+            pos: new THREE.Vector3(v1.x + 0.55, v1.y + 0.35, v1.z + 0.65),
+            look: v1.clone(),
+          };
+        case 2:
+          return { pos: new THREE.Vector3(0.4, 0.2, 3.6), look: new THREE.Vector3(0, 0, 0) };
+        case 3:
+          return { pos: new THREE.Vector3(0, 0.1, 2.4), look: new THREE.Vector3(0, 0, 0) };
+        case 4:
+          return { pos: new THREE.Vector3(0.18, 0.55, 0.65), look: new THREE.Vector3(0.05, 0.45, 0) };
+        default:
+          return { pos: new THREE.Vector3(0, 0, 5), look: new THREE.Vector3(0, 0, 0) };
+      }
+    };
+
+    const setCellOpacity = (id: string, opacity: number) => {
       const group = cellGroups[id];
       if (!group) return;
       group.traverse((obj) => {
         if (obj instanceof THREE.Mesh) {
           const m = obj.material as THREE.Material;
-          if (obj.userData.isWire) {
-            m.opacity = opacity * 0.18;
-          } else {
-            m.opacity = opacity;
-          }
+          m.opacity = obj.userData.isWire ? opacity * 0.18 : opacity;
         }
       });
       group.visible = opacity > 0.001;
-      // Hero gets a slight extra emissive boost when alone
-      if (isHero) {
-        group.traverse((obj) => {
-          if (obj instanceof THREE.Mesh && !obj.userData.isWire) {
-            const m = obj.material as THREE.MeshStandardMaterial;
-            m.emissiveIntensity = stageRef.current >= 3 ? 1.5 : 1.0;
-          }
-        });
-      }
     };
 
-    // Smoothed values
-    const cur = { brain: 0.7, region: 0, cells: 0, hero: 0 };
-    const targetCamPos = new THREE.Vector3(...STAGE_CAMERAS[0].pos);
-    const targetCamLook = new THREE.Vector3(...STAGE_CAMERAS[0].look);
-    const curCamLook = new THREE.Vector3(...STAGE_CAMERAS[0].look);
+    const cur: Targets = {
+      brainSolid: stageOpacities[0].brainSolid,
+      brainWire: stageOpacities[0].brainWire,
+      brainDots: stageOpacities[0].brainDots,
+      dotSize: stageOpacities[0].dotSize,
+      cells: 0,
+      hero: 0,
+    };
+    const initCam = stageCameras(0, v1Right);
+    camera.position.copy(initCam.pos);
+    const targetCamPos = initCam.pos.clone();
+    const targetCamLook = initCam.look.clone();
+    const curCamLook = initCam.look.clone();
+    camera.lookAt(curCamLook);
 
     let lastStage = -1;
     let frameId = 0;
     const start = performance.now();
     const animate = () => {
       const t = (performance.now() - start) / 1000;
-
       const s = Math.max(0, Math.min(stageOpacities.length - 1, stageRef.current));
       if (s !== lastStage) {
-        const tc = STAGE_CAMERAS[s];
-        targetCamPos.set(...tc.pos);
-        targetCamLook.set(...tc.look);
+        const tc = stageCameras(s, v1Right);
+        targetCamPos.copy(tc.pos);
+        targetCamLook.copy(tc.look);
         lastStage = s;
+        // Stage 1 needs V1-aware retint (positions may have been computed
+        // before manifest arrived).
+        if (s === 1) retintByV1();
       }
 
-      // Lerp opacities
       const target = stageOpacities[s];
       const k = 0.04;
-      cur.brain += (target.brain - cur.brain) * k;
-      cur.region += (target.region - cur.region) * k;
+      cur.brainSolid += (target.brainSolid - cur.brainSolid) * k;
+      cur.brainWire += (target.brainWire - cur.brainWire) * k;
+      cur.brainDots += (target.brainDots - cur.brainDots) * k;
+      cur.dotSize += (target.dotSize - cur.dotSize) * k;
       cur.cells += (target.cells - cur.cells) * k;
       cur.hero += (target.hero - cur.hero) * k;
-      (brainPoints.material as THREE.PointsMaterial).opacity = cur.brain;
-      (region.material as THREE.PointsMaterial).opacity = cur.region;
+
+      brainShellSolidMaterials.forEach((m) => (m.opacity = cur.brainSolid));
+      brainShellWireMaterials.forEach((m) => (m.opacity = cur.brainWire));
+      if (brainPointsMaterial) {
+        brainPointsMaterial.opacity = cur.brainDots;
+        brainPointsMaterial.size = cur.dotSize;
+      }
+      if (brainShell) brainShell.visible = cur.brainSolid + cur.brainWire > 0.001;
+      if (brainPoints) brainPoints.visible = cur.brainDots > 0.001;
 
       for (const n of featuredNeurons) {
-        if (n.id === HERO_ID) {
-          setCellOpacity(n.id, true, cur.hero);
-        } else {
-          setCellOpacity(n.id, false, cur.cells);
-        }
+        setCellOpacity(n.id, n.id === HERO_ID ? cur.hero : cur.cells);
       }
 
-      // Idle motion
-      brainPoints.rotation.y = t * 0.04;
-      region.rotation.y = t * 0.04;
-      // Slight drift on the cell cluster
+      // Slow rotation on the brain so it feels alive
+      if (brainShell) brainShell.rotation.y = t * 0.04;
+      if (brainPoints) brainPoints.rotation.y = t * 0.04;
+
+      // Cells gently rotate
       for (const n of featuredNeurons) {
         const g = cellGroups[n.id];
         if (g) g.rotation.y = t * 0.05;
@@ -324,10 +410,20 @@ export default function ZoomScene({ stage }: Props) {
     return () => {
       cancelAnimationFrame(frameId);
       window.removeEventListener("resize", onResize);
-      [brainPoints, region].forEach((p) => {
-        p.geometry.dispose();
-        (p.material as THREE.Material).dispose();
-      });
+      if (brainPoints) {
+        brainPoints.geometry.dispose();
+        (brainPoints.material as THREE.Material).dispose();
+      }
+      if (brainShell) {
+        brainShell.traverse((obj) => {
+          if (obj instanceof THREE.Mesh) {
+            obj.geometry.dispose();
+            const m = obj.material;
+            if (Array.isArray(m)) m.forEach((mm) => mm.dispose());
+            else (m as THREE.Material).dispose();
+          }
+        });
+      }
       Object.values(cellGroups).forEach((g) => {
         g.traverse((obj) => {
           if (obj instanceof THREE.Mesh) {
@@ -349,7 +445,7 @@ export default function ZoomScene({ stage }: Props) {
     <div ref={containerRef} className="absolute inset-0" aria-hidden>
       {progress < 1 && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-[0.3em] text-white/40 pointer-events-none">
-          Loading cortex · {Math.round(progress * 100)}%
+          Loading the brain · {Math.round(progress * 100)}%
         </div>
       )}
     </div>

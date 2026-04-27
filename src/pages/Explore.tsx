@@ -6,21 +6,21 @@ import ZoomScene from "../components/ZoomScene";
 const STAGES = [
   {
     eyebrow: "Stage 1 of 5",
-    title: "A whole brain.",
+    title: "A mouse brain.",
     subtitle:
-      "About 86 billion neurons. We're showing a millionth of them as glowing dots.",
+      "About the size of an almond. The mesh is from the Allen Institute. The dots inside are placeholders for the ~70 million neurons that live in here.",
   },
   {
     eyebrow: "Stage 2 of 5",
-    title: "A region.",
+    title: "Primary visual cortex.",
     subtitle:
-      "Zoom in. The visual cortex — about a teaspoon of tissue — turns photons into a world.",
+      "About a teaspoon of tissue, on the back of the cortex. This is where the MICrONS project mapped a chunk of mouse brain neuron by neuron — the cells you'll meet next all came from here.",
   },
   {
     eyebrow: "Stage 3 of 5",
-    title: "A piece.",
+    title: "A piece of cortex.",
     subtitle:
-      "A cubic millimeter. The MICrONS project mapped this much of a mouse, neuron by neuron.",
+      "MICrONS reconstructed about a cubic millimeter of this region. Six cells from that volume.",
   },
   {
     eyebrow: "Stage 4 of 5",
