@@ -1,0 +1,386 @@
+[
+  {
+    "segId": 864691135104015693,
+    "centerUm": [
+      1105,
+      609,
+      667
+    ],
+    "extentUm": [
+      152,
+      109,
+      147
+    ],
+    "distFromVolCenterUm": 257,
+    "cutOff": false,
+    "rawFaces": 1271452
+  },
+  {
+    "segId": 864691135100073504,
+    "centerUm": [
+      842,
+      668,
+      947
+    ],
+    "extentUm": [
+      203,
+      264,
+      135
+    ],
+    "distFromVolCenterUm": 392,
+    "cutOff": false,
+    "rawFaces": 1073150
+  },
+  {
+    "segId": 864691135977309763,
+    "centerUm": [
+      998,
+      695,
+      840
+    ],
+    "extentUm": [
+      940,
+      641,
+      492
+    ],
+    "distFromVolCenterUm": 312,
+    "cutOff": false,
+    "rawFaces": 6861789
+  },
+  {
+    "segId": 864691135181775362,
+    "centerUm": [
+      1242,
+      500,
+      990
+    ],
+    "extentUm": [
+      197,
+      369,
+      246
+    ],
+    "distFromVolCenterUm": 586,
+    "cutOff": true,
+    "rawFaces": 2721729
+  },
+  {
+    "segId": 864691135013881494,
+    "centerUm": [
+      1278,
+      623,
+      746
+    ],
+    "extentUm": [
+      266,
+      550,
+      304
+    ],
+    "distFromVolCenterUm": 446,
+    "cutOff": false,
+    "rawFaces": 4433698
+  },
+  {
+    "segId": 864691136135505291,
+    "centerUm": [
+      976,
+      536,
+      923
+    ],
+    "extentUm": [
+      249,
+      407,
+      231
+    ],
+    "distFromVolCenterUm": 395,
+    "cutOff": false,
+    "rawFaces": 2465379
+  },
+  {
+    "segId": 864691135323902108,
+    "centerUm": [
+      785,
+      631,
+      763
+    ],
+    "extentUm": [
+      232,
+      216,
+      190
+    ],
+    "distFromVolCenterUm": 225,
+    "cutOff": false,
+    "rawFaces": 2642976
+  },
+  {
+    "segId": 864691135279086497,
+    "centerUm": [
+      779,
+      565,
+      676
+    ],
+    "extentUm": [
+      144,
+      341,
+      164
+    ],
+    "distFromVolCenterUm": 172,
+    "cutOff": false,
+    "rawFaces": 2810605
+  },
+  {
+    "segId": 864691135345158047,
+    "centerUm": [
+      1266,
+      497,
+      1035
+    ],
+    "extentUm": [
+      196,
+      351,
+      158
+    ],
+    "distFromVolCenterUm": 635,
+    "cutOff": true,
+    "rawFaces": 2058714
+  },
+  {
+    "segId": 864691135345198495,
+    "centerUm": [
+      1390,
+      517,
+      748
+    ],
+    "extentUm": [
+      202,
+      364,
+      177
+    ],
+    "distFromVolCenterUm": 564,
+    "cutOff": false,
+    "rawFaces": 2164361
+  },
+  {
+    "segId": 864691136952628191,
+    "centerUm": [
+      1042,
+      501,
+      1045
+    ],
+    "extentUm": [
+      187,
+      335,
+      137
+    ],
+    "distFromVolCenterUm": 535,
+    "cutOff": true,
+    "rawFaces": 2591314
+  },
+  {
+    "segId": 864691135292628150,
+    "centerUm": [
+      528,
+      665,
+      950
+    ],
+    "extentUm": [
+      236,
+      569,
+      233
+    ],
+    "distFromVolCenterUm": 524,
+    "cutOff": false,
+    "rawFaces": 2490186
+  },
+  {
+    "segId": 864691135866178942,
+    "centerUm": [
+      751,
+      720,
+      854
+    ],
+    "extentUm": [
+      703,
+      747,
+      520
+    ],
+    "distFromVolCenterUm": 330,
+    "cutOff": true,
+    "rawFaces": 6450572
+  },
+  {
+    "segId": 864691134885517050,
+    "centerUm": [
+      1181,
+      570,
+      779
+    ],
+    "extentUm": [
+      212,
+      372,
+      243
+    ],
+    "distFromVolCenterUm": 385,
+    "cutOff": false,
+    "rawFaces": 2690283
+  },
+  {
+    "segId": 864691135571683309,
+    "centerUm": [
+      569,
+      567,
+      724
+    ],
+    "extentUm": [
+      224,
+      337,
+      214
+    ],
+    "distFromVolCenterUm": 356,
+    "cutOff": false,
+    "rawFaces": 2622775
+  },
+  {
+    "segId": 864691136175994374,
+    "centerUm": [
+      610,
+      634,
+      712
+    ],
+    "extentUm": [
+      479,
+      467,
+      237
+    ],
+    "distFromVolCenterUm": 307,
+    "cutOff": false,
+    "rawFaces": 3739097
+  },
+  {
+    "segId": 864691135467553164,
+    "centerUm": [
+      367,
+      677,
+      830
+    ],
+    "extentUm": [
+      174,
+      149,
+      96
+    ],
+    "distFromVolCenterUm": 577,
+    "cutOff": false,
+    "rawFaces": 1472501
+  },
+  {
+    "segId": 864691135349064663,
+    "centerUm": [
+      1331,
+      569,
+      693
+    ],
+    "extentUm": [
+      241,
+      420,
+      198
+    ],
+    "distFromVolCenterUm": 482,
+    "cutOff": false,
+    "rawFaces": 2227393
+  },
+  {
+    "segId": 864691135591256843,
+    "centerUm": [
+      881,
+      544,
+      886
+    ],
+    "extentUm": [
+      359,
+      369,
+      196
+    ],
+    "distFromVolCenterUm": 344,
+    "cutOff": false,
+    "rawFaces": 3806381
+  },
+  {
+    "segId": 864691135494012304,
+    "centerUm": [
+      1534,
+      595,
+      964
+    ],
+    "extentUm": [
+      151,
+      129,
+      112
+    ],
+    "distFromVolCenterUm": 776,
+    "cutOff": false,
+    "rawFaces": 1029183
+  },
+  {
+    "segId": 864691135742189163,
+    "centerUm": [
+      913,
+      610,
+      813
+    ],
+    "extentUm": [
+      638,
+      547,
+      438
+    ],
+    "distFromVolCenterUm": 261,
+    "cutOff": false,
+    "rawFaces": 4123672
+  },
+  {
+    "segId": 864691136312608061,
+    "centerUm": [
+      497,
+      651,
+      740
+    ],
+    "extentUm": [
+      202,
+      205,
+      192
+    ],
+    "distFromVolCenterUm": 419,
+    "cutOff": false,
+    "rawFaces": 2054153
+  },
+  {
+    "segId": 864691135520216306,
+    "centerUm": [
+      937,
+      590,
+      739
+    ],
+    "extentUm": [
+      232,
+      456,
+      271
+    ],
+    "distFromVolCenterUm": 200,
+    "cutOff": false,
+    "rawFaces": 4478291
+  },
+  {
+    "segId": 864691135919627440,
+    "centerUm": [
+      672,
+      614,
+      733
+    ],
+    "extentUm": [
+      354,
+      477,
+      278
+    ],
+    "distFromVolCenterUm": 269,
+    "cutOff": false,
+    "rawFaces": 2938503
+  }
+]

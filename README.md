@@ -1,73 +1,69 @@
-# React + TypeScript + Vite
+# Inner Cosmos
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A public-facing brain explorer that lets anyone wander through real connectomics data with no log-in, no jargon, and no microscope required.
 
-Currently, two official plugins are available:
+**Live demo:** [amyleesterling.github.io/inner_cosmos/](https://amyleesterling.github.io/inner_cosmos/)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Every neuron you see is a real cell from the [MICrONS minnie65](https://www.microns-explorer.org/) volume — every dendrite, every spine, reconstructed from electron microscopy. Nothing on screen is illustrative.
 
-## React Compiler
+## What's in it
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Landing** — cinematic hero with drifting neurons in the background.
+- **Meet a Neuron** — six characters from the cortex with shape-nicknames (Lightning Tree, Coral Fan, Candelabra, Reaching Hand, Dust Star, Forest Floor). Each rotates as a real EM-reconstructed mesh.
+- **Explorer** — a 5-stage guided zoom: whole brain → visual cortex → cubic millimeter → single neuron → synapse. Use ← → to step through.
 
-## Expanding the ESLint configuration
+## Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- Vite + React + TypeScript
+- Tailwind v4 (theme tokens in `src/index.css`)
+- Three.js for all 3D (no react-three-fiber)
+- Framer Motion for UI motion
+- React Router for `/`, `/meet`, `/meet/:id`, `/explore`
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Data pipeline
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+Each featured cell ships as a web-optimized `.glb` in `public/meshes/`. They're produced offline by `scripts/extract-meshes.py`, which:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+1. Pulls the assembled mesh from `gs://iarpa_microns/minnie/minnie65/seg_m1300` via [`cloud-volume`](https://github.com/seung-lab/cloud-volume).
+2. Centers + scales + flips Y so the apical dendrite of pyramidal cells points up in three.js.
+3. Decimates with [`fast_simplification`](https://github.com/pyvista/fast-simplification)'s quadric edge collapse to ~80–130K faces (per-cell budget tuned for visible spines).
+4. Exports as binary glTF via `trimesh`.
+
+To regenerate the meshes (e.g. swap in a different seg ID, change the face budget):
+
+```bash
+python scripts/extract-meshes.py
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+`scripts/find-central-cell.py` is a small helper that scans candidate seg IDs and picks the one closest to the volume center, useful when a chosen cell turns out to be cut off at the imaged-volume edge.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Run locally
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
+
+Then open the dev URL it prints.
+
+## Build & deploy
+
+```bash
+npm run build
+npm run preview
+```
+
+The site auto-deploys to GitHub Pages on push to `master` via `.github/workflows/deploy.yml`.
+
+## Cell credits
+
+| Card | Type | MICrONS minnie65 seg ID |
+|---|---|---|
+| Lightning Tree | Layer 5 thick-tufted pyramidal | `864691135572530981` |
+| Coral Fan | Parvalbumin basket | `864691136662432990` |
+| Candelabra | Chandelier | `864691135572094189` |
+| Reaching Hand | Martinotti | `864691135919630768` |
+| Dust Star | Layer 4 cell | `864691135279086497` |
+| Forest Floor | Protoplasmic astrocyte | `864691135113162137` |
+
+All sourced from the curated [MICrONS Explorer mm3 gallery](https://www.microns-explorer.org/gallery-mm3).

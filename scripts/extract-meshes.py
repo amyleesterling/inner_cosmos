@@ -28,12 +28,16 @@ SOURCE = "precomputed://gs://iarpa_microns/minnie/minnie65/seg_m1300"
 # (slug, seg_id, target_face_count)
 # Bigger cells (pyramidal, astrocyte) get a higher face budget.
 CELLS = [
-    ("lightning-tree", 864691135572530981, 40000),
-    ("coral-fan",      864691136662432990, 30000),
-    ("candelabra",     864691135572094189, 35000),
-    ("reaching-hand",  864691135919630768, 30000),
-    ("dust-star",      864691135104015693, 25000),
-    ("forest-floor",   864691135113162137, 35000),
+    # Higher face budgets here — at ~30K the dendrites looked piecewise-linear
+    # under zoom. ~100K keeps spines visible without making files unreasonable.
+    ("lightning-tree", 864691135572530981, 120000),
+    ("coral-fan",      864691136662432990, 100000),
+    ("candelabra",     864691135572094189, 100000),
+    ("reaching-hand",  864691135919630768, 90000),
+    # 864691135104015693 was visibly cut off at volume edge; this one is
+    # at ~172um from the volume center and intact (see find-central-cell.py).
+    ("dust-star",      864691135279086497, 80000),
+    ("forest-floor",   864691135113162137, 130000),
 ]
 
 

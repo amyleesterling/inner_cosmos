@@ -91,7 +91,7 @@ export const featuredNeurons: FeaturedNeuron[] = [
   },
   {
     id: "dust-star",
-    segId: "864691135104015693",
+    segId: "864691135279086497",
     galleryState: "layer4_cells.json",
     nickname: "Dust Star",
     scientificType: "Layer 4 Cell",
