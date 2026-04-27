@@ -71,9 +71,24 @@ export default function Explore() {
         <ZoomScene stage={stage} />
       </div>
 
-      {/* Vignette */}
+      {/* Top vignette */}
       <div className="pointer-events-none fixed inset-x-0 top-0 h-48 z-[5] bg-gradient-to-b from-[var(--color-ink-950)] to-transparent" />
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 h-56 z-[5] bg-gradient-to-t from-[var(--color-ink-950)] to-transparent" />
+      {/* Bottom vignette — taller and stronger so the stage label sits clearly above the mesh */}
+      <div
+        className="pointer-events-none fixed inset-x-0 bottom-0 h-[55vh] z-[5]"
+        style={{
+          background:
+            "linear-gradient(to top, rgba(4,6,12,0.97) 0%, rgba(4,6,12,0.85) 30%, rgba(4,6,12,0.45) 65%, rgba(4,6,12,0) 100%)",
+        }}
+      />
+      {/* Focused darkening directly behind the label area */}
+      <div
+        className="pointer-events-none fixed bottom-0 left-1/2 -translate-x-1/2 z-[5] w-[min(900px,90vw)] h-[420px]"
+        style={{
+          background:
+            "radial-gradient(ellipse at center bottom, rgba(4,6,12,0.65) 0%, rgba(4,6,12,0.35) 45%, rgba(4,6,12,0) 80%)",
+        }}
+      />
 
       <main className="relative z-10 min-h-screen flex flex-col">
         {/* Stage progress dots */}
@@ -105,18 +120,28 @@ export default function Explore() {
                 exit={{ opacity: 0, y: -16, filter: "blur(6px)" }}
                 transition={{ duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
               >
-                <p className="text-[11px] uppercase tracking-[0.4em] text-white/45 mb-4">
+                <p
+                  className="text-[11px] uppercase tracking-[0.4em] text-white/55 mb-4"
+                  style={{ textShadow: "0 1px 12px rgba(4,6,12,0.95)" }}
+                >
                   {cur.eyebrow}
                 </p>
                 <h2
-                  style={{ fontSize: "clamp(1.75rem, 4.5vw, 3.5rem)" }}
+                  style={{
+                    fontSize: "clamp(1.75rem, 4.5vw, 3.5rem)",
+                    textShadow:
+                      "0 2px 24px rgba(4,6,12,0.95), 0 0 12px rgba(4,6,12,0.85)",
+                  }}
                   className="font-display font-light leading-[1.05]"
                 >
                   {cur.title}
                 </h2>
                 <p
-                  style={{ fontSize: "clamp(0.95rem, 1.4vw, 1.2rem)" }}
-                  className="mt-5 text-white/70 font-light leading-relaxed text-balance"
+                  style={{
+                    fontSize: "clamp(0.95rem, 1.4vw, 1.2rem)",
+                    textShadow: "0 1px 16px rgba(4,6,12,0.95)",
+                  }}
+                  className="mt-5 text-white/80 font-light leading-relaxed text-balance"
                 >
                   {cur.subtitle}
                 </p>
