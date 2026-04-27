@@ -1,4 +1,4 @@
-import NeuronCanvas from "../components/NeuronCanvas";
+import LandingNeurons from "../components/LandingNeurons";
 import Hero from "../components/Hero";
 import WonderStrip from "../components/WonderStrip";
 
@@ -14,8 +14,8 @@ export default function Landing() {
         }}
       />
 
-      {/* Three.js neuron canvas — fixed, on top of gradient, behind content */}
-      <NeuronCanvas />
+      {/* Real MICrONS cells drifting in the background — random selection per page load */}
+      <LandingNeurons />
 
       {/* Top + bottom vignettes — fixed, on top of canvas, behind content */}
       <div className="pointer-events-none fixed inset-x-0 top-0 h-40 z-[5] bg-gradient-to-b from-[var(--color-ink-950)] to-transparent" />

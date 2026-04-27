@@ -1,0 +1,42 @@
+{
+  "cells": [
+    {
+      "segId": "864691136144674612",
+      "source": "precomputed://gs://iarpa_microns/minnie/minnie65/seg_m1300",
+      "fileKB": 408.9,
+      "faces": 20000,
+      "extentNm": 1070311.78125
+    },
+    {
+      "segId": "864691135307555142",
+      "source": "precomputed://gs://iarpa_microns/minnie/minnie65/seg_m1300",
+      "fileKB": 377.6,
+      "faces": 19999,
+      "extentNm": 361000.0
+    },
+    {
+      "segId": "864691135937286404",
+      "source": "precomputed://gs://iarpa_microns/minnie/minnie65/seg_m1300",
+      "fileKB": 407.3,
+      "faces": 20000,
+      "extentNm": 699815.9375
+    },
+    {
+      "segId": "864691136812081779",
+      "source": "precomputed://gs://iarpa_microns/minnie/minnie65/seg_m1300",
+      "fileKB": 404.8,
+      "faces": 19998,
+      "extentNm": 1090895.875
+    }
+  ],
+  "errors": [],
+  "stubs": [
+    {
+      "segId": "864691134064155671",
+      "source": "precomputed://gs://iarpa_microns/minnie/minnie65/seg_m1300",
+      "fileKB": 5.6,
+      "faces": 276,
+      "extentNm": 624.0625
+    }
+  ]
+}
