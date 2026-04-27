@@ -25,6 +25,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      # Copy index.html → 404.html so client-side routes survive a refresh
+      # on GitHub Pages (e.g. /inner_cosmos/meet/lightning-tree).
+      - run: cp dist/index.html dist/404.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
