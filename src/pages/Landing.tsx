@@ -3,11 +3,6 @@ import Hero from "../components/Hero";
 import WonderStrip from "../components/WonderStrip";
 
 export default function Landing() {
-  const handleEnter = () => {
-    // TODO: route to /explore
-    window.alert("Explorer coming next — embedded Neuroglancer view of MICrONS minnie65.");
-  };
-
   return (
     <>
       {/* Cinematic background gradient — fixed, behind everything */}
@@ -28,7 +23,7 @@ export default function Landing() {
 
       {/* Foreground content */}
       <main className="relative z-10 min-h-screen overflow-x-hidden">
-        <Hero onEnter={handleEnter} />
+        <Hero />
         <WonderStrip />
 
         <footer className="py-12 px-6 text-center text-xs text-white/35 tracking-wider">

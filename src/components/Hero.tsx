@@ -1,10 +1,7 @@
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 
-interface Props {
-  onEnter: () => void;
-}
-
-export default function Hero({ onEnter }: Props) {
+export default function Hero() {
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center px-6 text-center">
       <motion.p
@@ -13,7 +10,7 @@ export default function Hero({ onEnter }: Props) {
         transition={{ duration: 1.2, ease: "easeOut" }}
         className="text-xs uppercase tracking-[0.4em] text-white/50 mb-8"
       >
-        Hidden Worlds — A Brain Explorer
+        Inner Cosmos
       </motion.p>
 
       <motion.h1
@@ -45,26 +42,26 @@ export default function Hero({ onEnter }: Props) {
         transition={{ duration: 1, delay: 0.85, ease: "easeOut" }}
         className="mt-12 flex flex-col sm:flex-row items-center gap-4"
       >
-        <button
-          onClick={onEnter}
+        <Link
+          to="/explore"
           className="group relative px-8 py-3.5 rounded-full glass-strong text-white font-medium tracking-wide overflow-hidden transition-all duration-500 hover:scale-[1.03] active:scale-[0.99] cursor-pointer"
         >
           <span className="absolute inset-0 bg-gradient-to-r from-[var(--color-glow-cyan)]/20 via-[var(--color-glow-violet)]/20 to-[var(--color-glow-magenta)]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <span className="absolute inset-0 rounded-full ring-1 ring-white/20 group-hover:ring-white/40 transition" />
           <span className="relative flex items-center gap-3">
-            Enter Explorer
+            Begin the journey
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="transition-transform group-hover:translate-x-0.5">
               <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </span>
-        </button>
+        </Link>
 
-        <a
-          href="#wonder"
+        <Link
+          to="/meet"
           className="text-sm text-white/55 hover:text-white/85 transition-colors px-4 py-2"
         >
-          or just look around
-        </a>
+          or meet a neuron →
+        </Link>
       </motion.div>
 
       <motion.div
