@@ -140,6 +140,54 @@ export const featuredNeurons: FeaturedNeuron[] = [
     whyItMatters:
       "For most of the last century these cells were dismissed as packing glue. We now know they're active partners in how the brain works — and we're still learning what they do.",
   },
+  {
+    id: "crown",
+    segId: "864691135855890478",
+    galleryState: "layer23_cells.json",
+    nickname: "Crown",
+    scientificType: "Layer 2/3 Pyramidal",
+    category: "excitatory",
+    morphologyPreset: "pyramidal",
+    color: "#aedeff",
+    shapeAnalogy: "A smaller pyramid soma whose apical dendrite reaches up to layer 1 and ends in a tuft like a small crown.",
+    oneLiner: "The most numerous excitatory cell in cortex — smaller cousin of Lightning Tree.",
+    whatItDoes:
+      "Layer 2/3 pyramidal neurons live near the cortical surface and form most of the local connections within and between cortical columns.",
+    whyItMatters:
+      "Where Layer 5 thick-tufted cells send messages out of cortex, Layer 2/3 cells gossip laterally — between cortical regions, between hemispheres, between sensory modalities. They're the workhorse of within-cortex communication.",
+  },
+  {
+    id: "spindle",
+    segId: "864691135407923657",
+    galleryState: "bipolar_cells.json",
+    nickname: "Spindle",
+    scientificType: "Bipolar Interneuron",
+    category: "inhibitory",
+    morphologyPreset: "martinotti", // closest visual analogue we already have for the per-card preview placeholder
+    color: "#ffb87a",
+    shapeAnalogy: "A small, narrow cell body with one dendrite reaching up and one reaching down — a slim, upright spindle.",
+    oneLiner: "An inhibitory interneuron whose narrow vertical shape spans cortical layers.",
+    whatItDoes:
+      "Bipolar interneurons (often VIP-expressing) typically inhibit other inhibitory cells. The result is disinhibition: when they fire, the cells they suppress can't suppress pyramidals, so pyramidals get louder.",
+    whyItMatters:
+      "Interneurons that inhibit interneurons sound paradoxical, but they're how the cortex flexibly amplifies certain signals. They're a key gear in attention and learning.",
+  },
+  {
+    id: "watcher",
+    segId: "864691136194411734",
+    galleryState: "microglia_set.json",
+    nickname: "Watcher",
+    scientificType: "Microglia",
+    category: "other",
+    morphologyPreset: "astrocyte", // closest visual analogue for the placeholder; real mesh shows distinct shape
+    color: "#d4ff7e",
+    shapeAnalogy: "A small body with thin, reaching arms that constantly extend and retract, sampling the tissue around it.",
+    oneLiner: "Not a neuron — the brain's resident immune cell, always on patrol.",
+    whatItDoes:
+      "Microglia are the brain's macrophages. They survey their territory, eat debris, prune unused synapses during development, and respond to damage or infection.",
+    whyItMatters:
+      "Their fingertips touch every synapse in their neighborhood every few hours. They're not just defenders — they shape circuits across a lifetime.",
+  },
 ];
 
 export function getNeuronById(id: string): FeaturedNeuron | undefined {

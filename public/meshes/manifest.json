@@ -52,5 +52,32 @@
     "decimatedFaces": 349999,
     "fileKB": 6249.1,
     "extentNm": 93983.9
+  },
+  {
+    "slug": "crown",
+    "segId": "864691135855890478",
+    "rawFaces": 11005639,
+    "rawVerts": 5594766,
+    "decimatedFaces": 90000,
+    "fileKB": 1762.0,
+    "extentNm": 1083256.0
+  },
+  {
+    "slug": "spindle",
+    "segId": "864691135407923657",
+    "rawFaces": 1254652,
+    "rawVerts": 638987,
+    "decimatedFaces": 79999,
+    "fileKB": 1429.0,
+    "extentNm": 361176.0
+  },
+  {
+    "slug": "watcher",
+    "segId": "864691136194411734",
+    "rawFaces": 1254426,
+    "rawVerts": 636842,
+    "decimatedFaces": 99999,
+    "fileKB": 1771.9,
+    "extentNm": 88791.8
   }
 ]

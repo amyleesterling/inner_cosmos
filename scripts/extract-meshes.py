@@ -40,6 +40,11 @@ CELLS = [
     # at ~172um from the volume center and intact (see find-central-cell.py).
     ("dust-star",      864691135279086497, 80000),
     ("forest-floor",   864691135113162137, 350000),
+    # Newer additions, sourced from microns-explorer.org/gallery-mm3 :
+    ("crown",          864691135855890478, 90000),  # Layer 2/3 pyramidal
+    ("spindle",        864691135407923657, 80000),  # Bipolar interneuron
+    # 864691133190214690 was a 22-face stub (proofread away); this one is intact.
+    ("watcher",        864691136194411734, 100000), # Microglia
 ]
 
 
