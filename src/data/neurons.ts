@@ -1,6 +1,6 @@
 export interface FeaturedNeuron {
   id: string;              // route slug
-  segId: string;            // MICrONS minnie65 segment ID (placeholder until real ones wired)
+  segId: string;            // Real MICrONS minnie65 segment ID (sourced from microns-explorer.org/gallery-mm3)
   nickname: string;
   scientificType: string;
   morphologyPreset: "pyramidal" | "basket" | "chandelier" | "martinotti" | "stellate" | "astrocyte";
@@ -9,19 +9,30 @@ export interface FeaturedNeuron {
   oneLiner: string;          // shown on card
   whatItDoes: string;        // longer, on detail page
   whyItMatters: string;
+  /** filename in gs://microns-static-links/mm3/ — the curated gallery state file */
+  galleryState: string;
 }
 
-// Note: segId values are placeholders until we wire real MICrONS minnie65 IDs.
-// The morphology shown is procedural — we'll swap in real meshes via DRACO loader later.
+/** Build a Neuroglancer URL that opens this cell's curated MICrONS gallery view. */
+export function neuroglancerUrl(galleryState: string): string {
+  return `https://ngl.microns-explorer.org/#!gs://microns-static-links/mm3/${galleryState}`;
+}
+
+// All segIds are real MICrONS minnie65 cells curated by the MICrONS team for
+// https://www.microns-explorer.org/gallery-mm3 . The 3D shapes shown on these
+// cards are PROCEDURAL — same family of shape, same morphology preset, but
+// generated for fast loading. Click "View the real cell" on the detail page
+// to see the actual mapped neuron in Neuroglancer.
 export const featuredNeurons: FeaturedNeuron[] = [
   {
     id: "lightning-tree",
-    segId: "864691135761488438",
+    segId: "864691135572530981",
+    galleryState: "layer5_thick_tufted.json",
     nickname: "Lightning Tree",
-    scientificType: "Layer 2/3 Pyramidal Neuron",
+    scientificType: "Layer 5 Thick-Tufted Pyramidal",
     morphologyPreset: "pyramidal",
     color: "#7ee0ff",
-    shapeAnalogy: "A pyramid with a single tall trunk that splinters into a crown of thin branches.",
+    shapeAnalogy: "A pyramid soma with one tall trunk that splinters into a crown of thin branches at the top.",
     oneLiner: "The brain's loudest voice — these cells shout when you see, hear, or remember.",
     whatItDoes:
       "Pyramidal neurons are the principal output cells of the cortex. They take in thousands of signals through their dendrites and fire long axons that reach far across the brain — the wiring of conscious thought.",
@@ -30,7 +41,8 @@ export const featuredNeurons: FeaturedNeuron[] = [
   },
   {
     id: "coral-fan",
-    segId: "864691135776431068",
+    segId: "864691136662432990",
+    galleryState: "basket_cells.json",
     nickname: "Coral Fan",
     scientificType: "Parvalbumin Basket Cell",
     morphologyPreset: "basket",
@@ -44,7 +56,8 @@ export const featuredNeurons: FeaturedNeuron[] = [
   },
   {
     id: "candelabra",
-    segId: "864691135864244281",
+    segId: "864691135572094189",
+    galleryState: "chandelier_cells.json",
     nickname: "Candelabra",
     scientificType: "Chandelier Cell",
     morphologyPreset: "chandelier",
@@ -58,7 +71,8 @@ export const featuredNeurons: FeaturedNeuron[] = [
   },
   {
     id: "reaching-hand",
-    segId: "864691135438169986",
+    segId: "864691135919630768",
+    galleryState: "martinotti_cells.json",
     nickname: "Reaching Hand",
     scientificType: "Martinotti Cell",
     morphologyPreset: "martinotti",
@@ -72,21 +86,23 @@ export const featuredNeurons: FeaturedNeuron[] = [
   },
   {
     id: "dust-star",
-    segId: "864691135415498621",
+    segId: "864691135104015693",
+    galleryState: "layer4_cells.json",
     nickname: "Dust Star",
-    scientificType: "Spiny Stellate Cell",
+    scientificType: "Layer 4 Cell",
     morphologyPreset: "stellate",
     color: "#ffd9a8",
-    shapeAnalogy: "A small round body with short, evenly-distributed dendrites in every direction.",
+    shapeAnalogy: "A small round body with short, evenly-distributed dendrites reaching in every direction.",
     oneLiner: "The first stop for messages from your senses.",
     whatItDoes:
-      "Spiny stellate cells live in layer 4 of cortex — the layer that receives information from the thalamus. Every photon, sound wave, or touch starts its cortical journey here.",
+      "Layer 4 cells are where the cortex first hears from the rest of the brain. Sensory information from the thalamus lands here before it spreads upward through the cortex. Every photon, sound wave, or touch begins its cortical journey on cells like this one.",
     whyItMatters:
-      "Stellate cells are the brain's sensory inbox. Without them, the world wouldn't reach the cortex.",
+      "Layer 4 is the brain's sensory inbox. Without it, the world wouldn't reach the cortex.",
   },
   {
     id: "forest-floor",
-    segId: "864691135509418251",
+    segId: "864691135113162137",
+    galleryState: "astrocytes.json",
     nickname: "Forest Floor",
     scientificType: "Protoplasmic Astrocyte",
     morphologyPreset: "astrocyte",

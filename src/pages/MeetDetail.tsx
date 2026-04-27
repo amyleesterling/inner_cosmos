@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Link, useParams } from "react-router-dom";
-import { getNeuronById, featuredNeurons } from "../data/neurons";
+import { getNeuronById, featuredNeurons, neuroglancerUrl } from "../data/neurons";
 import NeuronModel from "../components/NeuronModel";
 
 export default function MeetDetail() {
@@ -84,13 +84,29 @@ export default function MeetDetail() {
               <Section label="What it does">{neuron.whatItDoes}</Section>
               <Section label="Why it matters">{neuron.whyItMatters}</Section>
 
-              <div className="mt-8 pt-6 border-t border-white/10 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-white/40">
-                <span>
-                  MICrONS minnie65 · seg{" "}
-                  <code className="font-mono text-white/55 text-[11px]">
-                    {neuron.segId}
-                  </code>
-                </span>
+              <div className="mt-8 pt-6 border-t border-white/10 space-y-4">
+                <a
+                  href={neuroglancerUrl(neuron.galleryState)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group inline-flex items-center gap-3 px-5 py-3 rounded-full glass-strong hover:bg-white/[0.08] transition text-sm font-medium"
+                >
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ background: neuron.color, boxShadow: `0 0 10px ${neuron.color}` }}
+                  />
+                  <span>View the real cell in Neuroglancer</span>
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+                    <path d="M5 11l6-6M5 5h6v6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </a>
+                <p className="text-xs text-white/40 leading-relaxed">
+                  This view is a procedural illustration of the family of shape. The button above opens the actual mapped cell — every dendrite reconstructed from electron microscopy — in the MICrONS neuroglancer viewer.
+                </p>
+                <p className="text-[11px] text-white/35 font-mono">
+                  MICrONS minnie65 · seg_m1300 · seg{" "}
+                  <span className="text-white/60">{neuron.segId}</span>
+                </p>
               </div>
             </div>
           </motion.div>
