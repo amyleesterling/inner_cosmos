@@ -1,0 +1,56 @@
+[
+  {
+    "slug": "lightning-tree",
+    "segId": "864691135572530981",
+    "rawFaces": 10291430,
+    "rawVerts": 5231141,
+    "decimatedFaces": 40000,
+    "fileKB": 792.7,
+    "extentNm": 918888.1
+  },
+  {
+    "slug": "coral-fan",
+    "segId": "864691136662432990",
+    "rawFaces": 17970685,
+    "rawVerts": 9130867,
+    "decimatedFaces": 29999,
+    "fileKB": 664.0,
+    "extentNm": 528135.8
+  },
+  {
+    "slug": "candelabra",
+    "segId": "864691135572094189",
+    "rawFaces": 7775420,
+    "rawVerts": 3953855,
+    "decimatedFaces": 34999,
+    "fileKB": 725.6,
+    "extentNm": 393888.1
+  },
+  {
+    "slug": "reaching-hand",
+    "segId": "864691135919630768",
+    "rawFaces": 11729181,
+    "rawVerts": 5959338,
+    "decimatedFaces": 30000,
+    "fileKB": 642.2,
+    "extentNm": 497912.1
+  },
+  {
+    "slug": "dust-star",
+    "segId": "864691135104015693",
+    "rawFaces": 1271452,
+    "rawVerts": 646265,
+    "decimatedFaces": 25000,
+    "fileKB": 461.0,
+    "extentNm": 152048.1
+  },
+  {
+    "slug": "forest-floor",
+    "segId": "864691135113162137",
+    "rawFaces": 23896258,
+    "rawVerts": 12095041,
+    "decimatedFaces": 35000,
+    "fileKB": 673.4,
+    "extentNm": 93983.9
+  }
+]

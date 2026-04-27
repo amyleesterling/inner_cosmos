@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { buildMorphology, getPreset } from "../lib/morphology";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { featuredNeurons, meshUrl } from "../data/neurons";
 
 const PALETTE = [
   new THREE.Color("#7ee0ff"),
@@ -10,31 +11,37 @@ const PALETTE = [
   new THREE.Color("#9af5d8"),
 ];
 
-// Brain-shaped point cloud — coronal-ish ellipsoid
+const HERO_ID = "lightning-tree";
+
+// Where each cell sits in the cortical column. Lightning Tree at origin, the
+// rest in a small cluster around it. After GLB normalization each cell is
+// roughly [-1, 1] in size so spacing is in those units.
+const CELL_POSITIONS: Record<string, [number, number, number]> = {
+  "lightning-tree": [0, 0, 0],
+  "coral-fan": [0.65, -0.3, -0.45],
+  "candelabra": [-0.55, -0.15, 0.35],
+  "reaching-hand": [0.45, -0.55, 0.5],
+  "dust-star": [-0.7, 0.55, -0.35],
+  "forest-floor": [0.4, 0.6, 0.55],
+};
+
+// Brain-shaped point cloud — coronal-ish ellipsoid, surface-biased
 function buildBrainPoints(): THREE.Points {
   const count = 28000;
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
   let i = 0;
   while (i < count) {
-    // Sample a unit ball, then deform into brain-ish shape
     const x = Math.random() * 2 - 1;
     const y = Math.random() * 2 - 1;
     const z = Math.random() * 2 - 1;
     if (x * x + y * y + z * z > 1) continue;
-    // Brain proportions: long anterior-posterior, narrower vertically
-    const ax = x * 6.5;
-    const ay = y * 4.5 + Math.abs(x) * 0.5;       // taller on sides (cortical bulge)
-    const az = z * 5;
-    // Bias points toward the surface (cortex is on the outside)
     const r = Math.sqrt(x * x + y * y + z * z);
     const surfaceBias = Math.pow(r, 1.5);
-    const useThis = Math.random() < surfaceBias * 0.9;
-    if (!useThis) continue;
-    positions[i * 3] = ax;
-    positions[i * 3 + 1] = ay;
-    positions[i * 3 + 2] = az;
-    // Color by depth
+    if (Math.random() >= surfaceBias * 0.9) continue;
+    positions[i * 3] = x * 6.5;
+    positions[i * 3 + 1] = y * 4.5 + Math.abs(x) * 0.5;
+    positions[i * 3 + 2] = z * 5;
     const c = PALETTE[Math.floor(Math.random() * PALETTE.length)];
     colors[i * 3] = c.r;
     colors[i * 3 + 1] = c.g;
@@ -56,7 +63,7 @@ function buildBrainPoints(): THREE.Points {
   return new THREE.Points(geom, mat);
 }
 
-// Highlighted column representing visual cortex (back-bottom of brain)
+// Highlighted region (visual cortex): cluster placed on the back-bottom of brain
 function buildRegionHighlight(): THREE.Points {
   const count = 1800;
   const positions = new Float32Array(count * 3);
@@ -83,134 +90,15 @@ function buildRegionHighlight(): THREE.Points {
   return new THREE.Points(geom, mat);
 }
 
-// A small circuit of ~30 simple neurons clustered in the visual cortex spot
-function buildCircuit(seed: number): THREE.Group {
-  const group = new THREE.Group();
-  group.position.set(-4.5, 0.5, 0);
-  const presets = ["pyramidal", "basket", "stellate", "martinotti"];
-  let s = seed;
-  const rng = () => {
-    s = (s * 1664525 + 1013904223) >>> 0;
-    return s / 4294967296;
-  };
-  for (let i = 0; i < 28; i++) {
-    const preset = presets[Math.floor(rng() * presets.length)];
-    const cfg = { ...getPreset(preset), branchLength: 0.35 + rng() * 0.15, branchDepth: 2 };
-    const color = PALETTE[Math.floor(rng() * PALETTE.length)];
-    const built = buildMorphology(cfg, color);
-    built.group.scale.setScalar(0.18 + rng() * 0.08);
-    const r = 0.5 + rng() * 0.5;
-    const theta = rng() * Math.PI * 2;
-    const phi = (rng() - 0.5) * 0.6;
-    built.group.position.set(
-      Math.cos(theta) * r,
-      Math.sin(phi) * r * 0.6,
-      Math.sin(theta) * r,
-    );
-    built.group.rotation.set(rng() * Math.PI, rng() * Math.PI, rng() * Math.PI);
-    group.add(built.group);
-  }
-  // Initial opacity 0
-  group.traverse((obj) => {
-    if (obj instanceof THREE.Mesh || obj instanceof THREE.Line || obj instanceof THREE.Points) {
-      const m = obj.material as THREE.Material;
-      m.transparent = true;
-      m.opacity = 0;
-    }
-  });
-  return group;
-}
-
-// One detailed pyramidal neuron
-function buildHeroNeuron(): THREE.Group {
-  const cfg = getPreset("pyramidal");
-  const built = buildMorphology(cfg, new THREE.Color("#7ee0ff"));
-  built.group.position.set(-4.5, 0.5, 0);
-  built.group.scale.setScalar(0.55);
-  built.group.traverse((obj) => {
-    if (obj instanceof THREE.Mesh || obj instanceof THREE.Line || obj instanceof THREE.Points) {
-      const m = obj.material as THREE.Material;
-      m.transparent = true;
-      m.opacity = 0;
-    }
-  });
-  return built.group;
-}
-
-// Synapse — two stubby branches meeting, glowing junction points
-function buildSynapse(): THREE.Group {
-  const group = new THREE.Group();
-  group.position.set(-4.5, 0.5, 0);
-
-  // Two branch tubes converging
-  const curve1 = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(-0.5, -0.3, 0.0),
-    new THREE.Vector3(-0.2, -0.05, 0.05),
-    new THREE.Vector3(0.0, 0.0, 0.0),
-  ]);
-  const curve2 = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(0.5, 0.3, 0.0),
-    new THREE.Vector3(0.2, 0.08, -0.05),
-    new THREE.Vector3(0.05, 0.02, 0.0),
-  ]);
-  const tubeGeo1 = new THREE.TubeGeometry(curve1, 24, 0.025, 8, false);
-  const tubeGeo2 = new THREE.TubeGeometry(curve2, 24, 0.022, 8, false);
-  const tubeMat1 = new THREE.MeshBasicMaterial({
-    color: new THREE.Color("#7ee0ff"),
-    transparent: true,
-    opacity: 0,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-  });
-  const tubeMat2 = new THREE.MeshBasicMaterial({
-    color: new THREE.Color("#ff7ee0"),
-    transparent: true,
-    opacity: 0,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-  });
-  group.add(new THREE.Mesh(tubeGeo1, tubeMat1));
-  group.add(new THREE.Mesh(tubeGeo2, tubeMat2));
-
-  // Synaptic glowing dot
-  const sphere = new THREE.Mesh(
-    new THREE.SphereGeometry(0.04, 16, 16),
-    new THREE.MeshBasicMaterial({
-      color: new THREE.Color("#ffd9a8"),
-      transparent: true,
-      opacity: 0,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    }),
-  );
-  sphere.position.set(0.025, 0.01, 0);
-  group.add(sphere);
-
-  // Halo around synapse
-  const halo = new THREE.Mesh(
-    new THREE.SphereGeometry(0.13, 16, 16),
-    new THREE.MeshBasicMaterial({
-      color: new THREE.Color("#ffd9a8"),
-      transparent: true,
-      opacity: 0,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    }),
-  );
-  halo.position.copy(sphere.position);
-  halo.userData.isHalo = true;
-  group.add(halo);
-
-  return group;
-}
-
-// Camera waypoints per stage (position + lookAt)
+// Camera waypoints per stage (position + lookAt). After stage 1 we leave the
+// brain coordinate frame and enter the cortical-column frame (origin = where
+// the Lightning Tree's soma sits).
 const STAGE_CAMERAS: Array<{ pos: [number, number, number]; look: [number, number, number] }> = [
-  { pos: [0, 4, 22], look: [0, 0, 0] },           // 0 — whole brain
-  { pos: [-2, 2, 8], look: [-4.5, 0.5, 0] },       // 1 — region
-  { pos: [-3.5, 0.7, 3.5], look: [-4.5, 0.5, 0] }, // 2 — circuit
-  { pos: [-4.0, 0.6, 1.8], look: [-4.5, 0.5, 0] }, // 3 — single neuron
-  { pos: [-4.45, 0.51, 0.6], look: [-4.5, 0.5, 0] },// 4 — synapse
+  { pos: [0, 4, 22], look: [0, 0, 0] },             // 0 — whole brain
+  { pos: [-2, 2, 8], look: [-4.5, 0.5, 0] },         // 1 — region highlight
+  { pos: [0.4, 0.2, 3.6], look: [0, 0, 0] },         // 2 — circuit (6 real cells)
+  { pos: [0, 0.1, 2.4], look: [0, 0, 0] },           // 3 — hero cell (Lightning Tree)
+  { pos: [0.18, 0.55, 0.65], look: [0.05, 0.45, 0] },// 4 — synapse zoom on dendrite
 ];
 
 interface Props {
@@ -221,6 +109,7 @@ export default function ZoomScene({ stage }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef(stage);
   stageRef.current = stage;
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -232,15 +121,11 @@ export default function ZoomScene({ stage }: Props) {
     const camera = new THREE.PerspectiveCamera(
       55,
       container.clientWidth / container.clientHeight,
-      0.05,
+      0.01,
       200,
     );
-    const camPos = new THREE.Vector3();
-    const camLook = new THREE.Vector3();
-    camPos.set(...STAGE_CAMERAS[0].pos);
-    camLook.set(...STAGE_CAMERAS[0].look);
-    camera.position.copy(camPos);
-    camera.lookAt(camLook);
+    camera.position.set(...STAGE_CAMERAS[0].pos);
+    camera.lookAt(...STAGE_CAMERAS[0].look);
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -253,42 +138,125 @@ export default function ZoomScene({ stage }: Props) {
     renderer.setClearColor(0x000000, 0);
     container.appendChild(renderer.domElement);
 
-    // Stage content
+    // Lighting (only matters for cell meshes; points are unlit)
+    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    const key = new THREE.DirectionalLight(0xffffff, 0.85);
+    key.position.set(2, 4, 5);
+    scene.add(key);
+    const fill = new THREE.DirectionalLight(new THREE.Color("#7ee0ff"), 0.3);
+    fill.position.set(-3, 1, -2);
+    scene.add(fill);
+
     const brainPoints = buildBrainPoints();
     const region = buildRegionHighlight();
-    const circuit = buildCircuit(42);
-    const heroNeuron = buildHeroNeuron();
-    const synapse = buildSynapse();
     scene.add(brainPoints);
     scene.add(region);
-    scene.add(circuit);
-    scene.add(heroNeuron);
-    scene.add(synapse);
 
-    // Per-stage opacity targets
-    // Index = stage, value = { brain, region, circuit, hero, synapse }
+    // Real cell groups, populated as their GLBs load
+    const cellGroups: Record<string, THREE.Group> = {};
+    let cellsLoaded = 0;
+
+    const loader = new GLTFLoader();
+    featuredNeurons.forEach((n) => {
+      const url = meshUrl(n);
+      loader.load(
+        url,
+        (gltf) => {
+          const cellColor = new THREE.Color(n.color);
+          const group = new THREE.Group();
+          group.position.set(...CELL_POSITIONS[n.id]);
+
+          // Re-center via bounding box
+          const bbox = new THREE.Box3().setFromObject(gltf.scene);
+          const center = new THREE.Vector3();
+          bbox.getCenter(center);
+
+          // Collect first, mutate after — adding wire children mid-traverse loops forever.
+          const sourceMeshes: THREE.Mesh[] = [];
+          gltf.scene.traverse((obj) => {
+            if (obj instanceof THREE.Mesh) sourceMeshes.push(obj);
+          });
+
+          for (const obj of sourceMeshes) {
+            obj.geometry.translate(-center.x, -center.y, -center.z);
+
+            const mainMat = new THREE.MeshStandardMaterial({
+              color: cellColor,
+              emissive: cellColor.clone().multiplyScalar(0.18),
+              metalness: 0.1,
+              roughness: 0.55,
+              transparent: true,
+              opacity: 0,
+              side: THREE.DoubleSide,
+            });
+            obj.material = mainMat;
+
+            const wireMat = new THREE.MeshBasicMaterial({
+              color: cellColor,
+              wireframe: true,
+              transparent: true,
+              opacity: 0,
+              blending: THREE.AdditiveBlending,
+              depthWrite: false,
+            });
+            const wireMesh = new THREE.Mesh(obj.geometry, wireMat);
+            wireMesh.userData.isWire = true;
+            obj.add(wireMesh);
+
+            group.add(obj);
+          }
+
+          cellGroups[n.id] = group;
+          scene.add(group);
+          cellsLoaded++;
+          setProgress(cellsLoaded / featuredNeurons.length);
+        },
+        undefined,
+        (err) => console.error(`failed to load ${url}`, err),
+      );
+    });
+
+    // Per-stage opacity targets per layer
     const stageOpacities = [
-      { brain: 0.7, region: 0.0, circuit: 0.0, hero: 0.0, synapse: 0.0 },
-      { brain: 0.55, region: 0.95, circuit: 0.0, hero: 0.0, synapse: 0.0 },
-      { brain: 0.0, region: 0.0, circuit: 0.95, hero: 0.0, synapse: 0.0 },
-      { brain: 0.0, region: 0.0, circuit: 0.25, hero: 0.95, synapse: 0.0 },
-      { brain: 0.0, region: 0.0, circuit: 0.0, hero: 0.25, synapse: 0.95 },
+      // 0 — whole brain
+      { brain: 0.7, region: 0.0, cells: 0.0, hero: 0.0 },
+      // 1 — region highlight inside brain
+      { brain: 0.55, region: 0.95, cells: 0.0, hero: 0.0 },
+      // 2 — cluster of 6 real cells
+      { brain: 0.0, region: 0.0, cells: 0.9, hero: 0.9 },
+      // 3 — single hero cell, others dim for context
+      { brain: 0.0, region: 0.0, cells: 0.07, hero: 0.95 },
+      // 4 — synapse zoom (same hero cell, super close so dendritic spines = synapses)
+      { brain: 0.0, region: 0.0, cells: 0.0, hero: 0.95 },
     ];
 
-    // Helper to set opacity on all materials in a group (multiplied by base opacity)
-    const setGroupOpacity = (root: THREE.Object3D, opacity: number) => {
-      root.traverse((obj) => {
-        if (obj instanceof THREE.Mesh || obj instanceof THREE.Line || obj instanceof THREE.Points) {
+    const setCellOpacity = (id: string, isHero: boolean, opacity: number) => {
+      const group = cellGroups[id];
+      if (!group) return;
+      group.traverse((obj) => {
+        if (obj instanceof THREE.Mesh) {
           const m = obj.material as THREE.Material;
-          // Halo mesh has lower base opacity
-          if ((obj as THREE.Mesh).userData?.isHalo) m.opacity = opacity * 0.4;
-          else m.opacity = opacity;
+          if (obj.userData.isWire) {
+            m.opacity = opacity * 0.18;
+          } else {
+            m.opacity = opacity;
+          }
         }
       });
+      group.visible = opacity > 0.001;
+      // Hero gets a slight extra emissive boost when alone
+      if (isHero) {
+        group.traverse((obj) => {
+          if (obj instanceof THREE.Mesh && !obj.userData.isWire) {
+            const m = obj.material as THREE.MeshStandardMaterial;
+            m.emissiveIntensity = stageRef.current >= 3 ? 1.5 : 1.0;
+          }
+        });
+      }
     };
 
     // Smoothed values
-    const cur = { brain: 0.7, region: 0, circuit: 0, hero: 0, synapse: 0 };
+    const cur = { brain: 0.7, region: 0, cells: 0, hero: 0 };
     const targetCamPos = new THREE.Vector3(...STAGE_CAMERAS[0].pos);
     const targetCamLook = new THREE.Vector3(...STAGE_CAMERAS[0].look);
     const curCamLook = new THREE.Vector3(...STAGE_CAMERAS[0].look);
@@ -312,35 +280,32 @@ export default function ZoomScene({ stage }: Props) {
       const k = 0.04;
       cur.brain += (target.brain - cur.brain) * k;
       cur.region += (target.region - cur.region) * k;
-      cur.circuit += (target.circuit - cur.circuit) * k;
+      cur.cells += (target.cells - cur.cells) * k;
       cur.hero += (target.hero - cur.hero) * k;
-      cur.synapse += (target.synapse - cur.synapse) * k;
       (brainPoints.material as THREE.PointsMaterial).opacity = cur.brain;
       (region.material as THREE.PointsMaterial).opacity = cur.region;
-      setGroupOpacity(circuit, cur.circuit);
-      setGroupOpacity(heroNeuron, cur.hero);
-      setGroupOpacity(synapse, cur.synapse);
 
-      // Slow rotation of brain so it's alive
+      for (const n of featuredNeurons) {
+        if (n.id === HERO_ID) {
+          setCellOpacity(n.id, true, cur.hero);
+        } else {
+          setCellOpacity(n.id, false, cur.cells);
+        }
+      }
+
+      // Idle motion
       brainPoints.rotation.y = t * 0.04;
       region.rotation.y = t * 0.04;
+      // Slight drift on the cell cluster
+      for (const n of featuredNeurons) {
+        const g = cellGroups[n.id];
+        if (g) g.rotation.y = t * 0.05;
+      }
 
-      // Circuit gently rotates
-      circuit.rotation.y = t * 0.08;
-
-      // Hero neuron breathes
-      heroNeuron.rotation.y = t * 0.15;
-
-      // Synapse pulses
-      synapse.children.forEach((child) => {
-        if (child instanceof THREE.Mesh && child.userData.isHalo) {
-          child.scale.setScalar(1 + 0.18 * Math.sin(t * 2.0));
-        }
-      });
-
-      // Camera lerp
-      camera.position.lerp(targetCamPos, 0.025);
-      curCamLook.lerp(targetCamLook, 0.04);
+      // Camera lerp — slower for the long stage 0-1 traversal, snappier later
+      const camK = s <= 1 ? 0.025 : 0.045;
+      camera.position.lerp(targetCamPos, camK);
+      curCamLook.lerp(targetCamLook, camK * 1.5);
       camera.lookAt(curCamLook);
 
       renderer.render(scene, camera);
@@ -363,9 +328,9 @@ export default function ZoomScene({ stage }: Props) {
         p.geometry.dispose();
         (p.material as THREE.Material).dispose();
       });
-      [circuit, heroNeuron, synapse].forEach((g) => {
+      Object.values(cellGroups).forEach((g) => {
         g.traverse((obj) => {
-          if (obj instanceof THREE.Mesh || obj instanceof THREE.Line || obj instanceof THREE.Points) {
+          if (obj instanceof THREE.Mesh) {
             obj.geometry.dispose();
             const m = obj.material;
             if (Array.isArray(m)) m.forEach((mm) => mm.dispose());
@@ -380,5 +345,13 @@ export default function ZoomScene({ stage }: Props) {
     };
   }, []);
 
-  return <div ref={containerRef} className="absolute inset-0" aria-hidden />;
+  return (
+    <div ref={containerRef} className="absolute inset-0" aria-hidden>
+      {progress < 1 && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-[0.3em] text-white/40 pointer-events-none">
+          Loading cortex · {Math.round(progress * 100)}%
+        </div>
+      )}
+    </div>
+  );
 }

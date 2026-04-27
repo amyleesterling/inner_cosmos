@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Link, useParams } from "react-router-dom";
-import { getNeuronById, featuredNeurons, neuroglancerUrl } from "../data/neurons";
-import NeuronModel from "../components/NeuronModel";
+import { getNeuronById, featuredNeurons, meshUrl } from "../data/neurons";
+import RealNeuronModel from "../components/RealNeuronModel";
 
 export default function MeetDetail() {
   const { id } = useParams<{ id: string }>();
@@ -43,21 +43,20 @@ export default function MeetDetail() {
             transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
             className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center"
           >
-            {/* 3D model */}
+            {/* 3D model — real EM-reconstructed mesh from MICrONS minnie65 */}
             <div className="relative aspect-square w-full max-w-[560px] mx-auto rounded-3xl overflow-hidden">
-              <NeuronModel
-                preset={neuron.morphologyPreset}
+              <RealNeuronModel
+                meshUrl={meshUrl(neuron)}
                 color={neuron.color}
                 className="absolute inset-0"
-                seed={idx * 13 + 7}
-                cameraDistance={6}
-                spinSpeed={0.16}
+                cameraDistance={2.4}
+                spinSpeed={0.14}
               />
               <div
                 className="absolute inset-0 pointer-events-none"
                 style={{
                   background:
-                    "radial-gradient(ellipse at center, transparent 55%, rgba(4,6,12,0.5) 100%)",
+                    "radial-gradient(ellipse at center, transparent 60%, rgba(4,6,12,0.45) 100%)",
                 }}
               />
             </div>
@@ -84,27 +83,9 @@ export default function MeetDetail() {
               <Section label="What it does">{neuron.whatItDoes}</Section>
               <Section label="Why it matters">{neuron.whyItMatters}</Section>
 
-              <div className="mt-8 pt-6 border-t border-white/10 space-y-4">
-                <a
-                  href={neuroglancerUrl(neuron.galleryState)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="group inline-flex items-center gap-3 px-5 py-3 rounded-full glass-strong hover:bg-white/[0.08] transition text-sm font-medium"
-                >
-                  <span
-                    className="w-2 h-2 rounded-full"
-                    style={{ background: neuron.color, boxShadow: `0 0 10px ${neuron.color}` }}
-                  />
-                  <span>View the real cell in Neuroglancer</span>
-                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
-                    <path d="M5 11l6-6M5 5h6v6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </a>
-                <p className="text-xs text-white/40 leading-relaxed">
-                  This view is a procedural illustration of the family of shape. The button above opens the actual mapped cell — every dendrite reconstructed from electron microscopy — in the MICrONS neuroglancer viewer.
-                </p>
-                <p className="text-[11px] text-white/35 font-mono">
-                  MICrONS minnie65 · seg_m1300 · seg{" "}
+              <div className="mt-8 pt-6 border-t border-white/10">
+                <p className="text-[11px] text-white/35 font-mono leading-relaxed">
+                  Real cell · MICrONS minnie65 · seg_m1300<br />
                   <span className="text-white/60">{neuron.segId}</span>
                 </p>
               </div>

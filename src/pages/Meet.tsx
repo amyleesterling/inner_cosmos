@@ -1,8 +1,7 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import NeuronModel from "../components/NeuronModel";
-import NeuronCanvas from "../components/NeuronCanvas";
-import { featuredNeurons } from "../data/neurons";
+import RealNeuronModel from "../components/RealNeuronModel";
+import { featuredNeurons, meshUrl } from "../data/neurons";
 
 export default function Meet() {
   return (
@@ -15,9 +14,6 @@ export default function Meet() {
             "radial-gradient(ellipse at center, rgba(28,39,66,0.55) 0%, rgba(4,6,12,1) 70%)",
         }}
       />
-      <div className="fixed inset-0 z-0 pointer-events-none opacity-40">
-        <NeuronCanvas />
-      </div>
       <div className="pointer-events-none fixed inset-x-0 top-0 h-40 z-[5] bg-gradient-to-b from-[var(--color-ink-950)] to-transparent" />
       <div className="pointer-events-none fixed inset-x-0 bottom-0 h-40 z-[5] bg-gradient-to-t from-[var(--color-ink-950)] to-transparent" />
 
@@ -58,18 +54,17 @@ export default function Meet() {
                 className="group block rounded-2xl glass overflow-hidden hover:bg-white/[0.07] hover:ring-white/15 hover:-translate-y-0.5 transition-all duration-500"
               >
                 <div className="aspect-[4/3] relative">
-                  <NeuronModel
-                    preset={n.morphologyPreset}
+                  <RealNeuronModel
+                    meshUrl={meshUrl(n)}
                     color={n.color}
                     className="absolute inset-0"
-                    seed={i * 13 + 7}
                     spinSpeed={0.18}
                   />
                   <div
                     className="absolute inset-0 pointer-events-none"
                     style={{
                       background:
-                        "radial-gradient(ellipse at center, transparent 50%, rgba(4,6,12,0.75) 100%)",
+                        "radial-gradient(ellipse at center, transparent 55%, rgba(4,6,12,0.6) 100%)",
                     }}
                   />
                 </div>

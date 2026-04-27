@@ -30,9 +30,9 @@ const STAGES = [
   },
   {
     eyebrow: "Stage 5 of 5",
-    title: "A synapse.",
+    title: "Every bump is a synapse.",
     subtitle:
-      "Where two neurons whisper to each other in pulses a thousandth of a second long.",
+      "Each tiny knob on this dendrite is where another neuron talks to this one. Pulses a thousandth of a second long.",
   },
 ];
 

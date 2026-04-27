@@ -18,6 +18,11 @@ export function neuroglancerUrl(galleryState: string): string {
   return `https://ngl.microns-explorer.org/#!gs://microns-static-links/mm3/${galleryState}`;
 }
 
+/** Path to the cell's web-optimized GLB (extracted offline via scripts/extract-meshes.py). */
+export function meshUrl(neuron: Pick<FeaturedNeuron, "id">): string {
+  return `${import.meta.env.BASE_URL}meshes/${neuron.id}.glb`;
+}
+
 // All segIds are real MICrONS minnie65 cells curated by the MICrONS team for
 // https://www.microns-explorer.org/gallery-mm3 . The 3D shapes shown on these
 // cards are PROCEDURAL — same family of shape, same morphology preset, but
