@@ -2,6 +2,20 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import ZoomScene from "../components/ZoomScene";
+import { getNeuronById } from "../data/neurons";
+
+// Cells visible in the /explore stage-5 cluster (must match CELL_POSITIONS
+// in ZoomScene). Order = display order in the legend.
+const CLUSTER_CELL_IDS = [
+  "lightning-tree",
+  "dust-star",
+  "spire",
+  "aura",
+  "coral-fan",
+  "candelabra",
+  "reaching-hand",
+  "tendril",
+];
 
 function LegendDot({ color, label }: { color: string; label: string }) {
   return (
@@ -175,14 +189,17 @@ export default function Explore() {
               </motion.div>
             </AnimatePresence>
 
-            {/* Color legend — only on the cortex-cluster stage. Lives between
-                the copy and the controls so it reads as caption rather than
-                interface chrome. */}
+            {/* Color legend — only on the cortex-cluster stage. Pulls
+                nickname + color straight from the neurons.ts data that
+                drives /meet, so the cluster, /meet cards, and this caption
+                always stay in sync. */}
             {stage === 4 && (
-              <div className="mt-6 flex items-center justify-center flex-wrap gap-x-6 gap-y-2 text-[11px] uppercase tracking-[0.18em] text-white/55">
-                <LegendDot color="#5ed5ff" label="Excitatory" />
-                <LegendDot color="#ff6dc4" label="Inhibitory" />
-                <LegendDot color="#ff58d8" label="Long-range axon" />
+              <div className="mt-6 flex items-center justify-center flex-wrap gap-x-4 gap-y-1.5 text-[10px] uppercase tracking-[0.16em] text-white/60">
+                {CLUSTER_CELL_IDS.map((id) => {
+                  const n = getNeuronById(id);
+                  if (!n) return null;
+                  return <LegendDot key={id} color={n.color} label={n.nickname} />;
+                })}
               </div>
             )}
 
