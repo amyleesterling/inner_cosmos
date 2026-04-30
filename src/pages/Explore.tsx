@@ -230,7 +230,7 @@ export default function Explore() {
                   onClick={() => setStage((s) => Math.min(last, s + 1))}
                   className="group px-6 py-2.5 rounded-full glass-strong hover:bg-white/[0.08] transition flex items-center gap-2.5 cursor-pointer text-sm font-medium"
                 >
-                  <span>Closer</span>
+                  <span>{stage === 0 ? "Explore" : "Closer"}</span>
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="transition-transform group-hover:translate-x-0.5">
                     <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
