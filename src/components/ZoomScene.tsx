@@ -82,10 +82,30 @@ export default function ZoomScene({ stage }: Props) {
     // ---- Brain meshes + interior neuron dots ------------------------------
     // Stage 0 = human brain (the intro). Stages 1+ = mouse brain (where the
     // actual MICrONS data lives). They live in the same scene origin and
-    // cross-fade between stages.
+    // cross-fade between stages. Stage 5 swaps to a third pair of meshes —
+    // Aura + Tendril, re-extracted in a synapse-centered shared frame.
     let humanBrainShell: THREE.Group | null = null;
     const humanBrainSolidMaterials: THREE.MeshStandardMaterial[] = [];
     const humanBrainWireMaterials: THREE.MeshBasicMaterial[] = [];
+
+    // Synapse-stage meshes (Aura + Tendril, both centered on the synapse coord)
+    let synapseAuraGroup: THREE.Group | null = null;
+    let synapseTendrilGroup: THREE.Group | null = null;
+    const synapseAuraMaterials: THREE.MeshStandardMaterial[] = [];
+    const synapseTendrilMaterials: THREE.MeshStandardMaterial[] = [];
+    // Tiny glowing sphere at origin marks the actual contact point.
+    const synapseMarkerMat = new THREE.MeshBasicMaterial({
+      color: 0xffe88a,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const synapseMarker = new THREE.Mesh(
+      new THREE.SphereGeometry(0.014, 24, 24),
+      synapseMarkerMat,
+    );
+    scene.add(synapseMarker);
     let brainShell: THREE.Group | null = null;
     const brainShellWireMaterials: THREE.MeshBasicMaterial[] = [];
     const brainShellSolidMaterials: THREE.MeshStandardMaterial[] = [];
@@ -96,14 +116,18 @@ export default function ZoomScene({ stage }: Props) {
     let dotsLoaded = false;
     let brainLoaded = false;
     let humanBrainLoaded = false;
+    let synapseAuraLoaded = false;
+    let synapseTendrilLoaded = false;
 
     const updateProgress = () => {
       const cells = Object.keys(cellGroups).length;
-      const total = featuredNeurons.length + 3; // human brain + mouse brain + dots
+      const total = featuredNeurons.length + 5; // human + mouse + dots + 2 synapse meshes
       let done = cells;
       if (humanBrainLoaded) done++;
       if (manifestLoaded && brainLoaded) done++;
       if (manifestLoaded && dotsLoaded) done++;
+      if (synapseAuraLoaded) done++;
+      if (synapseTendrilLoaded) done++;
       setProgress(done / total);
     };
 
@@ -276,6 +300,70 @@ export default function ZoomScene({ stage }: Props) {
       colors.needsUpdate = true;
     }
 
+    // ---- Synapse-pair meshes (stage 5) ------------------------------------
+    // Both centered on the synapse coordinate so the contact lands at origin.
+    const SYNAPSE_PAIR: Array<{ url: string; color: string; setRef: (g: THREE.Group) => void; mats: THREE.MeshStandardMaterial[]; setLoaded: () => void }> = [
+      {
+        url: `${BASE}meshes/synapse-aura.glb`,
+        color: "#5ed8ff",
+        setRef: (g) => { synapseAuraGroup = g; },
+        mats: synapseAuraMaterials,
+        setLoaded: () => { synapseAuraLoaded = true; },
+      },
+      {
+        url: `${BASE}meshes/synapse-tendril.glb`,
+        color: "#ff9fdb",
+        setRef: (g) => { synapseTendrilGroup = g; },
+        mats: synapseTendrilMaterials,
+        setLoaded: () => { synapseTendrilLoaded = true; },
+      },
+    ];
+    SYNAPSE_PAIR.forEach((spec) => {
+      loader.load(
+        spec.url,
+        (gltf) => {
+          const group = new THREE.Group();
+          const cellColor = new THREE.Color(spec.color);
+          const sourceMeshes: THREE.Mesh[] = [];
+          gltf.scene.traverse((obj) => {
+            if (obj instanceof THREE.Mesh) sourceMeshes.push(obj);
+          });
+          for (const obj of sourceMeshes) {
+            const mainMat = new THREE.MeshStandardMaterial({
+              color: cellColor,
+              emissive: cellColor.clone().multiplyScalar(0.22),
+              metalness: 0.1,
+              roughness: 0.55,
+              transparent: true,
+              opacity: 0,
+              side: THREE.DoubleSide,
+            });
+            obj.material = mainMat;
+            spec.mats.push(mainMat);
+
+            const wireMat = new THREE.MeshBasicMaterial({
+              color: cellColor,
+              wireframe: true,
+              transparent: true,
+              opacity: 0,
+              blending: THREE.AdditiveBlending,
+              depthWrite: false,
+            });
+            const wireMesh = new THREE.Mesh(obj.geometry, wireMat);
+            wireMesh.userData.isWire = true;
+            obj.add(wireMesh);
+            group.add(obj);
+          }
+          spec.setRef(group);
+          scene.add(group);
+          spec.setLoaded();
+          updateProgress();
+        },
+        undefined,
+        (err) => console.error(`failed to load ${spec.url}`, err),
+      );
+    });
+
     // ---- Real cell cluster (existing) -------------------------------------
     const cellGroups: Record<string, THREE.Group> = {};
 
@@ -344,23 +432,24 @@ export default function ZoomScene({ stage }: Props) {
       brainWire: number;        // mouse-brain shell wireframe opacity
       brainDots: number;        // interior dots opacity
       dotSize: number;          // point size
-      cells: number;            // non-hero cells opacity
-      hero: number;             // hero cell opacity
+      cells: number;            // cluster cells opacity
+      hero: number;             // hero cluster cell opacity
+      synapsePair: number;      // synapse-aura + synapse-tendril opacity (stage 5)
+      synapseMarker: number;    // glow sphere at the synapse contact (stage 5)
     };
     const stageOpacities: Targets[] = [
-      // 0 — human brain (intro). Solid-dominant so the cortical-fold shape
-      // reads clearly; wireframe is a hint, not the dominant element.
-      { humanSolid: 0.55, humanWire: 0.08, brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0,    hero: 0    },
+      // 0 — human brain (intro). Solid-dominant so cortical-fold shape reads.
+      { humanSolid: 0.55, humanWire: 0.08, brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0,    hero: 0,    synapsePair: 0,    synapseMarker: 0    },
       // 1 — mouse whole brain
-      { humanSolid: 0,    humanWire: 0,    brainSolid: 0.10, brainWire: 0.30, brainDots: 0.85, dotSize: 0.011, cells: 0,    hero: 0    },
+      { humanSolid: 0,    humanWire: 0,    brainSolid: 0.10, brainWire: 0.30, brainDots: 0.85, dotSize: 0.011, cells: 0,    hero: 0,    synapsePair: 0,    synapseMarker: 0    },
       // 2 — V1 close
-      { humanSolid: 0,    humanWire: 0,    brainSolid: 0.06, brainWire: 0.22, brainDots: 0.95, dotSize: 0.018, cells: 0,    hero: 0    },
+      { humanSolid: 0,    humanWire: 0,    brainSolid: 0.06, brainWire: 0.22, brainDots: 0.95, dotSize: 0.018, cells: 0,    hero: 0,    synapsePair: 0,    synapseMarker: 0    },
       // 3 — circuit
-      { humanSolid: 0,    humanWire: 0,    brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0.9,  hero: 0.9  },
+      { humanSolid: 0,    humanWire: 0,    brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0.9,  hero: 0.9,  synapsePair: 0,    synapseMarker: 0    },
       // 4 — single neuron
-      { humanSolid: 0,    humanWire: 0,    brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0.07, hero: 0.95 },
-      // 5 — synapse
-      { humanSolid: 0,    humanWire: 0,    brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0.0,  hero: 0.95 },
+      { humanSolid: 0,    humanWire: 0,    brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0.07, hero: 0.95, synapsePair: 0,    synapseMarker: 0    },
+      // 5 — synapse: cluster gone, hero gone, synapse pair + contact marker visible.
+      { humanSolid: 0,    humanWire: 0,    brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0.0,  hero: 0,    synapsePair: 0.85, synapseMarker: 0.85 },
     ];
 
     // Camera waypoints (positions + look-at). Stage 2 is recomputed per-frame
@@ -386,8 +475,9 @@ export default function ZoomScene({ stage }: Props) {
           // Single neuron
           return { pos: new THREE.Vector3(0, 0.1, 2.4), look: new THREE.Vector3(0, 0, 0) };
         case 5:
-          // Synapse
-          return { pos: new THREE.Vector3(0.18, 0.55, 0.65), look: new THREE.Vector3(0.05, 0.45, 0) };
+          // Synapse — close to origin (the actual contact). User can drag/zoom
+          // to explore Aura's dendrite + Tendril's axon meeting at this point.
+          return { pos: new THREE.Vector3(0.12, 0.04, 0.32), look: new THREE.Vector3(0, 0, 0) };
         default:
           return { pos: new THREE.Vector3(0, 0, 5), look: new THREE.Vector3(0, 0, 0) };
       }
@@ -414,6 +504,8 @@ export default function ZoomScene({ stage }: Props) {
       dotSize: stageOpacities[0].dotSize,
       cells: 0,
       hero: 0,
+      synapsePair: 0,
+      synapseMarker: 0,
     };
     const initCam = stageCameras(0, v1Right);
     camera.position.copy(initCam.pos);
@@ -479,6 +571,8 @@ export default function ZoomScene({ stage }: Props) {
       cur.dotSize += (target.dotSize - cur.dotSize) * k;
       cur.cells += (target.cells - cur.cells) * k;
       cur.hero += (target.hero - cur.hero) * k;
+      cur.synapsePair += (target.synapsePair - cur.synapsePair) * k;
+      cur.synapseMarker += (target.synapseMarker - cur.synapseMarker) * k;
 
       humanBrainSolidMaterials.forEach((m) => (m.opacity = cur.humanSolid));
       humanBrainWireMaterials.forEach((m) => (m.opacity = cur.humanWire));
@@ -491,6 +585,23 @@ export default function ZoomScene({ stage }: Props) {
       if (humanBrainShell) humanBrainShell.visible = cur.humanSolid + cur.humanWire > 0.001;
       if (brainShell) brainShell.visible = cur.brainSolid + cur.brainWire > 0.001;
       if (brainPoints) brainPoints.visible = cur.brainDots > 0.001;
+
+      // Synapse-pair opacity — same value applied to both meshes' main +
+      // wireframe materials (wireframe gets a softer multiplier).
+      const applySynapseGroup = (group: THREE.Group | null, mainMats: THREE.MeshStandardMaterial[]) => {
+        if (!group) return;
+        for (const m of mainMats) m.opacity = cur.synapsePair;
+        group.traverse((obj) => {
+          if (obj instanceof THREE.Mesh && obj.userData.isWire) {
+            (obj.material as THREE.Material & { opacity: number }).opacity = cur.synapsePair * 0.18;
+          }
+        });
+        group.visible = cur.synapsePair > 0.001;
+      };
+      applySynapseGroup(synapseAuraGroup, synapseAuraMaterials);
+      applySynapseGroup(synapseTendrilGroup, synapseTendrilMaterials);
+      synapseMarkerMat.opacity = cur.synapseMarker;
+      synapseMarker.visible = cur.synapseMarker > 0.001;
 
       for (const n of featuredNeurons) {
         setCellOpacity(n.id, n.id === HERO_ID ? cur.hero : cur.cells);
@@ -577,6 +688,19 @@ export default function ZoomScene({ stage }: Props) {
           }
         });
       }
+      [synapseAuraGroup, synapseTendrilGroup].forEach((group) => {
+        if (!group) return;
+        group.traverse((obj) => {
+          if (obj instanceof THREE.Mesh) {
+            obj.geometry.dispose();
+            const m = obj.material;
+            if (Array.isArray(m)) m.forEach((mm) => mm.dispose());
+            else (m as THREE.Material).dispose();
+          }
+        });
+      });
+      synapseMarker.geometry.dispose();
+      synapseMarkerMat.dispose();
       Object.values(cellGroups).forEach((g) => {
         g.traverse((obj) => {
           if (obj instanceof THREE.Mesh) {
