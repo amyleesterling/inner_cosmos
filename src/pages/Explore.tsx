@@ -44,7 +44,7 @@ const STAGES = [
     eyebrow: "Stage 7 of 7",
     title: "One synapse.",
     subtitle:
-      "Tendril's axon meets Aura's dendrite right here. One inhibitory cell, one Layer 5 pyramidal — the size of a few hundred nanometers.",
+      "An axon from a cell somewhere far away in the brain reaches up here to form a synapse — sending information to the blue cell, a tufted pyramidal neuron (excitatory). The whole contact is the size of a few hundred nanometers.",
   },
 ];
 

@@ -228,16 +228,16 @@ export const featuredNeurons: FeaturedNeuron[] = [
     id: "tendril",
     segId: "864691136195546856",
     nickname: "Tendril",
-    scientificType: "Inhibitory Interneuron",
+    scientificType: "Long-range Axon",
     category: "inhibitory",
     morphologyPreset: "martinotti",
     color: "#ff9fdb",
-    shapeAnalogy: "A small soma whose axon extends in a long thin trail across the tissue — a single thread reaching toward a specific distant target.",
-    oneLiner: "An inhibitory cell whose axon reaches out and contacts Aura. The synapse between them is the next stop.",
+    shapeAnalogy: "Mostly axon — a long thin cable threading across the tissue, with the cell body itself somewhere far outside this volume.",
+    oneLiner: "Not a whole cell — just the axon of a distant neuron, reaching across cortex to make a synapse.",
     whatItDoes:
-      "Some interneurons stay local. This one sends a long axon out across cortex to deliver inhibition to specific distant targets — including the cell next door named Aura.",
+      "Many of the cables you see in a connectome don't belong to local cells — they're axons sent in from neurons whose somas live somewhere far away. This is one of those long axons. Its job is to deliver a signal to a specific contact point on a specific cell — and that contact is exactly what you see in the synapse stage.",
     whyItMatters:
-      "Long-reaching inhibitory cells are how distant parts of cortex coordinate. Watch how Tendril's axon meets Aura's dendrite in the next stage.",
+      "Most of cortex is wires arriving from elsewhere. Cells like the one this axon belongs to are how distant brain regions stay connected — and tracing where each cable comes from is one of the things the connectome lets us do.",
   },
 ];
 
