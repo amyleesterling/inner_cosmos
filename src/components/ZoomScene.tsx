@@ -149,14 +149,17 @@ export default function ZoomScene({ stage }: Props) {
           if (obj instanceof THREE.Mesh) sourceMeshes.push(obj);
         });
         for (const obj of sourceMeshes) {
-          // Warm pink-violet, glow from emissive so the gyri+sulci read in
-          // the dark scene without needing the wireframe to define them.
+          // Match the saturated deep purple of the navbar brain favicon —
+          // higher base saturation, brighter emissive, no metalness so
+          // light doesn't reflect as white. Lighting in this scene is now
+          // dimmer (previous change), so the cell relies more on its own
+          // emissive glow to read.
           const mat = new THREE.MeshStandardMaterial({
-            color: new THREE.Color("#d8a8d8"),
-            emissive: new THREE.Color("#6b3a8a"),
-            emissiveIntensity: 0.35,
-            roughness: 0.55,
-            metalness: 0.05,
+            color: new THREE.Color("#a865d0"),
+            emissive: new THREE.Color("#5a2890"),
+            emissiveIntensity: 0.7,
+            roughness: 0.5,
+            metalness: 0.0,
             transparent: true,
             opacity: 0.0,
             side: THREE.DoubleSide,
@@ -166,11 +169,12 @@ export default function ZoomScene({ stage }: Props) {
           humanBrainSolidMaterials.push(mat);
 
           const wireMat = new THREE.MeshBasicMaterial({
-            color: new THREE.Color("#ffd8ff"),
+            color: new THREE.Color("#e8b8ff"),
             wireframe: true,
             transparent: true,
             opacity: 0.0,
-            blending: THREE.AdditiveBlending,
+            // No additive blending — keeps wireframe as faint line work
+            // rather than washing the brain toward white.
             depthWrite: false,
           });
           const wireMesh = new THREE.Mesh(obj.geometry, wireMat);
