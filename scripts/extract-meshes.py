@@ -45,6 +45,12 @@ CELLS = [
     ("spindle",        864691135407923657, 80000),  # Bipolar interneuron
     # 864691133190214690 was a 22-face stub (proofread away); this one is intact.
     ("watcher",        864691136194411734, 100000), # Microglia
+    # Spelunker-shared circuit motif (pyramidal + 2 inhibitory neighbors).
+    # The other 3 IDs from the share state are post-seg_m1300 proofread roots
+    # that have no static mesh and need a live graphene fetch — skipped here.
+    ("spire",          864691135214123064, 100000), # Pyramidal — central cell
+    ("aura",           864691135948123745, 100000), # Inhibitory interneuron
+    ("tendril",        864691136195546856, 100000), # Long-axon interneuron
 ]
 
 

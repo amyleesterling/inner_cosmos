@@ -18,40 +18,40 @@ function NeuronCard({ n, index }: { n: FeaturedNeuron; index: number }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, delay: 0.04 * index, ease: [0.16, 1, 0.3, 1] }}
+      className="group rounded-2xl glass overflow-hidden hover:bg-white/[0.07] hover:ring-white/15 hover:-translate-y-0.5 transition-all duration-500"
     >
-      <Link
-        to={`/meet/${n.id}`}
-        className="group block rounded-2xl glass overflow-hidden hover:bg-white/[0.07] hover:ring-white/15 hover:-translate-y-0.5 transition-all duration-500"
-      >
-        <div className="aspect-[4/3] relative">
-          <RealNeuronModel
-            meshUrl={meshUrl(n)}
-            color={n.color}
-            className="absolute inset-0"
-            spinSpeed={0.18}
-          />
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(ellipse at center, transparent 55%, rgba(4,6,12,0.6) 100%)",
-            }}
-          />
-        </div>
-        <div className="p-5">
-          <p
-            className="text-[10px] uppercase tracking-[0.3em] mb-1.5"
-            style={{ color: n.color, opacity: 0.85 }}
-          >
-            {n.scientificType}
-          </p>
-          <h2 className="font-display text-2xl font-light leading-tight">
-            {n.nickname}
-          </h2>
-          <p className="mt-2.5 text-[13px] text-white/55 leading-relaxed">
-            {n.oneLiner}
-          </p>
-        </div>
+      {/* Interactive canvas — drag/touch to rotate, scroll/pinch to zoom.
+          Kept OUTSIDE the navigation link so pointer events go to OrbitControls
+          rather than triggering navigation on every touch. */}
+      <div className="aspect-[4/3] relative">
+        <RealNeuronModel
+          meshUrl={meshUrl(n)}
+          color={n.color}
+          className="absolute inset-0"
+          spinSpeed={0.18}
+        />
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(ellipse at center, transparent 55%, rgba(4,6,12,0.6) 100%)",
+          }}
+        />
+      </div>
+      {/* Text panel is the click target → navigates to detail. */}
+      <Link to={`/meet/${n.id}`} className="block p-5">
+        <p
+          className="text-[10px] uppercase tracking-[0.3em] mb-1.5"
+          style={{ color: n.color, opacity: 0.85 }}
+        >
+          {n.scientificType}
+        </p>
+        <h2 className="font-display text-2xl font-light leading-tight">
+          {n.nickname}
+        </h2>
+        <p className="mt-2.5 text-[13px] text-white/55 leading-relaxed">
+          {n.oneLiner}
+        </p>
       </Link>
     </motion.div>
   );
@@ -91,7 +91,7 @@ export default function Meet() {
             style={{ fontSize: "clamp(0.95rem, 1.2vw, 1.1rem)" }}
             className="mt-6 text-white/60 font-light leading-relaxed text-balance"
           >
-            Six characters from mouse visual cortex, sorted by what they do — cells that push their neighbors toward firing, cells that hold them back, and the support cell that lives among them.
+            Characters from mouse visual cortex, sorted by what they do. Cells that push their neighbors toward firing, cells that hold them back, and the special effects that lives among them.
           </p>
         </motion.div>
 

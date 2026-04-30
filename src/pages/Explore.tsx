@@ -30,9 +30,9 @@ const STAGES = [
   },
   {
     eyebrow: "Stage 5 of 5",
-    title: "Every bump is a synapse.",
+    title: "One synapse.",
     subtitle:
-      "Each tiny knob on this dendrite is where another neuron talks to this one. Pulses a thousandth of a second long.",
+      "Tendril's axon meets Aura's dendrite right here. One inhibitory cell, one Layer 5 pyramidal — the size of a few hundred nanometers.",
   },
 ];
 

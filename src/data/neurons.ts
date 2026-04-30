@@ -12,8 +12,9 @@ export interface FeaturedNeuron {
   oneLiner: string;          // shown on card
   whatItDoes: string;        // longer, on detail page
   whyItMatters: string;
-  /** filename in gs://microns-static-links/mm3/ — the curated gallery state file */
-  galleryState: string;
+  /** filename in gs://microns-static-links/mm3/ — the curated gallery state file.
+   *  Optional: cells sourced from user-shared Spelunker states don't have one. */
+  galleryState?: string;
 }
 
 export const CATEGORY_LABEL: Record<CellCategory, string> = {
@@ -28,8 +29,10 @@ export const CATEGORY_BLURB: Record<CellCategory, string> = {
   other: "Not neurons. The cells around the cells.",
 };
 
-/** Build a Neuroglancer URL that opens this cell's curated MICrONS gallery view. */
-export function neuroglancerUrl(galleryState: string): string {
+/** Build a Neuroglancer URL that opens this cell's curated MICrONS gallery view.
+ *  Returns null if the cell has no associated gallery state. */
+export function neuroglancerUrl(galleryState: string | undefined): string | null {
+  if (!galleryState) return null;
   return `https://ngl.microns-explorer.org/#!gs://microns-static-links/mm3/${galleryState}`;
 }
 
@@ -187,6 +190,54 @@ export const featuredNeurons: FeaturedNeuron[] = [
       "Microglia are the brain's macrophages. They survey their territory, eat debris, prune unused synapses during development, and respond to damage or infection.",
     whyItMatters:
       "Their fingertips touch every synapse in their neighborhood every few hours. They're not just defenders — they shape circuits across a lifetime.",
+  },
+  // Three cells from a user-shared Spelunker view of a single circuit motif —
+  // a pyramidal cell with two of the inhibitory cells that contact it. Names
+  // are provisional (chosen from morphology, not from a curated label).
+  {
+    id: "spire",
+    segId: "864691135214123064",
+    nickname: "Spire",
+    scientificType: "Pyramidal Neuron",
+    category: "excitatory",
+    morphologyPreset: "pyramidal",
+    color: "#c8a8ff",
+    shapeAnalogy: "A pyramid soma with a single tall apical dendrite climbing upward — narrow at the base, opening into a tuft near the top.",
+    oneLiner: "The center of its local circuit — every nearby inhibitory cell reaches toward it.",
+    whatItDoes:
+      "Pyramidal neurons are cortex's main excitatory cells. They gather inputs across a wide dendritic field and forward processed signals to other regions of the brain.",
+    whyItMatters:
+      "Cells like Spire are the anchors of cortical micro-circuits. The cells around it spend most of their effort regulating exactly when it fires.",
+  },
+  {
+    id: "aura",
+    segId: "864691135948123745",
+    nickname: "Aura",
+    scientificType: "Layer 5 Thick-Tufted Pyramidal",
+    category: "excitatory",
+    morphologyPreset: "pyramidal",
+    color: "#5ed8ff",
+    shapeAnalogy: "A pyramid soma with a tall, slender apical dendrite climbing toward the cortical surface, basal dendrites fanning out below.",
+    oneLiner: "Another Layer 5 thick-tufted cell — and the cell whose synapse you'll see up close in a moment.",
+    whatItDoes:
+      "Like Lightning Tree, Aura is a major output cell of cortex. Each spine on its dendrites is a place where another neuron talks to it — thousands of contacts shaping when this cell fires.",
+    whyItMatters:
+      "Layer 5 cells are hubs. Even one of them gathers inputs from thousands of other neurons — and one of those inputs is exactly what you're about to look at.",
+  },
+  {
+    id: "tendril",
+    segId: "864691136195546856",
+    nickname: "Tendril",
+    scientificType: "Inhibitory Interneuron",
+    category: "inhibitory",
+    morphologyPreset: "martinotti",
+    color: "#ff9fdb",
+    shapeAnalogy: "A small soma whose axon extends in a long thin trail across the tissue — a single thread reaching toward a specific distant target.",
+    oneLiner: "An inhibitory cell whose axon reaches out and contacts Aura. The synapse between them is the next stop.",
+    whatItDoes:
+      "Some interneurons stay local. This one sends a long axon out across cortex to deliver inhibition to specific distant targets — including the cell next door named Aura.",
+    whyItMatters:
+      "Long-reaching inhibitory cells are how distant parts of cortex coordinate. Watch how Tendril's axon meets Aura's dendrite in the next stage.",
   },
 ];
 

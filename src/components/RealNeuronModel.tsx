@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
 interface Props {
   meshUrl: string;
@@ -10,6 +11,8 @@ interface Props {
   spinSpeed?: number;
   /** Whether to add a soft white rim light (default true) */
   rim?: boolean;
+  /** Allow user to drag to rotate and scroll to zoom (default true) */
+  interactive?: boolean;
 }
 
 // Tiny shared GLTFLoader — one instance per page is fine, three handles it.
@@ -22,6 +25,7 @@ export default function RealNeuronModel({
   cameraDistance = 2.6,
   spinSpeed = 0.18,
   rim = true,
+  interactive = true,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [loaded, setLoaded] = useState(false);
@@ -46,6 +50,43 @@ export default function RealNeuronModel({
     renderer.setSize(w, h);
     renderer.setClearColor(0x000000, 0);
     container.appendChild(renderer.domElement);
+
+    // OrbitControls — drag to rotate, scroll to zoom. Auto-rotate continues
+    // when the user isn't interacting; touching the canvas pauses it.
+    const controls = interactive ? new OrbitControls(camera, renderer.domElement) : null;
+    if (controls) {
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.08;
+      controls.enablePan = false;
+      controls.autoRotate = spinSpeed > 0;
+      // OrbitControls.autoRotateSpeed is in "rotations per ~6s" units; scale
+      // spinSpeed (rad/s) so the visual cadence matches the previous model
+      // self-rotation.
+      controls.autoRotateSpeed = spinSpeed * 9.5;
+      controls.minDistance = cameraDistance * 0.35;
+      controls.maxDistance = cameraDistance * 4;
+      // Pause auto-rotate while the user is dragging or scrolling, then resume.
+      const stopAuto = () => { controls.autoRotate = false; };
+      const resumeAuto = () => { controls.autoRotate = spinSpeed > 0; };
+      renderer.domElement.addEventListener("pointerdown", stopAuto);
+      renderer.domElement.addEventListener("pointerup", resumeAuto);
+      renderer.domElement.addEventListener("pointercancel", resumeAuto);
+      renderer.domElement.addEventListener("wheel", () => {
+        stopAuto();
+        clearTimeout((renderer.domElement as any).__resumeTimer);
+        (renderer.domElement as any).__resumeTimer = setTimeout(resumeAuto, 1500);
+      }, { passive: true });
+      // The container needs pointer-events to receive input — the wrapper has
+      // aria-hidden but that doesn't disable events. The canvas inherits.
+      renderer.domElement.style.touchAction = "none";
+      renderer.domElement.style.cursor = "grab";
+      renderer.domElement.addEventListener("pointerdown", () => {
+        renderer.domElement.style.cursor = "grabbing";
+      });
+      renderer.domElement.addEventListener("pointerup", () => {
+        renderer.domElement.style.cursor = "grab";
+      });
+    }
 
     // Lights — premium key/fill setup
     const ambient = new THREE.AmbientLight(0xffffff, 0.45);
@@ -129,8 +170,13 @@ export default function RealNeuronModel({
     );
 
     const animate = () => {
-      const t = performance.now() / 1000;
-      if (cellGroup) {
+      // When OrbitControls handles motion, let it own the rotation so user
+      // drags don't fight a manually-rotated cellGroup. Without controls,
+      // fall back to spinning the model directly.
+      if (controls) {
+        controls.update();
+      } else if (cellGroup) {
+        const t = performance.now() / 1000;
         cellGroup.rotation.y = t * spinSpeed;
       }
       renderer.render(scene, camera);
@@ -152,6 +198,7 @@ export default function RealNeuronModel({
       cancelled = true;
       cancelAnimationFrame(frameId);
       observer.disconnect();
+      controls?.dispose();
       if (cellGroup) {
         cellGroup.traverse((obj) => {
           if (obj instanceof THREE.Mesh) {
@@ -167,10 +214,11 @@ export default function RealNeuronModel({
         renderer.domElement.parentNode.removeChild(renderer.domElement);
       }
     };
-  }, [meshUrl, color, cameraDistance, spinSpeed, rim]);
+  }, [meshUrl, color, cameraDistance, spinSpeed, rim, interactive]);
 
+  // No aria-hidden — the canvas is interactive and should receive events.
   return (
-    <div ref={containerRef} className={className} aria-hidden>
+    <div ref={containerRef} className={className}>
       {!loaded && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div

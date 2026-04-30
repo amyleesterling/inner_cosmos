@@ -15,6 +15,11 @@ const CELL_POSITIONS: Record<string, [number, number, number]> = {
   "reaching-hand": [0.45, -0.55, 0.5],
   "dust-star": [-0.7, 0.55, -0.35],
   "forest-floor": [0.4, 0.6, 0.55],
+  // Spelunker-circuit additions — clustered toward the back-left so they read
+  // as a coherent motif within the larger cluster.
+  "spire":   [-0.5, -0.55, -0.55],
+  "aura":    [ 0.7,  0.4,  -0.6],
+  "tendril": [-0.6,  0.05,  0.55],
 };
 
 // Brain-frame cell-cluster anchor — used for camera framing in stage 1
@@ -219,12 +224,14 @@ export default function ZoomScene({ stage }: Props) {
     const cellGroups: Record<string, THREE.Group> = {};
 
     featuredNeurons.forEach((n) => {
+      const pos = CELL_POSITIONS[n.id];
+      if (!pos) return; // cell isn't in the cluster — skip silently
       loader.load(
         meshUrl(n),
         (gltf) => {
           const cellColor = new THREE.Color(n.color);
           const group = new THREE.Group();
-          group.position.set(...CELL_POSITIONS[n.id]);
+          group.position.set(...pos);
 
           const bbox = new THREE.Box3().setFromObject(gltf.scene);
           const center = new THREE.Vector3();
@@ -290,18 +297,20 @@ export default function ZoomScene({ stage }: Props) {
       { brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0.0,  hero: 0.95 }, // 4 — synapse
     ];
 
-    // Camera waypoints (positions + look-at). Stage 1's are computed lazily
-    // after V1 is known, so we read them per-frame in animate().
+    // Camera waypoints (positions + look-at). Stage 1 is recomputed per-frame
+    // in animate() because the brain's rotation moves V1's world position.
     const stageCameras = (s: number, v1: THREE.Vector3): { pos: THREE.Vector3; look: THREE.Vector3 } => {
       switch (s) {
         case 0:
           return { pos: new THREE.Vector3(1.6, 1.0, 2.6), look: new THREE.Vector3(0, 0, 0) };
-        case 1:
-          // Approach V1 from 3/4 angle, framed close.
-          return {
-            pos: new THREE.Vector3(v1.x + 0.55, v1.y + 0.35, v1.z + 0.65),
-            look: v1.clone(),
-          };
+        case 1: {
+          // Tight on V1: place the camera along V1's outward normal so V1
+          // fills the frame. The brain extent is ~1 unit, so a 0.45-unit
+          // offset puts us close without clipping.
+          const outward = v1.clone().normalize();
+          const pos = v1.clone().addScaledVector(outward, 0.45);
+          return { pos, look: v1.clone() };
+        }
         case 2:
           return { pos: new THREE.Vector3(0.4, 0.2, 3.6), look: new THREE.Vector3(0, 0, 0) };
         case 3:
@@ -378,9 +387,23 @@ export default function ZoomScene({ stage }: Props) {
         setCellOpacity(n.id, n.id === HERO_ID ? cur.hero : cur.cells);
       }
 
-      // Slow rotation on the brain so it feels alive
-      if (brainShell) brainShell.rotation.y = t * 0.04;
-      if (brainPoints) brainPoints.rotation.y = t * 0.04;
+      // Slow rotation only in stage 0 (whole-brain overview). Past stage 0 the
+      // brain holds still so V1 stays where the camera is pointing.
+      if (s === 0) {
+        if (brainShell) brainShell.rotation.y = t * 0.04;
+        if (brainPoints) brainPoints.rotation.y = t * 0.04;
+      }
+
+      // Stage 1 — track V1's world position each frame in case the brain has
+      // any residual rotation, and re-derive the camera offset along V1's
+      // outward normal so the framing is always tight on V1 itself.
+      if (s === 1 && brainShell) {
+        const worldV1 = v1Right.clone();
+        brainShell.localToWorld(worldV1);
+        const outward = worldV1.clone().normalize();
+        targetCamPos.copy(worldV1).addScaledVector(outward, 0.45);
+        targetCamLook.copy(worldV1);
+      }
 
       // Cells gently rotate
       for (const n of featuredNeurons) {
