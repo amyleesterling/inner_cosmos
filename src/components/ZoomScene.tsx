@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { featuredNeurons, meshUrl } from "../data/neurons";
 
 const HERO_ID = "lightning-tree";
@@ -349,6 +350,29 @@ export default function ZoomScene({ stage }: Props) {
     const curCamLook = initCam.look.clone();
     camera.lookAt(curCamLook);
 
+    // OrbitControls — drag/touch to orbit, scroll/pinch to zoom. Stays passive
+    // until the user actually interacts; otherwise scripted stage lerping
+    // (below) drives the camera.
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.enablePan = false;
+    controls.minDistance = 0.05;
+    controls.maxDistance = 12;
+    controls.target.copy(curCamLook);
+    renderer.domElement.style.touchAction = "none";
+    renderer.domElement.style.cursor = "grab";
+
+    let userInteracting = false;
+    controls.addEventListener("start", () => {
+      userInteracting = true;
+      renderer.domElement.style.cursor = "grabbing";
+    });
+    controls.addEventListener("end", () => {
+      userInteracting = false;
+      renderer.domElement.style.cursor = "grab";
+    });
+
     let lastStage = -1;
     let frameId = 0;
     const start = performance.now();
@@ -411,11 +435,16 @@ export default function ZoomScene({ stage }: Props) {
         if (g) g.rotation.y = t * 0.05;
       }
 
-      // Camera lerp — slower for the long stage 0-1 traversal, snappier later
+      // Camera lerp — only runs when the user isn't actively orbiting. Once
+      // they grab the canvas, OrbitControls owns position + target until they
+      // release; then the scripted lerp resumes from wherever they left off.
       const camK = s <= 1 ? 0.025 : 0.045;
-      camera.position.lerp(targetCamPos, camK);
-      curCamLook.lerp(targetCamLook, camK * 1.5);
-      camera.lookAt(curCamLook);
+      if (!userInteracting) {
+        camera.position.lerp(targetCamPos, camK);
+        curCamLook.lerp(targetCamLook, camK * 1.5);
+        controls.target.copy(curCamLook);
+      }
+      controls.update();
 
       renderer.render(scene, camera);
       frameId = requestAnimationFrame(animate);
@@ -433,6 +462,7 @@ export default function ZoomScene({ stage }: Props) {
     return () => {
       cancelAnimationFrame(frameId);
       window.removeEventListener("resize", onResize);
+      controls.dispose();
       if (brainPoints) {
         brainPoints.geometry.dispose();
         (brainPoints.material as THREE.Material).dispose();

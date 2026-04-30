@@ -20,7 +20,7 @@ const STAGES = [
     eyebrow: "Stage 3 of 5",
     title: "A piece of cortex.",
     subtitle:
-      "MICrONS reconstructed about a cubic millimeter of this region. Six cells from that volume.",
+      "MICrONS reconstructed about a cubic millimeter of this region. Nine cells from that volume — drag to look around.",
   },
   {
     eyebrow: "Stage 4 of 5",
