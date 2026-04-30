@@ -26,7 +26,7 @@ const STAGES = [
     eyebrow: "Stage 4 of 7",
     title: "Primary visual cortex.",
     subtitle:
-      "About a teaspoon of tissue, on the back of the cortex. This is where MICrONS mapped a chunk of mouse brain neuron by neuron — the cells you'll meet next all came from here.",
+      "Where the eye meets the brain. About a teaspoon of tissue at the back of the cortex — the first place signals from the retina turn into something the rest of the brain can use. Sight becomes perception here. The cells you'll meet next all came from this region.",
   },
   {
     eyebrow: "Stage 5 of 7",
