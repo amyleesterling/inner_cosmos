@@ -678,6 +678,21 @@ export default function ZoomScene({ stage }: Props) {
         // Stage 3 needs V1-aware retint (positions may have been computed
         // before manifest arrived).
         if (s === 3) retintByV1();
+        // Stage 7 (action potential) — hard SNAP the camera to the wide
+        // shot so the pull-back is instantaneous when the user clicks
+        // "Send signal". Disable damping briefly so OrbitControls
+        // re-derives its internal spherical state from the new camera
+        // position + target instead of fighting the snap.
+        if (s === 7) {
+          camera.position.copy(tc.pos);
+          curCamLook.copy(tc.look);
+          controls.target.copy(tc.look);
+          camera.lookAt(tc.look);
+          const wasDamping = controls.enableDamping;
+          controls.enableDamping = false;
+          controls.update();
+          controls.enableDamping = wasDamping;
+        }
       }
 
       // Mouse-brain transform target. Computed every frame because we hold
@@ -757,7 +772,7 @@ export default function ZoomScene({ stage }: Props) {
       if (s === 7 && cur.synapsePair > 0.05) {
         if (stage7EnteredAt < 0) stage7EnteredAt = t;
         const stageT = t - stage7EnteredAt;
-        const LEAD_IN = 2.0;
+        const LEAD_IN = 1.5;
         if (stageT < LEAD_IN) {
           // Wait — show meshes but no pulse yet
           setBloom(axonBloom, 0);
