@@ -584,9 +584,6 @@ export default function ZoomScene({ stage }: Props) {
         const tc = stageCameras(s, v1Right);
         targetCamPos.copy(tc.pos);
         targetCamLook.copy(tc.look);
-        // New mouse-brain transform target — lerp from current toward this.
-        targetMousePos.copy(stageMouseTransforms[s].pos);
-        targetMouseScale = stageMouseTransforms[s].scale;
         lastStage = s;
         // New stage: scripted camera takes back over from any user-orbited
         // view, lerping to the new waypoint.
@@ -595,6 +592,16 @@ export default function ZoomScene({ stage }: Props) {
         // before manifest arrived).
         if (s === 3) retintByV1();
       }
+
+      // Mouse-brain transform target. Computed every frame because we hold
+      // it at stage 1's offset position while the human is still visible
+      // during a stage-2 transition — otherwise the mouse passes through the
+      // human's volume on its way to centering, which looks awful.
+      const HUMAN_GHOST_THRESHOLD = 0.04;
+      const transformStage =
+        s === 2 && cur.humanSolid + cur.humanWire > HUMAN_GHOST_THRESHOLD ? 1 : s;
+      targetMousePos.copy(stageMouseTransforms[transformStage].pos);
+      targetMouseScale = stageMouseTransforms[transformStage].scale;
 
       const target = stageOpacities[s];
       const k = 0.04;
