@@ -191,28 +191,23 @@ export default function Explore() {
             </AnimatePresence>
 
             {/* Color legend — only on the cortex-cluster stage. Pulls
-                scientificType + color from neurons.ts. When two cells share
-                the same scientificType (e.g. Lightning Tree + Aura are both
-                Layer 5 Thick-Tufted Pyramidal), append the nickname so the
-                legend rows stay distinct. */}
+                scientificType + color from neurons.ts and dedupes by type
+                so each cell category appears once, no nicknames. The first
+                cell of each type contributes the dot color. */}
             {stage === 4 && (() => {
-              const typeCount = new Map<string, number>();
+              const seen = new Set<string>();
+              const uniques: { id: string; color: string; type: string }[] = [];
               CLUSTER_CELL_IDS.forEach((id) => {
                 const n = getNeuronById(id);
-                if (!n) return;
-                typeCount.set(n.scientificType, (typeCount.get(n.scientificType) || 0) + 1);
+                if (!n || seen.has(n.scientificType)) return;
+                seen.add(n.scientificType);
+                uniques.push({ id, color: n.color, type: n.scientificType });
               });
               return (
                 <div className="mt-6 flex items-center justify-center flex-wrap gap-x-4 gap-y-1.5 text-[10px] uppercase tracking-[0.16em] text-white/60">
-                  {CLUSTER_CELL_IDS.map((id) => {
-                    const n = getNeuronById(id);
-                    if (!n) return null;
-                    const isDup = (typeCount.get(n.scientificType) || 0) > 1;
-                    const label = isDup
-                      ? `${n.scientificType} (${n.nickname})`
-                      : n.scientificType;
-                    return <LegendDot key={id} color={n.color} label={label} />;
-                  })}
+                  {uniques.map((u) => (
+                    <LegendDot key={u.id} color={u.color} label={u.type} />
+                  ))}
                 </div>
               );
             })()}
