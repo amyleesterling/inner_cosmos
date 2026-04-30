@@ -71,7 +71,7 @@ export const featuredNeurons: FeaturedNeuron[] = [
     scientificType: "Parvalbumin Basket Cell",
     category: "inhibitory",
     morphologyPreset: "basket",
-    color: "#c89cd0",
+    color: "#b56fd8",
     shapeAnalogy: "A round cell body wrapped in a dense radial spray of axon collaterals, like coral on the seafloor.",
     oneLiner: "A fast inhibitory interneuron that helps cortex stay in time.",
     whatItDoes:

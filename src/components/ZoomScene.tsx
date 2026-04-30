@@ -131,20 +131,45 @@ export default function ZoomScene({ stage }: Props) {
     // the synapse down Aura's apical toward its soma (well below origin).
     // Both ride the synapsePair opacity so they only show when the synapse
     // pair is on screen.
-    const makePulseMaterial = (color: number) =>
-      new THREE.MeshBasicMaterial({
-        color,
+    // Pulse "bloom" — 3 nested additive-blended spheres: tight bright core,
+    // soft mid glow, wide outer halo. Each layer's opacity is multiplied by
+    // the master pulse opacity to keep the look unified. No lens flare yet,
+    // but the layered glow reads as a bright bloom rather than a flat dot.
+    const makePulseBloom = (coreColor: number, glowColor: number) => {
+      const group = new THREE.Group();
+      const coreMat = new THREE.MeshBasicMaterial({
+        color: coreColor,
         transparent: true,
         opacity: 0,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
       });
-    const apAxonMat = makePulseMaterial(0xfff0a0);       // bright gold pulse on Tendril
-    const apPyramidMat = makePulseMaterial(0xc8e6ff);    // bright blue pulse on Aura
-    const apAxonPulse = new THREE.Mesh(new THREE.SphereGeometry(0.022, 16, 16), apAxonMat);
-    const apPyramidPulse = new THREE.Mesh(new THREE.SphereGeometry(0.022, 16, 16), apPyramidMat);
-    scene.add(apAxonPulse);
-    scene.add(apPyramidPulse);
+      const midMat = new THREE.MeshBasicMaterial({
+        color: glowColor,
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      const haloMat = new THREE.MeshBasicMaterial({
+        color: glowColor,
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      group.add(new THREE.Mesh(new THREE.SphereGeometry(0.085, 24, 24), haloMat));
+      group.add(new THREE.Mesh(new THREE.SphereGeometry(0.038, 24, 24), midMat));
+      group.add(new THREE.Mesh(new THREE.SphereGeometry(0.013, 20, 20), coreMat));
+      return { group, coreMat, midMat, haloMat };
+    };
+    const axonBloom = makePulseBloom(0xffffff, 0xffd860);   // gold halo, white core
+    const pyramidBloom = makePulseBloom(0xffffff, 0x88cfff); // blue halo, white core
+    scene.add(axonBloom.group);
+    scene.add(pyramidBloom.group);
+    // Aliases used by animation block below
+    const apAxonPulse = axonBloom.group;
+    const apPyramidPulse = pyramidBloom.group;
     // Approximate end points based on the synapse-pair bbox extents:
     //   Tendril soma side ≈ (0.92, -0.10, 0.05)
     //   Aura soma         ≈ (0.05, -0.77, 0.02)
@@ -532,6 +557,7 @@ export default function ZoomScene({ stage }: Props) {
       { pos: new THREE.Vector3(0, 0, 0),         scale: 1.0 }, // 4
       { pos: new THREE.Vector3(0, 0, 0),         scale: 1.0 }, // 5
       { pos: new THREE.Vector3(0, 0, 0),         scale: 1.0 }, // 6
+      { pos: new THREE.Vector3(0, 0, 0),         scale: 1.0 }, // 7
     ];
     const curMousePos = stageMouseTransforms[0].pos.clone();
     let curMouseScale = stageMouseTransforms[0].scale;
@@ -571,9 +597,14 @@ export default function ZoomScene({ stage }: Props) {
           // Single neuron
           return { pos: new THREE.Vector3(0, 0.1, 2.4), look: new THREE.Vector3(0, -0.3, 0) };
         case 6:
-          // Synapse — close to origin. Look-at lowered so the contact sits
-          // in the upper-middle of the frame, above the stage label.
-          return { pos: new THREE.Vector3(0.12, -0.18, 0.32), look: new THREE.Vector3(0, -0.22, 0) };
+          // Synapse close-up — looking AT the synapse (origin) so it stays
+          // centered when the user drags. Camera nudged up + back so the
+          // marker sits in the upper-middle of the frame, above the label.
+          return { pos: new THREE.Vector3(0.04, 0.10, 0.42), look: new THREE.Vector3(0, 0, 0) };
+        case 7:
+          // Action potential — wide shot framing both meshes end-to-end
+          // so the pulses' full path is visible.
+          return { pos: new THREE.Vector3(0.45, -0.05, 1.95), look: new THREE.Vector3(0.30, -0.20, 0) };
         default:
           return { pos: new THREE.Vector3(0, 0, 5), look: new THREE.Vector3(0, 0, 0) };
       }
@@ -645,6 +676,7 @@ export default function ZoomScene({ stage }: Props) {
     });
 
     let lastStage = -1;
+    let stage7EnteredAt = -1; // tracks AP-stage entry time for the 2s lead-in
     let frameId = 0;
     const start = performance.now();
     const animate = () => {
@@ -726,53 +758,69 @@ export default function ZoomScene({ stage }: Props) {
       synapseMarkerMat.opacity = cur.synapseMarker;
       synapseMarker.visible = cur.synapseMarker > 0.001;
 
-      // Action-potential animation — only on the synapse stage.
-      // Cycle: axon pulse travels from Tendril's far end toward the
-      // synapse, brief crossing flash, then pyramidal pulse travels from
-      // the synapse down to Aura's soma. Loop.
-      if (s === 6 && cur.synapsePair > 0.05) {
-        const PERIOD = 3.4; // seconds for one full cycle
-        const phase = (t % PERIOD) / PERIOD; // 0..1
-        // Sub-phase boundaries
-        const AXON_END   = 0.40;  // 0.00–0.40 axon travels
-        const CROSS_END  = 0.50;  // 0.40–0.50 brief synaptic crossing
-        const PYRA_END   = 0.95;  // 0.50–0.95 pyramidal travels
-                                  // 0.95–1.00 dim/reset
+      // Action-potential animation — only on stage 7. 2-second lead-in
+      // before the first pulse, then the cycle repeats. Bloom intensity
+      // applied across the 3 layered spheres of each pulse.
+      const setBloom = (
+        bloom: { coreMat: THREE.MeshBasicMaterial; midMat: THREE.MeshBasicMaterial; haloMat: THREE.MeshBasicMaterial },
+        intensity: number,
+      ) => {
+        bloom.coreMat.opacity = intensity * 1.0;
+        bloom.midMat.opacity  = intensity * 0.55;
+        bloom.haloMat.opacity = intensity * 0.20;
+      };
 
-        if (phase < AXON_END) {
-          const u = phase / AXON_END;
-          // Axon pulse: lerp from far end → synapse (origin)
-          apAxonPulse.position.copy(TENDRIL_FAR).multiplyScalar(1 - u);
-          apAxonMat.opacity = cur.synapsePair * 0.95;
-          apPyramidMat.opacity = 0;
-          apAxonPulse.visible = true;
-          apPyramidPulse.visible = false;
-        } else if (phase < CROSS_END) {
-          const u = (phase - AXON_END) / (CROSS_END - AXON_END);
-          // Both visible during the crossing — axon fading out at synapse,
-          // pyramidal pulse igniting at synapse.
-          apAxonPulse.position.set(0, 0, 0);
-          apPyramidPulse.position.set(0, 0, 0);
-          apAxonMat.opacity = cur.synapsePair * 0.95 * (1 - u);
-          apPyramidMat.opacity = cur.synapsePair * 0.95 * u;
-          apAxonPulse.visible = true;
-          apPyramidPulse.visible = true;
-        } else if (phase < PYRA_END) {
-          const u = (phase - CROSS_END) / (PYRA_END - CROSS_END);
-          // Pyramidal pulse: lerp from synapse → Aura soma
-          apPyramidPulse.position.copy(AURA_SOMA).multiplyScalar(u);
-          apAxonMat.opacity = 0;
-          apPyramidMat.opacity = cur.synapsePair * 0.95;
+      if (s === 7 && cur.synapsePair > 0.05) {
+        if (stage7EnteredAt < 0) stage7EnteredAt = t;
+        const stageT = t - stage7EnteredAt;
+        const LEAD_IN = 2.0;
+        if (stageT < LEAD_IN) {
+          // Wait — show meshes but no pulse yet
+          setBloom(axonBloom, 0);
+          setBloom(pyramidBloom, 0);
           apAxonPulse.visible = false;
-          apPyramidPulse.visible = true;
+          apPyramidPulse.visible = false;
         } else {
-          // Reset gap before the next pulse
-          apAxonMat.opacity = 0;
-          apPyramidMat.opacity = 0;
-          apAxonPulse.visible = false;
-          apPyramidPulse.visible = false;
+          const animT = stageT - LEAD_IN;
+          const PERIOD = 3.4;
+          const phase = (animT % PERIOD) / PERIOD;
+          const AXON_END   = 0.40;
+          const CROSS_END  = 0.50;
+          const PYRA_END   = 0.95;
+
+          if (phase < AXON_END) {
+            const u = phase / AXON_END;
+            apAxonPulse.position.copy(TENDRIL_FAR).multiplyScalar(1 - u);
+            setBloom(axonBloom, cur.synapsePair * 0.95);
+            setBloom(pyramidBloom, 0);
+            apAxonPulse.visible = true;
+            apPyramidPulse.visible = false;
+          } else if (phase < CROSS_END) {
+            const u = (phase - AXON_END) / (CROSS_END - AXON_END);
+            apAxonPulse.position.set(0, 0, 0);
+            apPyramidPulse.position.set(0, 0, 0);
+            setBloom(axonBloom, cur.synapsePair * 0.95 * (1 - u));
+            setBloom(pyramidBloom, cur.synapsePair * 0.95 * u);
+            apAxonPulse.visible = true;
+            apPyramidPulse.visible = true;
+          } else if (phase < PYRA_END) {
+            const u = (phase - CROSS_END) / (PYRA_END - CROSS_END);
+            apPyramidPulse.position.copy(AURA_SOMA).multiplyScalar(u);
+            setBloom(axonBloom, 0);
+            setBloom(pyramidBloom, cur.synapsePair * 0.95);
+            apAxonPulse.visible = false;
+            apPyramidPulse.visible = true;
+          } else {
+            setBloom(axonBloom, 0);
+            setBloom(pyramidBloom, 0);
+            apAxonPulse.visible = false;
+            apPyramidPulse.visible = false;
+          }
         }
       } else {
+        if (s !== 7) stage7EnteredAt = -1; // reset for next entry
+        setBloom(axonBloom, 0);
+        setBloom(pyramidBloom, 0);
         apAxonPulse.visible = false;
         apPyramidPulse.visible = false;
       }
@@ -895,10 +943,14 @@ export default function ZoomScene({ stage }: Props) {
       });
       synapseMarker.geometry.dispose();
       synapseMarkerMat.dispose();
-      apAxonPulse.geometry.dispose();
-      apPyramidPulse.geometry.dispose();
-      apAxonMat.dispose();
-      apPyramidMat.dispose();
+      [axonBloom, pyramidBloom].forEach(({ group, coreMat, midMat, haloMat }) => {
+        group.traverse((obj) => {
+          if (obj instanceof THREE.Mesh) obj.geometry.dispose();
+        });
+        coreMat.dispose();
+        midMat.dispose();
+        haloMat.dispose();
+      });
       Object.values(cellGroups).forEach((g) => {
         g.traverse((obj) => {
           if (obj instanceof THREE.Mesh) {

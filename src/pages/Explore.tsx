@@ -9,7 +9,7 @@ import ZoomScene from "../components/ZoomScene";
 // each one does something genuinely different.
 const CLUSTER_LEGEND: { color: string; label: string }[] = [
   { color: "#8edaff", label: "Pyramidal neuron" },
-  { color: "#c89cd0", label: "Parvalbumin basket cell" },
+  { color: "#b56fd8", label: "Parvalbumin basket cell" },
   { color: "#ffd24a", label: "Chandelier cell" },
   { color: "#3ee0bc", label: "Martinotti cell" },
   { color: "#ffae3e", label: "Bipolar interneuron" },
@@ -30,46 +30,52 @@ function LegendDot({ color, label }: { color: string; label: string }) {
 
 const STAGES = [
   {
-    eyebrow: "Stage 1 of 7",
+    eyebrow: "Stage 1 of 8",
     title: "Your brain.",
     subtitle:
       "Every thought, every memory, every feeling — happens in here. About 86 billion cells, talking to each other in patterns we're only beginning to understand.",
   },
   {
-    eyebrow: "Stage 2 of 7",
+    eyebrow: "Stage 2 of 8",
     title: "Next to a mouse brain.",
     subtitle:
       "About 15 times smaller in every direction, roughly the volume of a peanut. Inside that peanut: 70 million neurons, connected by ~200 billion synapses. Mice are a key model organism, helping scientists uncover the principles that also shape the human brain. Drag to look around.",
   },
   {
-    eyebrow: "Stage 3 of 7",
+    eyebrow: "Stage 3 of 8",
     title: "Inside the mouse brain.",
     subtitle:
       "This is the mesh of an actual mouse brain from the Allen Institute. The dots inside are placeholders for some of the ~70 million neurons that live in here.",
   },
   {
-    eyebrow: "Stage 4 of 7",
+    eyebrow: "Stage 4 of 8",
     title: "Primary visual cortex.",
     subtitle:
       "Where the eye meets the brain. About a teaspoon of tissue at the back of the cortex, the first place signals from the retina turn into something the rest of the brain can use. Sight begins to become perception. The cells you'll meet next all came from this region.",
   },
   {
-    eyebrow: "Stage 5 of 7",
+    eyebrow: "Stage 5 of 8",
     title: "A piece of cortex.",
     subtitle:
       "MICrONS reconstructed about a cubic millimeter of this region. Inside that cube: roughly 200,000 cells (neurons + glia), wired together by ~523 million synapses. Ten of those cells are shown here, drag to look around.",
   },
   {
-    eyebrow: "Stage 6 of 7",
+    eyebrow: "Stage 6 of 8",
     title: "A neuron.",
     subtitle:
       "One cell. Thousands of connections. The upper branches, called dendrites, receive signals. The cell sends its own signals out through its axon, making synapses with other cells, which connect to more cells. Thus a neural network is born, representing reality and experience.",
   },
   {
-    eyebrow: "Stage 7 of 7",
+    eyebrow: "Stage 7 of 8",
     title: "One synapse.",
     subtitle:
       "An axon from a cell somewhere far away in the brain reaches up to form a synapse. It connects with the blue cell, a tufted pyramidal neuron that lives deep in cortex. The blue cell is excitatory: when it sends a signal out its own axon, it will encourage downstream cells to send their signals too. The whole contact is the size of a few hundred nanometers.",
+  },
+  {
+    eyebrow: "Stage 8 of 8",
+    title: "Action potential.",
+    subtitle:
+      "Watch the signal travel. A pulse races down the axon to the synapse, briefly flashes as it crosses, and then ignites a new pulse that travels down the pyramidal cell. This is one neuron, talking to the next. Repeats every few seconds.",
   },
 ];
 
@@ -217,7 +223,9 @@ export default function Explore() {
                   onClick={() => setStage((s) => Math.min(last, s + 1))}
                   className="group px-6 py-2.5 rounded-full glass-strong hover:bg-white/[0.08] transition flex items-center gap-2.5 cursor-pointer text-sm font-medium"
                 >
-                  <span>{stage === 0 ? "Explore" : "Closer"}</span>
+                  <span>
+                    {stage === 0 ? "Explore" : stage === 6 ? "Send signal" : "Closer"}
+                  </span>
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="transition-transform group-hover:translate-x-0.5">
                     <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
@@ -249,7 +257,7 @@ export default function Explore() {
                 ))}
               </div>
             )}
-            {stage === 6 && (
+            {(stage === 6 || stage === 7) && (
               <div className="mt-8 flex items-center justify-center flex-wrap gap-x-5 gap-y-1.5 text-[10px] uppercase tracking-[0.16em] text-white/60">
                 <LegendDot color="#4a8bff" label="Pyramidal neuron" />
                 <LegendDot color="#ffd24a" label="Axon" />
