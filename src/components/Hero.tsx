@@ -49,7 +49,7 @@ export default function Hero() {
           <span className="absolute inset-0 bg-gradient-to-r from-[var(--color-glow-cyan)]/20 via-[var(--color-glow-violet)]/20 to-[var(--color-glow-magenta)]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <span className="absolute inset-0 rounded-full ring-1 ring-white/20 group-hover:ring-white/40 transition" />
           <span className="relative flex items-center gap-3">
-            Begin the journey
+            Explore
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="transition-transform group-hover:translate-x-0.5">
               <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
