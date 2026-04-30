@@ -24,8 +24,11 @@ const CELL_POSITIONS: Record<string, [number, number, number]> = {
   "spire":   [-0.5, -0.55, -0.55],
   "aura":    [ 0.7,  0.4,  -0.6],
   "tendril": [-0.6,  0.05,  0.55],
-  // Bipolar interneuron — added to round out the inhibitory crew.
+  // Bipolar interneuron — rounds out the inhibitory crew.
   "spindle": [ 0.15,  0.6,   0.4],
+  // Layer 2/3 pyramidal — back-right slot so the cluster has both deep
+  // (L5) and superficial (L2/3) excitatory cells visible.
+  "crown":   [ 0.25, -0.45, -0.65],
 };
 
 // Brain-frame cell-cluster anchor — used for camera framing in stage 1

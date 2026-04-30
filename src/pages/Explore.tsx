@@ -2,12 +2,11 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import ZoomScene from "../components/ZoomScene";
-import { getNeuronById } from "../data/neurons";
-
 // Cells visible in the /explore stage-5 cluster (must match CELL_POSITIONS
-// in ZoomScene). Order = display order in the legend.
+// in ZoomScene).
 const CLUSTER_CELL_IDS = [
   "lightning-tree",
+  "crown",
   "dust-star",
   "spire",
   "aura",
@@ -16,6 +15,21 @@ const CLUSTER_CELL_IDS = [
   "reaching-hand",
   "spindle",
   "tendril",
+];
+
+// Hand-curated legend for the cluster stage. Color-by-type: every
+// pyramidal subtype shares one "Pyramidal neuron" entry, since they're
+// all the same broad class even if the subtypes (L2/3, L5 thick-tufted,
+// etc.) differ. Inhibitory subtypes get their own entries because
+// each one does something genuinely different.
+const CLUSTER_LEGEND: { color: string; label: string }[] = [
+  { color: "#5ed5ff", label: "Pyramidal neuron" },
+  { color: "#ffd24a", label: "Layer 4 cell" },
+  { color: "#ff6dc4", label: "Parvalbumin basket cell" },
+  { color: "#d56dff", label: "Chandelier cell" },
+  { color: "#ff9f5e", label: "Martinotti cell" },
+  { color: "#ff95dd", label: "Bipolar interneuron" },
+  { color: "#4a8bff", label: "Long-range axon" },
 ];
 
 function LegendDot({ color, label }: { color: string; label: string }) {
@@ -59,7 +73,7 @@ const STAGES = [
     eyebrow: "Stage 5 of 7",
     title: "A piece of cortex.",
     subtitle:
-      "MICrONS reconstructed about a cubic millimeter of this region. Inside that cube: roughly 200,000 cells (neurons + glia), wired together by ~523 million synapses. Nine of those cells are shown here, drag to look around.",
+      "MICrONS reconstructed about a cubic millimeter of this region. Inside that cube: roughly 200,000 cells (neurons + glia), wired together by ~523 million synapses. Ten of those cells are shown here, drag to look around.",
   },
   {
     eyebrow: "Stage 6 of 7",
@@ -190,27 +204,15 @@ export default function Explore() {
               </motion.div>
             </AnimatePresence>
 
-            {/* Color legend — only on the cortex-cluster stage. Pulls
-                scientificType + color from neurons.ts and dedupes by type
-                so each cell category appears once, no nicknames. The first
-                cell of each type contributes the dot color. */}
-            {stage === 4 && (() => {
-              const seen = new Set<string>();
-              const uniques: { id: string; color: string; type: string }[] = [];
-              CLUSTER_CELL_IDS.forEach((id) => {
-                const n = getNeuronById(id);
-                if (!n || seen.has(n.scientificType)) return;
-                seen.add(n.scientificType);
-                uniques.push({ id, color: n.color, type: n.scientificType });
-              });
-              return (
-                <div className="mt-6 flex items-center justify-center flex-wrap gap-x-4 gap-y-1.5 text-[10px] uppercase tracking-[0.16em] text-white/60">
-                  {uniques.map((u) => (
-                    <LegendDot key={u.id} color={u.color} label={u.type} />
-                  ))}
-                </div>
-              );
-            })()}
+            {/* Color legend — only on the cortex-cluster stage. One entry
+                per cell-type category; pyramidal subtypes share a color. */}
+            {stage === 4 && (
+              <div className="mt-6 flex items-center justify-center flex-wrap gap-x-4 gap-y-1.5 text-[10px] uppercase tracking-[0.16em] text-white/60">
+                {CLUSTER_LEGEND.map((entry) => (
+                  <LegendDot key={entry.label} color={entry.color} label={entry.label} />
+                ))}
+              </div>
+            )}
             {/* Synapse-stage legend — tiny 2-entry caption naming the axon
                 and the cell it's contacting. */}
             {stage === 6 && (
