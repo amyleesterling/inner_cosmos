@@ -75,7 +75,7 @@ const STAGES = [
     eyebrow: "Stage 8 of 8",
     title: "Action potential.",
     subtitle:
-      "The signals neurons send are called action potentials. It means the neuron received information that it relays to other cells. Watch the signal travel: a pulse races down the axon to the synapse, briefly flashes as it crosses, and then ignites a new pulse that travels down the pyramidal cell. This is one neuron, talking to the next. Your brain sends on the order of a quadrillion (1,000,000,000,000,000) electrical signals every second.",
+      "The signals neurons send are called action potentials. Watch the signal travel: a pulse races down the axon to the synapse, briefly flashes as it crosses, and then ignites a new pulse that travels down the pyramidal cell. This is one neuron, talking to the next. Your brain sends on the order of a quadrillion (1,000,000,000,000,000) electrical signals every second.",
   },
 ];
 
@@ -146,39 +146,51 @@ export default function Explore() {
       {/* `pointer-events-none` on the wrapper lets drag/scroll fall through to
           the canvas behind. Re-enabled on the actual interactive controls
           (progress dots + buttons) so users can still click/tap them. */}
-      {/* Sci-fi stage progress bar — moved off the top of the canvas to the
-          bottom-left corner so it doesn't overlap the visualization. Reads
-          as a small HUD chapter indicator: NN / TT + colored segment row. */}
-      <div className="fixed bottom-6 left-6 z-30 pointer-events-auto flex items-center gap-3">
-        <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-white/55 tabular-nums">
-          {String(stage + 1).padStart(2, "0")}
-          <span className="text-white/25"> / {String(STAGES.length).padStart(2, "0")}</span>
+      {/* Sci-fi stage progress bar — bottom-left HUD. Numbered chips per
+          stage: filled glow on the active one, dim for past, outlined for
+          future. Reads as a clean chapter selector, not a weird dashed line. */}
+      <div className="fixed bottom-6 left-6 z-30 pointer-events-auto flex items-center gap-2.5">
+        <span className="text-[9px] font-mono uppercase tracking-[0.3em] text-white/35 tabular-nums">
+          STAGE
         </span>
-        <div className="flex items-center gap-1.5">
-          {STAGES.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setStage(i)}
-              aria-label={`Go to stage ${i + 1}`}
-              className={`h-[3px] rounded-[1px] transition-all duration-500 ${
-                i === stage
-                  ? "w-7"
-                  : i < stage
-                  ? "w-3.5"
-                  : "w-3.5 hover:w-4"
-              }`}
-              style={
-                i === stage
-                  ? {
-                      background: "#8edaff",
-                      boxShadow: "0 0 10px rgba(142, 218, 255, 0.85), 0 0 4px rgba(142, 218, 255, 0.95)",
-                    }
-                  : i < stage
-                  ? { background: "rgba(142, 218, 255, 0.4)" }
-                  : { background: "rgba(255, 255, 255, 0.12)" }
-              }
-            />
-          ))}
+        <div className="flex items-center gap-1">
+          {STAGES.map((_, i) => {
+            const active = i === stage;
+            const past = i < stage;
+            return (
+              <button
+                key={i}
+                onClick={() => setStage(i)}
+                aria-label={`Go to stage ${i + 1}`}
+                className={`relative w-6 h-6 rounded-md text-[10px] font-mono tabular-nums transition-all duration-300 flex items-center justify-center ${
+                  active
+                    ? "text-[#04060c] font-semibold"
+                    : past
+                    ? "text-white/55 hover:text-white/85"
+                    : "text-white/30 hover:text-white/55"
+                }`}
+                style={
+                  active
+                    ? {
+                        background: "#8edaff",
+                        boxShadow:
+                          "0 0 12px rgba(142, 218, 255, 0.65), 0 0 4px rgba(142, 218, 255, 0.95), inset 0 0 6px rgba(255,255,255,0.4)",
+                      }
+                    : past
+                    ? {
+                        background: "rgba(142, 218, 255, 0.10)",
+                        boxShadow: "inset 0 0 0 1px rgba(142, 218, 255, 0.35)",
+                      }
+                    : {
+                        background: "rgba(255, 255, 255, 0.025)",
+                        boxShadow: "inset 0 0 0 1px rgba(255, 255, 255, 0.10)",
+                      }
+                }
+              >
+                {i + 1}
+              </button>
+            );
+          })}
         </div>
       </div>
 
