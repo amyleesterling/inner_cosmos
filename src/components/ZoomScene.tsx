@@ -595,8 +595,12 @@ export default function ZoomScene({ stage }: Props) {
 
       const target = stageOpacities[s];
       const k = 0.04;
-      cur.humanSolid += (target.humanSolid - cur.humanSolid) * k;
-      cur.humanWire += (target.humanWire - cur.humanWire) * k;
+      // Human-brain fade runs faster than the rest so the human is mostly
+      // gone by the time the mouse starts noticeably moving + growing.
+      // Without this, both meshes cross through each other mid-transition.
+      const kHuman = 0.085;
+      cur.humanSolid += (target.humanSolid - cur.humanSolid) * kHuman;
+      cur.humanWire += (target.humanWire - cur.humanWire) * kHuman;
       cur.brainSolid += (target.brainSolid - cur.brainSolid) * k;
       cur.brainWire += (target.brainWire - cur.brainWire) * k;
       cur.brainDots += (target.brainDots - cur.brainDots) * k;
@@ -640,16 +644,21 @@ export default function ZoomScene({ stage }: Props) {
       }
 
       // Lerp mouse-brain transform every frame so stage transitions glide
-      // smoothly between "small + offset" and "full + centered".
-      curMousePos.lerp(targetMousePos, k);
-      curMouseScale += (targetMouseScale - curMouseScale) * k;
+      // smoothly between "small + offset" and "full + centered". Slightly
+      // slower than the default opacity lerp so the human gets a head start
+      // on fading before the mouse begins its move.
+      const kMouse = 0.028;
+      curMousePos.lerp(targetMousePos, kMouse);
+      curMouseScale += (targetMouseScale - curMouseScale) * kMouse;
       if (brainShell) {
         brainShell.position.copy(curMousePos);
         brainShell.scale.setScalar(curMouseScale);
       }
 
-      // Slow rotation on the human brain in stages 0 + 1 (intro + comparison).
-      if ((s === 0 || s === 1) && humanBrainShell) {
+      // Keep the human brain rotating as long as it's visible (still fading
+      // out during stage 2). Stopping rotation as soon as the stage advances
+      // makes the brain look like it freezes mid-spin while it's fading.
+      if (humanBrainShell && cur.humanSolid + cur.humanWire > 0.001) {
         humanBrainShell.rotation.y = t * 0.05;
       }
       // Slow rotation on the mouse brain in stages 1 + 2 (comparison + whole
