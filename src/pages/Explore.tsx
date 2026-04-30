@@ -38,13 +38,13 @@ const STAGES = [
     eyebrow: "Stage 6 of 7",
     title: "A neuron.",
     subtitle:
-      "One cell. Thousands of connections. The upper branches — its dendrites — receive signals. The cell sends its own signals out through its axon, making synapses with other cells, which connect to more cells. A neural network is born — to represent reality, and experience.",
+      "One cell. Thousands of connections. The upper branches, called dendrites, receive signals. The cell sends its own signals out through its axon, making synapses with other cells, which connect to more cells. Thus a neural network is born, representing reality and experience.",
   },
   {
     eyebrow: "Stage 7 of 7",
     title: "One synapse.",
     subtitle:
-      "An axon from a cell somewhere far away in the brain reaches up to form a synapse. It connects with the blue cell — a tufted pyramidal neuron that lives deep in cortex. The blue cell is excitatory: when it sends a signal out its own axon, it will encourage downstream cells to send their signals too. The whole contact is the size of a few hundred nanometers.",
+      "An axon from a cell somewhere far away in the brain reaches up to form a synapse. It connects with the blue cell, a tufted pyramidal neuron that lives deep in cortex. The blue cell is excitatory: when it sends a signal out its own axon, it will encourage downstream cells to send their signals too. The whole contact is the size of a few hundred nanometers.",
   },
 ];
 
