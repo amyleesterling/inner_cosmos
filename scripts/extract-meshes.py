@@ -34,7 +34,7 @@ CELLS = [
     # detail than a typical neuron to read as fluffy rather than blobby.
     ("lightning-tree", 864691135572530981, 120000),
     ("coral-fan",      864691136662432990, 100000),
-    ("candelabra",     864691135572094189, 100000),
+    ("candelabra",     864691135572094189, 220000), # Chandelier cell — extensive axon cartridges; needs high face count to read as cartridges, not blobs
     ("reaching-hand",  864691135919630768, 90000),
     # 864691135104015693 was visibly cut off at volume edge; this one is
     # at ~172um from the volume center and intact (see find-central-cell.py).
