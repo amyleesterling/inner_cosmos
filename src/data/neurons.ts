@@ -103,7 +103,7 @@ export const featuredNeurons: FeaturedNeuron[] = [
     scientificType: "Martinotti Cell",
     category: "inhibitory",
     morphologyPreset: "martinotti",
-    color: "#5fe07a",
+    color: "#3ee0bc",
     shapeAnalogy: "A small soma with axons that reach upward toward superficial cortical layers.",
     oneLiner: "Less a stop sign at the cell body, more a dimmer switch on the branches.",
     whatItDoes:

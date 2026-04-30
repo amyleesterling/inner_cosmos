@@ -11,7 +11,7 @@ const CLUSTER_LEGEND: { color: string; label: string }[] = [
   { color: "#5fb8ff", label: "Pyramidal neuron" },
   { color: "#ff6dc4", label: "Parvalbumin basket cell" },
   { color: "#ffd24a", label: "Chandelier cell" },
-  { color: "#5fe07a", label: "Martinotti cell" },
+  { color: "#3ee0bc", label: "Martinotti cell" },
   { color: "#ff9f3e", label: "Bipolar interneuron" },
   { color: "#4a8bff", label: "Long-range axon" },
 ];
@@ -100,6 +100,16 @@ export default function Explore() {
         style={{
           background:
             "radial-gradient(ellipse at center, rgba(28,39,66,0.55) 0%, rgba(4,6,12,1) 70%)",
+        }}
+      />
+      {/* Whisper-quiet violet halo behind the meshes — a subconscious sense
+          of glow rather than a visible color cast. Centered slightly above
+          mid-page where the mesh now sits after the look-at shifts. */}
+      <div
+        className="fixed inset-0 z-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse 38% 32% at 50% 38%, rgba(120, 80, 200, 0.10) 0%, rgba(120, 80, 200, 0.04) 45%, rgba(120, 80, 200, 0) 75%)",
         }}
       />
 
