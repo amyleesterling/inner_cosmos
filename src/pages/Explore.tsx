@@ -190,16 +190,24 @@ export default function Explore() {
             </AnimatePresence>
 
             {/* Color legend — only on the cortex-cluster stage. Pulls
-                nickname + color straight from the neurons.ts data that
-                drives /meet, so the cluster, /meet cards, and this caption
-                always stay in sync. */}
+                scientificType + color straight from the neurons.ts data
+                that drives /meet, so cluster, cards, and caption stay in
+                sync. */}
             {stage === 4 && (
               <div className="mt-6 flex items-center justify-center flex-wrap gap-x-4 gap-y-1.5 text-[10px] uppercase tracking-[0.16em] text-white/60">
                 {CLUSTER_CELL_IDS.map((id) => {
                   const n = getNeuronById(id);
                   if (!n) return null;
-                  return <LegendDot key={id} color={n.color} label={n.nickname} />;
+                  return <LegendDot key={id} color={n.color} label={n.scientificType} />;
                 })}
+              </div>
+            )}
+            {/* Synapse-stage legend — tiny 2-entry caption naming the axon
+                and the cell it's contacting. */}
+            {stage === 6 && (
+              <div className="mt-6 flex items-center justify-center flex-wrap gap-x-5 gap-y-1.5 text-[10px] uppercase tracking-[0.16em] text-white/60">
+                <LegendDot color="#3ce0bc" label="Pyramidal neuron" />
+                <LegendDot color="#ffd24a" label="Axon" />
               </div>
             )}
 

@@ -314,8 +314,11 @@ export default function ZoomScene({ stage }: Props) {
         setLoaded: () => { synapseAuraLoaded = true; },
       },
       {
+        // Stage-6 axon recolored gold so the inbound cable reads against the
+        // teal pyramidal it's contacting. Distinct from cluster-stage Tendril
+        // (magenta there) — different mesh, different scene mode.
         url: `${BASE}meshes/synapse-tendril.glb`,
-        color: "#ff58d8",
+        color: "#ffd24a",
         setRef: (g) => { synapseTendrilGroup = g; },
         mats: synapseTendrilMaterials,
         setLoaded: () => { synapseTendrilLoaded = true; },
@@ -521,7 +524,10 @@ export default function ZoomScene({ stage }: Props) {
       group.traverse((obj) => {
         if (obj instanceof THREE.Mesh) {
           const m = obj.material as THREE.Material;
-          m.opacity = obj.userData.isWire ? opacity * 0.18 : opacity;
+          // Wireframe overlay sits on top with additive blending; at higher
+          // multipliers it washes the cell color toward white ("ghosty").
+          // Keep it as a faint structural hint, not a primary visual.
+          m.opacity = obj.userData.isWire ? opacity * 0.06 : opacity;
         }
       });
       group.visible = opacity > 0.001;
@@ -546,13 +552,16 @@ export default function ZoomScene({ stage }: Props) {
     const curCamLook = initCam.look.clone();
     camera.lookAt(curCamLook);
 
-    // OrbitControls — drag/touch to orbit, scroll/pinch to zoom. Stays passive
-    // until the user actually interacts; otherwise scripted stage lerping
-    // (below) drives the camera.
+    // OrbitControls — drag/touch to orbit, scroll/pinch to zoom, right-click
+    // (or two-finger drag on touch) to pan. Stays passive until the user
+    // actually interacts; otherwise scripted stage lerping (below) drives
+    // the camera.
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
-    controls.enablePan = false;
+    controls.enablePan = true;
+    controls.panSpeed = 0.8;
+    controls.screenSpacePanning = true;
     controls.minDistance = 0.05;
     controls.maxDistance = 12;
     controls.target.copy(curCamLook);
@@ -646,7 +655,7 @@ export default function ZoomScene({ stage }: Props) {
         for (const m of mainMats) m.opacity = cur.synapsePair;
         group.traverse((obj) => {
           if (obj instanceof THREE.Mesh && obj.userData.isWire) {
-            (obj.material as THREE.Material & { opacity: number }).opacity = cur.synapsePair * 0.18;
+            (obj.material as THREE.Material & { opacity: number }).opacity = cur.synapsePair * 0.06;
           }
         });
         group.visible = cur.synapsePair > 0.001;
