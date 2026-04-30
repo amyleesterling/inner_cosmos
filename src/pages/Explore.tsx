@@ -20,7 +20,7 @@ const STAGES = [
     eyebrow: "Stage 3 of 7",
     title: "Inside the mouse brain.",
     subtitle:
-      "This is the mesh of an actual mouse brain from the Allen Institute. The dots inside are placeholders for the ~70 million neurons that live in here.",
+      "This is the mesh of an actual mouse brain from the Allen Institute. The dots inside are placeholders for some of the ~70 million neurons that live in here.",
   },
   {
     eyebrow: "Stage 4 of 7",

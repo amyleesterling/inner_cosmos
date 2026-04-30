@@ -26,10 +26,11 @@ OUT_DIR = os.path.join(ROOT, "public", "meshes")
 OUT_GLB = os.path.join(OUT_DIR, "human-brain.glb")
 OUT_MANIFEST = os.path.join(OUT_DIR, "human-brain.json")
 
-# Pial surfaces are dense (~400K verts each). Decimate aggressively for the
-# web — the human brain only needs to read as a recognizable shape, not be
-# anatomically precise.
-TARGET_FACES = 80000
+# Pial surfaces are dense (~400K verts each). Decimate for the web — the
+# human brain mostly needs to read as a recognizable shape. 150K is roughly
+# the point where the gyri/sulci stop reading as polygon facets at the
+# default stage-0 camera distance.
+TARGET_FACES = 150000
 
 # Approximate "wow facts" for the kid-friendly intro
 NEURONS_HUMAN_BRAIN = 86_000_000_000  # 86 billion
@@ -92,6 +93,13 @@ def main():
             combined = combined.simplify_quadric_decimation(face_count=TARGET_FACES)
         except Exception as e:
             print(f"  decimation failed: {e}", file=sys.stderr)
+
+    # Smooth shading: merge coincident vertices so face normals blend across
+    # adjacent triangles. Without this, the GLB exporter writes per-face
+    # normals and three.js renders every triangle as flat-shaded — the
+    # decimated mesh ends up looking like a low-poly disco brain.
+    combined.merge_vertices()
+    combined.fix_normals()
 
     combined.export(OUT_GLB)
     size_kb = os.path.getsize(OUT_GLB) / 1024

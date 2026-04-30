@@ -24,7 +24,7 @@
   ],
   "scale": 0.011761280236524051,
   "axesNote": "swapped Y/Z + flipped Y so +Y is up (dorsal) in three.js",
-  "exportedFaces": 80000,
+  "exportedFaces": 150000,
   "wowFacts": {
     "neuronsApprox": 86000000000,
     "neuronsMouse": 71000000,
