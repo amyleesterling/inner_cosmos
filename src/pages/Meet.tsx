@@ -145,7 +145,7 @@ export default function Meet() {
                 rel="noreferrer"
                 className="text-white/90 underline underline-offset-4 decoration-white/30 hover:decoration-white/80 transition"
               >
-                MICrONS connectome on Nature
+                the MICrONS connectome paper package in Nature
               </a>
             </p>
           </div>
