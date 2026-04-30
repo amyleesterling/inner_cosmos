@@ -87,7 +87,7 @@ export const featuredNeurons: FeaturedNeuron[] = [
     scientificType: "Chandelier Cell",
     category: "inhibitory",
     morphologyPreset: "chandelier",
-    color: "#d56dff",
+    color: "#ffd24a",
     shapeAnalogy: "Vertical rows of candle-like axon cartridges hanging down, hence the classic 'chandelier' name.",
     oneLiner: "An inhibitory interneuron that aims at the most powerful control point on its targets.",
     whatItDoes:
@@ -119,7 +119,7 @@ export const featuredNeurons: FeaturedNeuron[] = [
     scientificType: "Layer 4 Cell",
     category: "excitatory",
     morphologyPreset: "stellate",
-    color: "#ffd24a",
+    color: "#5fb8ff",
     shapeAnalogy: "A small round body with short, densely-branched dendrites reaching outward in every direction.",
     oneLiner: "From layer 4 — where sensory signals from the thalamus first arrive in cortex.",
     whatItDoes:

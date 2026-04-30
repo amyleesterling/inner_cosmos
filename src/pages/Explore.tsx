@@ -9,9 +9,8 @@ import ZoomScene from "../components/ZoomScene";
 // each one does something genuinely different.
 const CLUSTER_LEGEND: { color: string; label: string }[] = [
   { color: "#5fb8ff", label: "Pyramidal neuron" },
-  { color: "#ffd24a", label: "Layer 4 cell" },
   { color: "#ff6dc4", label: "Parvalbumin basket cell" },
-  { color: "#d56dff", label: "Chandelier cell" },
+  { color: "#ffd24a", label: "Chandelier cell" },
   { color: "#5fe07a", label: "Martinotti cell" },
   { color: "#ff9f3e", label: "Bipolar interneuron" },
   { color: "#4a8bff", label: "Long-range axon" },
