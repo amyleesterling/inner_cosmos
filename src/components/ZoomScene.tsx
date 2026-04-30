@@ -435,13 +435,18 @@ export default function ZoomScene({ stage }: Props) {
     renderer.domElement.style.touchAction = "none";
     renderer.domElement.style.cursor = "grab";
 
-    let userInteracting = false;
+    // Once the user grabs the canvas (drag OR scroll-wheel), they own the
+    // camera until the next stage transition — otherwise scroll-zoom would
+    // snap back to the scripted waypoint immediately after the wheel event,
+    // since OrbitControls fires start/end synchronously around wheel input.
+    let userOwnsCamera = false;
     controls.addEventListener("start", () => {
-      userInteracting = true;
+      userOwnsCamera = true;
       renderer.domElement.style.cursor = "grabbing";
     });
     controls.addEventListener("end", () => {
-      userInteracting = false;
+      // Don't clear userOwnsCamera here — keep the user's view until they
+      // advance stages. Just restore the cursor to its rest state.
       renderer.domElement.style.cursor = "grab";
     });
 
@@ -456,6 +461,9 @@ export default function ZoomScene({ stage }: Props) {
         targetCamPos.copy(tc.pos);
         targetCamLook.copy(tc.look);
         lastStage = s;
+        // New stage: scripted camera takes back over from any user-orbited
+        // view, lerping to the new waypoint.
+        userOwnsCamera = false;
         // Stage 2 needs V1-aware retint (positions may have been computed
         // before manifest arrived).
         if (s === 2) retintByV1();
@@ -503,7 +511,7 @@ export default function ZoomScene({ stage }: Props) {
       // Stage 2 — track V1's world position each frame in case the brain has
       // any residual rotation, and re-derive the camera offset along V1's
       // outward normal so the framing is always tight on V1 itself.
-      if (s === 2 && brainShell && !userInteracting) {
+      if (s === 2 && brainShell && !userOwnsCamera) {
         const worldV1 = v1Right.clone();
         brainShell.localToWorld(worldV1);
         const outward = worldV1.clone().normalize();
@@ -521,7 +529,7 @@ export default function ZoomScene({ stage }: Props) {
       // they grab the canvas, OrbitControls owns position + target until they
       // release; then the scripted lerp resumes from wherever they left off.
       const camK = s <= 2 ? 0.025 : 0.045;
-      if (!userInteracting) {
+      if (!userOwnsCamera) {
         camera.position.lerp(targetCamPos, camK);
         curCamLook.lerp(targetCamLook, camK * 1.5);
         controls.target.copy(curCamLook);
