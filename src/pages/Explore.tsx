@@ -9,7 +9,7 @@ import ZoomScene from "../components/ZoomScene";
 // each one does something genuinely different.
 const CLUSTER_LEGEND: { color: string; label: string }[] = [
   { color: "#8edaff", label: "Pyramidal neuron" },
-  { color: "#ffbacc", label: "Parvalbumin basket cell" },
+  { color: "#c89cd0", label: "Parvalbumin basket cell" },
   { color: "#ffd24a", label: "Chandelier cell" },
   { color: "#3ee0bc", label: "Martinotti cell" },
   { color: "#ffae3e", label: "Bipolar interneuron" },
@@ -198,25 +198,6 @@ export default function Explore() {
               </motion.div>
             </AnimatePresence>
 
-            {/* Color legend — only on the cortex-cluster stage. One entry
-                per cell-type category; pyramidal subtypes share a color. */}
-            {stage === 4 && (
-              <div className="mt-6 flex items-center justify-center flex-wrap gap-x-4 gap-y-1.5 text-[10px] uppercase tracking-[0.16em] text-white/60">
-                {CLUSTER_LEGEND.map((entry) => (
-                  <LegendDot key={entry.label} color={entry.color} label={entry.label} />
-                ))}
-              </div>
-            )}
-            {/* Synapse-stage legend — tiny 2-entry caption naming the axon
-                and the cell it's contacting. */}
-            {stage === 6 && (
-              <div className="mt-6 flex items-center justify-center flex-wrap gap-x-5 gap-y-1.5 text-[10px] uppercase tracking-[0.16em] text-white/60">
-                <LegendDot color="#4a8bff" label="Pyramidal neuron" />
-                <LegendDot color="#ffd24a" label="Axon" />
-                <LegendDot color="#ff5edc" label="Synapse" />
-              </div>
-            )}
-
             {/* Controls — opt back into pointer events here, since the parent
                 <main> is pointer-events-none to let canvas drag through. */}
             <div className="mt-10 flex items-center justify-center gap-3 pointer-events-auto">
@@ -257,6 +238,24 @@ export default function Explore() {
             <p className="mt-6 text-[10px] uppercase tracking-[0.3em] text-white/30">
               Use ← → keys
             </p>
+
+            {/* Color legend — moved below the controls so it reads as a
+                caption / footer rather than competing with the copy. Only
+                shown on the cortex cluster + the synapse stage. */}
+            {stage === 4 && (
+              <div className="mt-8 flex items-center justify-center flex-wrap gap-x-4 gap-y-1.5 text-[10px] uppercase tracking-[0.16em] text-white/60">
+                {CLUSTER_LEGEND.map((entry) => (
+                  <LegendDot key={entry.label} color={entry.color} label={entry.label} />
+                ))}
+              </div>
+            )}
+            {stage === 6 && (
+              <div className="mt-8 flex items-center justify-center flex-wrap gap-x-5 gap-y-1.5 text-[10px] uppercase tracking-[0.16em] text-white/60">
+                <LegendDot color="#4a8bff" label="Pyramidal neuron" />
+                <LegendDot color="#ffd24a" label="Axon" />
+                <LegendDot color="#ff5edc" label="Synapse" />
+              </div>
+            )}
           </div>
         </div>
       </main>
