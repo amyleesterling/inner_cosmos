@@ -293,7 +293,6 @@ export default function Explore() {
               <div className="mt-8 flex items-center justify-center flex-wrap gap-x-5 gap-y-1.5 text-[10px] uppercase tracking-[0.16em] text-white/60">
                 <LegendDot color="#4a8bff" label="Pyramidal neuron" />
                 <LegendDot color="#ffd24a" label="Axon" />
-                <LegendDot color="#ff5edc" label="Synapse" />
               </div>
             )}
           </div>

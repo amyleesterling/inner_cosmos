@@ -144,7 +144,7 @@ export default function ZoomScene({ stage }: Props) {
     };
     const axonBloom = makeBloomSprite([255, 216, 96], 0.32);     // gold
     const pyramidBloom = makeBloomSprite([136, 207, 255], 0.32); // blue
-    const synapseBloom = makeBloomSprite([156, 232, 192], 0.20); // soft green-cyan
+    const synapseBloom = makeBloomSprite([156, 232, 192], 0.07); // soft green-cyan, tight
     scene.add(axonBloom.sprite);
     scene.add(pyramidBloom.sprite);
     scene.add(synapseBloom.sprite);
@@ -581,10 +581,11 @@ export default function ZoomScene({ stage }: Props) {
           // Single neuron
           return { pos: new THREE.Vector3(0, 0.1, 2.4), look: new THREE.Vector3(0, -0.3, 0) };
         case 6:
-          // Synapse close-up — look-at IS the synapse (origin) so it stays
-          // dead-center when the user drags. Camera positioned higher and
-          // tilted down so the contact still reads above the stage label.
-          return { pos: new THREE.Vector3(0.04, 0.18, 0.42), look: new THREE.Vector3(0, 0, 0) };
+          // Synapse close-up — look-at slightly below the synapse so the
+          // marker sits in the upper part of the frame above the text.
+          // (Drag-rotation pivots around the look-at, which is 0.15 units
+          // below the marker — close enough to feel like rotating around it.)
+          return { pos: new THREE.Vector3(0.04, 0.05, 0.42), look: new THREE.Vector3(0, -0.18, 0) };
         case 7:
           // Action potential — wide shot framing both meshes end-to-end.
           // Look-at on the geometric center of the synapse pair.
@@ -670,15 +671,6 @@ export default function ZoomScene({ stage }: Props) {
         const tc = stageCameras(s, v1Right);
         targetCamPos.copy(tc.pos);
         targetCamLook.copy(tc.look);
-        // Stage 7 (action potential) — SNAP camera to the wide shot
-        // immediately on entry rather than lerping. The pull-back is the
-        // user's whole point of clicking "Send signal", so it should feel
-        // immediate, not gradual.
-        if (s === 7) {
-          camera.position.copy(tc.pos);
-          curCamLook.copy(tc.look);
-          controls.target.copy(tc.look);
-        }
         lastStage = s;
         // New stage: scripted camera takes back over from any user-orbited
         // view, lerping to the new waypoint.
@@ -889,9 +881,10 @@ export default function ZoomScene({ stage }: Props) {
       // release; then the scripted lerp resumes from wherever they left off.
       // Slow camera lerp through the long stage 0→3 traversal (human →
       // comparison → mouse → V1); snappier for the closer-in stages.
-      // Stage 7 (action-potential wide pull-back) gets an even snappier
-      // rate so the user clearly sees the camera reset on entering it.
-      const camK = s === 7 ? 0.085 : s <= 3 ? 0.025 : 0.045;
+      // Stage 7 (action-potential wide pull-back) gets a very snappy
+      // 0.22 rate — convergent in ~10 frames (~0.17s) so it feels like
+      // a near-instant zoom-out when the user hits "Send signal".
+      const camK = s === 7 ? 0.22 : s <= 3 ? 0.025 : 0.045;
       if (!userOwnsCamera) {
         camera.position.lerp(targetCamPos, camK);
         curCamLook.lerp(targetCamLook, camK * 1.5);
