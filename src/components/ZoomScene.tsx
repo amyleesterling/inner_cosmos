@@ -124,6 +124,33 @@ export default function ZoomScene({ stage }: Props) {
       synapseMarkerMat,
     );
     scene.add(synapseMarker);
+
+    // Action-potential pulses on the synapse stage. apPulseAxon travels
+    // down Tendril's axon (from the far +X end of the mesh toward the
+    // synapse at origin), then apPulsePyramidal carries the signal from
+    // the synapse down Aura's apical toward its soma (well below origin).
+    // Both ride the synapsePair opacity so they only show when the synapse
+    // pair is on screen.
+    const makePulseMaterial = (color: number) =>
+      new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+    const apAxonMat = makePulseMaterial(0xfff0a0);       // bright gold pulse on Tendril
+    const apPyramidMat = makePulseMaterial(0xc8e6ff);    // bright blue pulse on Aura
+    const apAxonPulse = new THREE.Mesh(new THREE.SphereGeometry(0.022, 16, 16), apAxonMat);
+    const apPyramidPulse = new THREE.Mesh(new THREE.SphereGeometry(0.022, 16, 16), apPyramidMat);
+    scene.add(apAxonPulse);
+    scene.add(apPyramidPulse);
+    // Approximate end points based on the synapse-pair bbox extents:
+    //   Tendril soma side ≈ (0.92, -0.10, 0.05)
+    //   Aura soma         ≈ (0.05, -0.77, 0.02)
+    // Both meshes are centered on the synapse contact (origin).
+    const TENDRIL_FAR = new THREE.Vector3(0.92, -0.10, 0.05);
+    const AURA_SOMA = new THREE.Vector3(0.05, -0.77, 0.02);
     let brainShell: THREE.Group | null = null;
     const brainShellWireMaterials: THREE.MeshBasicMaterial[] = [];
     const brainShellSolidMaterials: THREE.MeshStandardMaterial[] = [];
@@ -397,8 +424,11 @@ export default function ZoomScene({ stage }: Props) {
     featuredNeurons.forEach((n) => {
       const pos = CELL_POSITIONS[n.id];
       if (!pos) return; // cell isn't in the cluster — skip silently
+      // Cluster uses the SHARED-SCALE meshes from /meshes/cluster/ so cells
+      // appear at their real-world relative sizes; /meet keeps the
+      // per-cell-normalized GLBs from /meshes/.
       loader.load(
-        meshUrl(n),
+        `${BASE}meshes/cluster/${n.id}.glb`,
         (gltf) => {
           const cellColor = new THREE.Color(n.color);
           const group = new THREE.Group();
@@ -696,6 +726,57 @@ export default function ZoomScene({ stage }: Props) {
       synapseMarkerMat.opacity = cur.synapseMarker;
       synapseMarker.visible = cur.synapseMarker > 0.001;
 
+      // Action-potential animation — only on the synapse stage.
+      // Cycle: axon pulse travels from Tendril's far end toward the
+      // synapse, brief crossing flash, then pyramidal pulse travels from
+      // the synapse down to Aura's soma. Loop.
+      if (s === 6 && cur.synapsePair > 0.05) {
+        const PERIOD = 3.4; // seconds for one full cycle
+        const phase = (t % PERIOD) / PERIOD; // 0..1
+        // Sub-phase boundaries
+        const AXON_END   = 0.40;  // 0.00–0.40 axon travels
+        const CROSS_END  = 0.50;  // 0.40–0.50 brief synaptic crossing
+        const PYRA_END   = 0.95;  // 0.50–0.95 pyramidal travels
+                                  // 0.95–1.00 dim/reset
+
+        if (phase < AXON_END) {
+          const u = phase / AXON_END;
+          // Axon pulse: lerp from far end → synapse (origin)
+          apAxonPulse.position.copy(TENDRIL_FAR).multiplyScalar(1 - u);
+          apAxonMat.opacity = cur.synapsePair * 0.95;
+          apPyramidMat.opacity = 0;
+          apAxonPulse.visible = true;
+          apPyramidPulse.visible = false;
+        } else if (phase < CROSS_END) {
+          const u = (phase - AXON_END) / (CROSS_END - AXON_END);
+          // Both visible during the crossing — axon fading out at synapse,
+          // pyramidal pulse igniting at synapse.
+          apAxonPulse.position.set(0, 0, 0);
+          apPyramidPulse.position.set(0, 0, 0);
+          apAxonMat.opacity = cur.synapsePair * 0.95 * (1 - u);
+          apPyramidMat.opacity = cur.synapsePair * 0.95 * u;
+          apAxonPulse.visible = true;
+          apPyramidPulse.visible = true;
+        } else if (phase < PYRA_END) {
+          const u = (phase - CROSS_END) / (PYRA_END - CROSS_END);
+          // Pyramidal pulse: lerp from synapse → Aura soma
+          apPyramidPulse.position.copy(AURA_SOMA).multiplyScalar(u);
+          apAxonMat.opacity = 0;
+          apPyramidMat.opacity = cur.synapsePair * 0.95;
+          apAxonPulse.visible = false;
+          apPyramidPulse.visible = true;
+        } else {
+          // Reset gap before the next pulse
+          apAxonMat.opacity = 0;
+          apPyramidMat.opacity = 0;
+          apAxonPulse.visible = false;
+          apPyramidPulse.visible = false;
+        }
+      } else {
+        apAxonPulse.visible = false;
+        apPyramidPulse.visible = false;
+      }
+
       for (const n of featuredNeurons) {
         setCellOpacity(n.id, n.id === HERO_ID ? cur.hero : cur.cells);
       }
@@ -814,6 +895,10 @@ export default function ZoomScene({ stage }: Props) {
       });
       synapseMarker.geometry.dispose();
       synapseMarkerMat.dispose();
+      apAxonPulse.geometry.dispose();
+      apPyramidPulse.geometry.dispose();
+      apAxonMat.dispose();
+      apPyramidMat.dispose();
       Object.values(cellGroups).forEach((g) => {
         g.traverse((obj) => {
           if (obj instanceof THREE.Mesh) {
