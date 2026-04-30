@@ -14,6 +14,7 @@ const CLUSTER_CELL_IDS = [
   "coral-fan",
   "candelabra",
   "reaching-hand",
+  "spindle",
   "tendril",
 ];
 
@@ -58,7 +59,7 @@ const STAGES = [
     eyebrow: "Stage 5 of 7",
     title: "A piece of cortex.",
     subtitle:
-      "MICrONS reconstructed about a cubic millimeter of this region. Inside that cube: roughly 200,000 cells (neurons + glia), wired together by ~523 million synapses. Eight of those cells are shown here — drag to look around.",
+      "MICrONS reconstructed about a cubic millimeter of this region. Inside that cube: roughly 200,000 cells (neurons + glia), wired together by ~523 million synapses. Nine of those cells are shown here, drag to look around.",
   },
   {
     eyebrow: "Stage 6 of 7",
@@ -219,8 +220,9 @@ export default function Explore() {
                 and the cell it's contacting. */}
             {stage === 6 && (
               <div className="mt-6 flex items-center justify-center flex-wrap gap-x-5 gap-y-1.5 text-[10px] uppercase tracking-[0.16em] text-white/60">
-                <LegendDot color="#3ce0bc" label="Pyramidal neuron" />
+                <LegendDot color="#4a8bff" label="Pyramidal neuron" />
                 <LegendDot color="#ffd24a" label="Axon" />
+                <LegendDot color="#ff5edc" label="Synapse" />
               </div>
             )}
 

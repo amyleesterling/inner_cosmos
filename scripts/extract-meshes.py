@@ -35,7 +35,7 @@ CELLS = [
     ("lightning-tree", 864691135572530981, 120000),
     ("coral-fan",      864691136662432990, 100000),
     ("candelabra",     864691135572094189, 220000), # Chandelier cell — extensive axon cartridges; needs high face count to read as cartridges, not blobs
-    ("reaching-hand",  864691135919630768, 90000),
+    ("reaching-hand",  864691135919630768, 200000), # Martinotti — long climbing axons need high face count to stay smooth
     # 864691135104015693 was visibly cut off at volume edge; this one is
     # at ~172um from the volume center and intact (see find-central-cell.py).
     ("dust-star",      864691135279086497, 80000),

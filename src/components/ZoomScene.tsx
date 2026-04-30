@@ -24,6 +24,8 @@ const CELL_POSITIONS: Record<string, [number, number, number]> = {
   "spire":   [-0.5, -0.55, -0.55],
   "aura":    [ 0.7,  0.4,  -0.6],
   "tendril": [-0.6,  0.05,  0.55],
+  // Bipolar interneuron — added to round out the inhibitory crew.
+  "spindle": [ 0.15,  0.6,   0.4],
 };
 
 // Brain-frame cell-cluster anchor — used for camera framing in stage 1
@@ -99,9 +101,10 @@ export default function ZoomScene({ stage }: Props) {
     let synapseTendrilGroup: THREE.Group | null = null;
     const synapseAuraMaterials: THREE.MeshStandardMaterial[] = [];
     const synapseTendrilMaterials: THREE.MeshStandardMaterial[] = [];
-    // Tiny glowing sphere at origin marks the actual contact point.
+    // Tiny glowing sphere at origin marks the actual contact point. Hot
+    // magenta so it pops against both the blue cell and the gold axon.
     const synapseMarkerMat = new THREE.MeshBasicMaterial({
-      color: 0xffe88a,
+      color: 0xff5edc,
       transparent: true,
       opacity: 0,
       blending: THREE.AdditiveBlending,
@@ -314,8 +317,10 @@ export default function ZoomScene({ stage }: Props) {
     // Both centered on the synapse coordinate so the contact lands at origin.
     const SYNAPSE_PAIR: Array<{ url: string; color: string; setRef: (g: THREE.Group) => void; mats: THREE.MeshStandardMaterial[]; setLoaded: () => void }> = [
       {
+        // Pyramidal cell rendered electric blue per Amy — distinct from
+        // the gold axon and from the cluster-stage Aura teal.
         url: `${BASE}meshes/synapse-aura.glb`,
-        color: "#3ce0bc",
+        color: "#4a8bff",
         setRef: (g) => { synapseAuraGroup = g; },
         mats: synapseAuraMaterials,
         setLoaded: () => { synapseAuraLoaded = true; },
@@ -522,9 +527,10 @@ export default function ZoomScene({ stage }: Props) {
           // Single neuron
           return { pos: new THREE.Vector3(0, 0.1, 2.4), look: new THREE.Vector3(0, 0, 0) };
         case 6:
-          // Synapse — close to origin (the actual contact). User can drag/zoom
-          // to explore Aura's dendrite + Tendril's axon meeting at this point.
-          return { pos: new THREE.Vector3(0.12, 0.04, 0.32), look: new THREE.Vector3(0, 0, 0) };
+          // Synapse — close to origin. Look-at lowered so the contact sits
+          // in the upper-middle of the frame, above the stage label, not
+          // behind it.
+          return { pos: new THREE.Vector3(0.12, -0.18, 0.32), look: new THREE.Vector3(0, -0.22, 0) };
         default:
           return { pos: new THREE.Vector3(0, 0, 5), look: new THREE.Vector3(0, 0, 0) };
       }
