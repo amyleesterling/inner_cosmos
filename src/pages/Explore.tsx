@@ -146,24 +146,43 @@ export default function Explore() {
       {/* `pointer-events-none` on the wrapper lets drag/scroll fall through to
           the canvas behind. Re-enabled on the actual interactive controls
           (progress dots + buttons) so users can still click/tap them. */}
-      <main className="relative z-10 min-h-screen flex flex-col pointer-events-none">
-        {/* Stage progress dots */}
-        <div className="pt-28 flex items-center justify-center gap-2 pointer-events-auto">
+      {/* Sci-fi stage progress bar — moved off the top of the canvas to the
+          bottom-left corner so it doesn't overlap the visualization. Reads
+          as a small HUD chapter indicator: NN / TT + colored segment row. */}
+      <div className="fixed bottom-6 left-6 z-30 pointer-events-auto flex items-center gap-3">
+        <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-white/55 tabular-nums">
+          {String(stage + 1).padStart(2, "0")}
+          <span className="text-white/25"> / {String(STAGES.length).padStart(2, "0")}</span>
+        </span>
+        <div className="flex items-center gap-1.5">
           {STAGES.map((_, i) => (
             <button
               key={i}
               onClick={() => setStage(i)}
               aria-label={`Go to stage ${i + 1}`}
-              className={`h-1 rounded-full transition-all duration-700 ${
+              className={`h-[3px] rounded-[1px] transition-all duration-500 ${
                 i === stage
-                  ? "w-12 bg-white/85"
+                  ? "w-7"
                   : i < stage
-                  ? "w-6 bg-white/45 hover:bg-white/65"
-                  : "w-6 bg-white/15 hover:bg-white/35"
+                  ? "w-3.5"
+                  : "w-3.5 hover:w-4"
               }`}
+              style={
+                i === stage
+                  ? {
+                      background: "#8edaff",
+                      boxShadow: "0 0 10px rgba(142, 218, 255, 0.85), 0 0 4px rgba(142, 218, 255, 0.95)",
+                    }
+                  : i < stage
+                  ? { background: "rgba(142, 218, 255, 0.4)" }
+                  : { background: "rgba(255, 255, 255, 0.12)" }
+              }
             />
           ))}
         </div>
+      </div>
+
+      <main className="relative z-10 min-h-screen flex flex-col pointer-events-none">
 
         {/* Stage label — centered low */}
         <div className="flex-1 flex flex-col justify-end pb-32 sm:pb-40 px-6">
