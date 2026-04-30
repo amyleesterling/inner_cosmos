@@ -190,18 +190,31 @@ export default function Explore() {
             </AnimatePresence>
 
             {/* Color legend — only on the cortex-cluster stage. Pulls
-                scientificType + color straight from the neurons.ts data
-                that drives /meet, so cluster, cards, and caption stay in
-                sync. */}
-            {stage === 4 && (
-              <div className="mt-6 flex items-center justify-center flex-wrap gap-x-4 gap-y-1.5 text-[10px] uppercase tracking-[0.16em] text-white/60">
-                {CLUSTER_CELL_IDS.map((id) => {
-                  const n = getNeuronById(id);
-                  if (!n) return null;
-                  return <LegendDot key={id} color={n.color} label={n.scientificType} />;
-                })}
-              </div>
-            )}
+                scientificType + color from neurons.ts. When two cells share
+                the same scientificType (e.g. Lightning Tree + Aura are both
+                Layer 5 Thick-Tufted Pyramidal), append the nickname so the
+                legend rows stay distinct. */}
+            {stage === 4 && (() => {
+              const typeCount = new Map<string, number>();
+              CLUSTER_CELL_IDS.forEach((id) => {
+                const n = getNeuronById(id);
+                if (!n) return;
+                typeCount.set(n.scientificType, (typeCount.get(n.scientificType) || 0) + 1);
+              });
+              return (
+                <div className="mt-6 flex items-center justify-center flex-wrap gap-x-4 gap-y-1.5 text-[10px] uppercase tracking-[0.16em] text-white/60">
+                  {CLUSTER_CELL_IDS.map((id) => {
+                    const n = getNeuronById(id);
+                    if (!n) return null;
+                    const isDup = (typeCount.get(n.scientificType) || 0) > 1;
+                    const label = isDup
+                      ? `${n.scientificType} (${n.nickname})`
+                      : n.scientificType;
+                    return <LegendDot key={id} color={n.color} label={label} />;
+                  })}
+                </div>
+              );
+            })()}
             {/* Synapse-stage legend — tiny 2-entry caption naming the axon
                 and the cell it's contacting. */}
             {stage === 6 && (
