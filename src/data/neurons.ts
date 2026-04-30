@@ -55,7 +55,7 @@ export const featuredNeurons: FeaturedNeuron[] = [
     scientificType: "Layer 5 Thick-Tufted Pyramidal",
     category: "excitatory",
     morphologyPreset: "pyramidal",
-    color: "#5fb8ff",
+    color: "#8edaff",
     shapeAnalogy: "A pyramid soma with one thick apical dendrite rising toward the cortical surface and splintering into a tuft. Basal dendrites spread out near the soma.",
     oneLiner: "Tall apical dendrite, sprawling basal arbor. A major output cell of cortex.",
     whatItDoes:
@@ -71,7 +71,7 @@ export const featuredNeurons: FeaturedNeuron[] = [
     scientificType: "Parvalbumin Basket Cell",
     category: "inhibitory",
     morphologyPreset: "basket",
-    color: "#ff6dc4",
+    color: "#ffbacc",
     shapeAnalogy: "A round cell body wrapped in a dense radial spray of axon collaterals, like coral on the seafloor.",
     oneLiner: "A fast inhibitory interneuron that helps cortex stay in time.",
     whatItDoes:
@@ -119,7 +119,7 @@ export const featuredNeurons: FeaturedNeuron[] = [
     scientificType: "Layer 4 Cell",
     category: "excitatory",
     morphologyPreset: "stellate",
-    color: "#5fb8ff",
+    color: "#8edaff",
     shapeAnalogy: "A small round body with short, densely-branched dendrites reaching outward in every direction.",
     oneLiner: "From layer 4 — where sensory signals from the thalamus first arrive in cortex.",
     whatItDoes:
@@ -151,7 +151,7 @@ export const featuredNeurons: FeaturedNeuron[] = [
     scientificType: "Layer 2/3 Pyramidal",
     category: "excitatory",
     morphologyPreset: "pyramidal",
-    color: "#5fb8ff",
+    color: "#8edaff",
     shapeAnalogy: "A smaller pyramid soma whose apical dendrite reaches up to layer 1 and ends in a tuft like a small crown.",
     oneLiner: "The most numerous excitatory cell in cortex — smaller cousin of Lightning Tree.",
     whatItDoes:
@@ -167,7 +167,7 @@ export const featuredNeurons: FeaturedNeuron[] = [
     scientificType: "Bipolar Interneuron",
     category: "inhibitory",
     morphologyPreset: "martinotti", // closest visual analogue we already have for the per-card preview placeholder
-    color: "#ff9f3e",
+    color: "#ffae3e",
     shapeAnalogy: "A small, narrow cell body with one dendrite reaching up and one reaching down — a slim, upright spindle.",
     oneLiner: "An inhibitory interneuron whose narrow vertical shape spans cortical layers.",
     whatItDoes:
@@ -201,7 +201,7 @@ export const featuredNeurons: FeaturedNeuron[] = [
     scientificType: "Pyramidal Neuron",
     category: "excitatory",
     morphologyPreset: "pyramidal",
-    color: "#5fb8ff",
+    color: "#8edaff",
     shapeAnalogy: "A pyramid soma with a single tall apical dendrite climbing upward — narrow at the base, opening into a tuft near the top.",
     oneLiner: "The center of its local circuit — every nearby inhibitory cell reaches toward it.",
     whatItDoes:
@@ -216,7 +216,7 @@ export const featuredNeurons: FeaturedNeuron[] = [
     scientificType: "Layer 5 Thick-Tufted Pyramidal",
     category: "excitatory",
     morphologyPreset: "pyramidal",
-    color: "#5fb8ff",
+    color: "#8edaff",
     shapeAnalogy: "A pyramid soma with a tall, slender apical dendrite climbing toward the cortical surface, basal dendrites fanning out below.",
     oneLiner: "Another Layer 5 thick-tufted cell — and the cell whose synapse you'll see up close in a moment.",
     whatItDoes:
