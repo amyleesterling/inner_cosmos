@@ -308,14 +308,14 @@ export default function ZoomScene({ stage }: Props) {
     const SYNAPSE_PAIR: Array<{ url: string; color: string; setRef: (g: THREE.Group) => void; mats: THREE.MeshStandardMaterial[]; setLoaded: () => void }> = [
       {
         url: `${BASE}meshes/synapse-aura.glb`,
-        color: "#5ed8ff",
+        color: "#3ce0bc",
         setRef: (g) => { synapseAuraGroup = g; },
         mats: synapseAuraMaterials,
         setLoaded: () => { synapseAuraLoaded = true; },
       },
       {
         url: `${BASE}meshes/synapse-tendril.glb`,
-        color: "#ff9fdb",
+        color: "#ff58d8",
         setRef: (g) => { synapseTendrilGroup = g; },
         mats: synapseTendrilMaterials,
         setLoaded: () => { synapseTendrilLoaded = true; },

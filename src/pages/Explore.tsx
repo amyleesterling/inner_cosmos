@@ -180,9 +180,9 @@ export default function Explore() {
                 interface chrome. */}
             {stage === 4 && (
               <div className="mt-6 flex items-center justify-center flex-wrap gap-x-6 gap-y-2 text-[11px] uppercase tracking-[0.18em] text-white/55">
-                <LegendDot color="#7ee0ff" label="Excitatory" />
-                <LegendDot color="#ff7ee0" label="Inhibitory" />
-                <LegendDot color="#ff9fdb" label="Long-range axon" />
+                <LegendDot color="#5ed5ff" label="Excitatory" />
+                <LegendDot color="#ff6dc4" label="Inhibitory" />
+                <LegendDot color="#ff58d8" label="Long-range axon" />
               </div>
             )}
 
