@@ -597,7 +597,9 @@ export default function ZoomScene({ stage }: Props) {
       // it at stage 1's offset position while the human is still visible
       // during a stage-2 transition — otherwise the mouse passes through the
       // human's volume on its way to centering, which looks awful.
-      const HUMAN_GHOST_THRESHOLD = 0.04;
+      // Tight threshold (~0.015 combined opacity) so the human is essentially
+      // invisible before the mouse begins to move.
+      const HUMAN_GHOST_THRESHOLD = 0.015;
       const transformStage =
         s === 2 && cur.humanSolid + cur.humanWire > HUMAN_GHOST_THRESHOLD ? 1 : s;
       targetMousePos.copy(stageMouseTransforms[transformStage].pos);
@@ -605,10 +607,11 @@ export default function ZoomScene({ stage }: Props) {
 
       const target = stageOpacities[s];
       const k = 0.04;
-      // Human-brain fade runs faster than the rest so the human is mostly
-      // gone by the time the mouse starts noticeably moving + growing.
-      // Without this, both meshes cross through each other mid-transition.
-      const kHuman = 0.085;
+      // Human-brain fade runs much faster than the rest so the human is
+      // essentially gone by the time the mouse starts noticeably moving +
+      // growing. Without this, both meshes cross through each other
+      // mid-transition.
+      const kHuman = 0.18;
       cur.humanSolid += (target.humanSolid - cur.humanSolid) * kHuman;
       cur.humanWire += (target.humanWire - cur.humanWire) * kHuman;
       cur.brainSolid += (target.brainSolid - cur.brainSolid) * k;
@@ -628,7 +631,11 @@ export default function ZoomScene({ stage }: Props) {
         brainPointsMaterial.opacity = cur.brainDots;
         brainPointsMaterial.size = cur.dotSize;
       }
-      if (humanBrainShell) humanBrainShell.visible = cur.humanSolid + cur.humanWire > 0.001;
+      // Cut the human mesh out of the render entirely as soon as it's
+      // basically invisible — at 0.01 opacity it can still leave a faint
+      // ghost on the additive-blended wireframe, which reads as "the mouse
+      // is moving through the brain."
+      if (humanBrainShell) humanBrainShell.visible = cur.humanSolid + cur.humanWire > 0.012;
       if (brainShell) brainShell.visible = cur.brainSolid + cur.brainWire > 0.001;
       if (brainPoints) brainPoints.visible = cur.brainDots > 0.001;
 
