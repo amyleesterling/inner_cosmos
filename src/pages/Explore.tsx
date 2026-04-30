@@ -2,33 +2,18 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import ZoomScene from "../components/ZoomScene";
-// Cells visible in the /explore stage-5 cluster (must match CELL_POSITIONS
-// in ZoomScene).
-const CLUSTER_CELL_IDS = [
-  "lightning-tree",
-  "crown",
-  "dust-star",
-  "spire",
-  "aura",
-  "coral-fan",
-  "candelabra",
-  "reaching-hand",
-  "spindle",
-  "tendril",
-];
-
 // Hand-curated legend for the cluster stage. Color-by-type: every
 // pyramidal subtype shares one "Pyramidal neuron" entry, since they're
 // all the same broad class even if the subtypes (L2/3, L5 thick-tufted,
 // etc.) differ. Inhibitory subtypes get their own entries because
 // each one does something genuinely different.
 const CLUSTER_LEGEND: { color: string; label: string }[] = [
-  { color: "#5ed5ff", label: "Pyramidal neuron" },
+  { color: "#5fb8ff", label: "Pyramidal neuron" },
   { color: "#ffd24a", label: "Layer 4 cell" },
   { color: "#ff6dc4", label: "Parvalbumin basket cell" },
   { color: "#d56dff", label: "Chandelier cell" },
-  { color: "#ff9f5e", label: "Martinotti cell" },
-  { color: "#ff95dd", label: "Bipolar interneuron" },
+  { color: "#5fe07a", label: "Martinotti cell" },
+  { color: "#ff9f3e", label: "Bipolar interneuron" },
   { color: "#4a8bff", label: "Long-range axon" },
 ];
 
