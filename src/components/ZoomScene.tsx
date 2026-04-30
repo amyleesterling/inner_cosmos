@@ -9,26 +9,32 @@ const BASE = import.meta.env.BASE_URL;
 
 // Same cluster layout as before, but offset/scaled separately from the brain
 // coordinate frame — stages 2-4 leave the brain frame entirely.
+// Cell positions in the cluster. Y axis = cortical depth: positive Y is
+// toward pia (superficial layers 1-3), negative Y is toward white matter
+// (layers 5-6). X/Z just spread cells out so they don't all stack.
+//
+// L2/3 pyramidals sit high so their apicals reach up; L5 thick-tufted
+// pyramidals sit low with their apicals climbing the column. Inhibitory
+// cells slot in throughout the depth range.
+//
+// Astrocyte (forest-floor) intentionally omitted — its 350K-face fluffy
+// arbor visually swallows the other cells. Still shown on /meet.
 const CELL_POSITIONS: Record<string, [number, number, number]> = {
-  "lightning-tree": [0, 0, 0],
-  "coral-fan": [0.65, -0.3, -0.45],
-  "candelabra": [-0.55, -0.15, 0.35],
-  "reaching-hand": [0.45, -0.55, 0.5],
-  "dust-star": [-0.7, 0.55, -0.35],
-  // forest-floor (astrocyte) intentionally omitted — its 350K-face fluffy
-  // arbor visually swallows the other cells in the cluster view. Still
-  // shown on /meet. Re-add here when we have a way to render it more
-  // sparsely (e.g. point-cloud mode for glia).
-  // Spelunker-circuit additions — clustered toward the back-left so they read
-  // as a coherent motif within the larger cluster.
-  "spire":   [-0.5, -0.55, -0.55],
-  "aura":    [ 0.7,  0.4,  -0.6],
-  "tendril": [-0.6,  0.05,  0.55],
-  // Bipolar interneuron — rounds out the inhibitory crew.
-  "spindle": [ 0.15,  0.6,   0.4],
-  // Layer 2/3 pyramidal — back-right slot so the cluster has both deep
-  // (L5) and superficial (L2/3) excitatory cells visible.
-  "crown":   [ 0.25, -0.45, -0.65],
+  // Layer 5 thick-tufted pyramidals — deep
+  "lightning-tree": [ 0,    -0.45,  0    ],
+  "aura":           [ 0.55, -0.50, -0.50 ],
+  // Layer 2/3 pyramidal — superficial
+  "crown":          [-0.45,  0.50, -0.35 ],
+  // Layer 4 cell — between L2/3 and L5
+  "dust-star":      [ 0.45,  0.15, -0.45 ],
+  // Spire (generic Pyramidal Neuron) — deep per the synapse-stage copy
+  "spire":          [-0.55, -0.45, -0.45 ],
+  // Inhibitory + axon
+  "coral-fan":      [ 0.65,  0.05,  0.40 ], // basket cell, mid layers
+  "candelabra":     [-0.55,  0.25,  0.30 ], // chandelier, upper-mid
+  "reaching-hand":  [ 0.45, -0.55,  0.50 ], // Martinotti soma deep, axons climb
+  "spindle":        [ 0.20,  0.55,  0.35 ], // bipolar, often upper
+  "tendril":        [-0.55,  0.05,  0.55 ], // axon — depth doesn't matter
 };
 
 // Brain-frame cell-cluster anchor — used for camera framing in stage 1
