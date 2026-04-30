@@ -20,6 +20,15 @@ export default function Landing() {
       {/* Top + bottom vignettes — fixed, on top of canvas, behind content */}
       <div className="pointer-events-none fixed inset-x-0 top-0 h-40 z-[5] bg-gradient-to-b from-[var(--color-ink-950)] to-transparent" />
       <div className="pointer-events-none fixed inset-x-0 bottom-0 h-40 z-[5] bg-gradient-to-t from-[var(--color-ink-950)] to-transparent" />
+      {/* Soft central darkening so the headline stays legible if any cell
+          drifts close to the middle. Sits between canvas and text. */}
+      <div
+        className="pointer-events-none fixed inset-0 z-[5]"
+        style={{
+          background:
+            "radial-gradient(ellipse 55% 35% at center, rgba(4,6,12,0.78) 0%, rgba(4,6,12,0.45) 55%, rgba(4,6,12,0) 85%)",
+        }}
+      />
 
       {/* Foreground content */}
       <main className="relative z-10 min-h-screen overflow-x-hidden">

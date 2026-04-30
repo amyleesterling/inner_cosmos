@@ -34,7 +34,7 @@ interface Instance {
 }
 
 // We instance each cell N times to fill the field even if the pool is small.
-const INSTANCES_PER_CELL = 6;
+const INSTANCES_PER_CELL = 4;
 
 export default function LandingNeurons() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -114,15 +114,21 @@ export default function LandingNeurons() {
 
     function placeInstance(group: THREE.Group) {
       const aspect = camera.aspect;
-      // Tighter spread so cells stay near the visible field at the closer
-      // camera distance — they read as a small nearby population, not a
-      // sparse distant cloud.
-      const xSpread = aspect > 1 ? 6 : aspect * 6;
-      const ySpread = aspect > 1 ? 3.5 : 3.5 / aspect;
+      // Donut placement — cells live in an elliptical ring around the center
+      // so they don't crowd the headline copy. Inner ellipse is the
+      // text-safe zone; outer is how far the field extends.
+      const innerA = aspect > 1 ? 3.8 : aspect * 3.8;
+      const innerB = 2.2;
+      const outerA = aspect > 1 ? 9 : aspect * 9;
+      const outerB = 5.0;
+      const angle = Math.random() * Math.PI * 2;
+      const u = Math.random();
+      const a = innerA + u * (outerA - innerA);
+      const b = innerB + u * (outerB - innerB);
       const pos = new THREE.Vector3(
-        (Math.random() - 0.5) * xSpread * 2,
-        (Math.random() - 0.5) * ySpread * 2,
-        (Math.random() - 0.5) * 7 - 1,
+        Math.cos(angle) * a,
+        Math.sin(angle) * b,
+        (Math.random() - 0.5) * 6 - 1,
       );
       group.position.copy(pos);
       // Initial Y rotation only — cells stand upright and pirouette around
