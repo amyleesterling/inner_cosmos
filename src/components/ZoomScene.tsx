@@ -79,27 +79,79 @@ export default function ZoomScene({ stage }: Props) {
     fill.position.set(-3, 1, -2);
     scene.add(fill);
 
-    // ---- Brain mesh + interior neuron dots --------------------------------
+    // ---- Brain meshes + interior neuron dots ------------------------------
+    // Stage 0 = human brain (the intro). Stages 1+ = mouse brain (where the
+    // actual MICrONS data lives). They live in the same scene origin and
+    // cross-fade between stages.
+    let humanBrainShell: THREE.Group | null = null;
+    const humanBrainSolidMaterials: THREE.MeshStandardMaterial[] = [];
+    const humanBrainWireMaterials: THREE.MeshBasicMaterial[] = [];
     let brainShell: THREE.Group | null = null;
-    let brainShellWireMaterials: THREE.MeshBasicMaterial[] = [];
-    let brainShellSolidMaterials: THREE.MeshStandardMaterial[] = [];
+    const brainShellWireMaterials: THREE.MeshBasicMaterial[] = [];
+    const brainShellSolidMaterials: THREE.MeshStandardMaterial[] = [];
     let brainPoints: THREE.Points | null = null;
     let brainPointsMaterial: THREE.PointsMaterial | null = null;
     const v1Right = new THREE.Vector3(0.31, 0.28, 0.29); // updated when manifest loads
     let manifestLoaded = false;
     let dotsLoaded = false;
     let brainLoaded = false;
+    let humanBrainLoaded = false;
 
     const updateProgress = () => {
       const cells = Object.keys(cellGroups).length;
-      const total = featuredNeurons.length + 2; // brain + dots
+      const total = featuredNeurons.length + 3; // human brain + mouse brain + dots
       let done = cells;
+      if (humanBrainLoaded) done++;
       if (manifestLoaded && brainLoaded) done++;
       if (manifestLoaded && dotsLoaded) done++;
       setProgress(done / total);
     };
 
     const loader = new GLTFLoader();
+
+    // 0) Human brain — the stage-0 intro mesh
+    loader.load(
+      `${BASE}meshes/human-brain.glb`,
+      (gltf) => {
+        humanBrainShell = new THREE.Group();
+        const sourceMeshes: THREE.Mesh[] = [];
+        gltf.scene.traverse((obj) => {
+          if (obj instanceof THREE.Mesh) sourceMeshes.push(obj);
+        });
+        for (const obj of sourceMeshes) {
+          const mat = new THREE.MeshStandardMaterial({
+            color: new THREE.Color("#c9b8e8"),
+            emissive: new THREE.Color("#3a2a55"),
+            roughness: 0.85,
+            metalness: 0.0,
+            transparent: true,
+            opacity: 0.0,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+          });
+          obj.material = mat;
+          humanBrainSolidMaterials.push(mat);
+
+          const wireMat = new THREE.MeshBasicMaterial({
+            color: new THREE.Color("#e6b9ff"),
+            wireframe: true,
+            transparent: true,
+            opacity: 0.0,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+          });
+          const wireMesh = new THREE.Mesh(obj.geometry, wireMat);
+          obj.add(wireMesh);
+          humanBrainWireMaterials.push(wireMat);
+          humanBrainShell.add(obj);
+        }
+        scene.add(humanBrainShell);
+        humanBrainLoaded = true;
+        updateProgress();
+      },
+      undefined,
+      (e) => console.error("human brain mesh", e),
+    );
 
     // 1) Brain manifest (gives us V1 location + axes)
     fetch(`${BASE}meshes/mouse-brain.json`)
@@ -283,40 +335,54 @@ export default function ZoomScene({ stage }: Props) {
 
     // ---- Per-stage targets ------------------------------------------------
     type Targets = {
-      brainSolid: number;       // brain shell solid opacity
-      brainWire: number;        // brain shell wireframe opacity
+      humanSolid: number;       // human-brain shell solid opacity (stage 0 only)
+      humanWire: number;        // human-brain shell wireframe opacity
+      brainSolid: number;       // mouse-brain shell solid opacity
+      brainWire: number;        // mouse-brain shell wireframe opacity
       brainDots: number;        // interior dots opacity
       dotSize: number;          // point size
       cells: number;            // non-hero cells opacity
       hero: number;             // hero cell opacity
     };
     const stageOpacities: Targets[] = [
-      { brainSolid: 0.10, brainWire: 0.30, brainDots: 0.85, dotSize: 0.011, cells: 0, hero: 0 }, // 0 — whole brain
-      { brainSolid: 0.06, brainWire: 0.22, brainDots: 0.95, dotSize: 0.018, cells: 0, hero: 0 }, // 1 — V1 close
-      { brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0.9,  hero: 0.9  }, // 2 — circuit
-      { brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0.07, hero: 0.95 }, // 3 — single neuron
-      { brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0.0,  hero: 0.95 }, // 4 — synapse
+      // 0 — human brain (intro)
+      { humanSolid: 0.12, humanWire: 0.32, brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0,    hero: 0    },
+      // 1 — mouse whole brain
+      { humanSolid: 0,    humanWire: 0,    brainSolid: 0.10, brainWire: 0.30, brainDots: 0.85, dotSize: 0.011, cells: 0,    hero: 0    },
+      // 2 — V1 close
+      { humanSolid: 0,    humanWire: 0,    brainSolid: 0.06, brainWire: 0.22, brainDots: 0.95, dotSize: 0.018, cells: 0,    hero: 0    },
+      // 3 — circuit
+      { humanSolid: 0,    humanWire: 0,    brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0.9,  hero: 0.9  },
+      // 4 — single neuron
+      { humanSolid: 0,    humanWire: 0,    brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0.07, hero: 0.95 },
+      // 5 — synapse
+      { humanSolid: 0,    humanWire: 0,    brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0.0,  hero: 0.95 },
     ];
 
-    // Camera waypoints (positions + look-at). Stage 1 is recomputed per-frame
+    // Camera waypoints (positions + look-at). Stage 2 is recomputed per-frame
     // in animate() because the brain's rotation moves V1's world position.
     const stageCameras = (s: number, v1: THREE.Vector3): { pos: THREE.Vector3; look: THREE.Vector3 } => {
       switch (s) {
         case 0:
+          // Human brain — wide shot from a slight 3/4 angle so folds read.
+          return { pos: new THREE.Vector3(0.4, 0.3, 2.9), look: new THREE.Vector3(0, 0, 0) };
+        case 1:
+          // Mouse whole brain
           return { pos: new THREE.Vector3(1.6, 1.0, 2.6), look: new THREE.Vector3(0, 0, 0) };
-        case 1: {
-          // Tight on V1: place the camera along V1's outward normal so V1
-          // fills the frame. The brain extent is ~1 unit, so a 0.45-unit
-          // offset puts us close without clipping.
+        case 2: {
+          // Tight on V1 — along V1's outward normal so it fills the frame.
           const outward = v1.clone().normalize();
           const pos = v1.clone().addScaledVector(outward, 0.45);
           return { pos, look: v1.clone() };
         }
-        case 2:
-          return { pos: new THREE.Vector3(0.4, 0.2, 3.6), look: new THREE.Vector3(0, 0, 0) };
         case 3:
-          return { pos: new THREE.Vector3(0, 0.1, 2.4), look: new THREE.Vector3(0, 0, 0) };
+          // Cell cluster
+          return { pos: new THREE.Vector3(0.4, 0.2, 3.6), look: new THREE.Vector3(0, 0, 0) };
         case 4:
+          // Single neuron
+          return { pos: new THREE.Vector3(0, 0.1, 2.4), look: new THREE.Vector3(0, 0, 0) };
+        case 5:
+          // Synapse
           return { pos: new THREE.Vector3(0.18, 0.55, 0.65), look: new THREE.Vector3(0.05, 0.45, 0) };
         default:
           return { pos: new THREE.Vector3(0, 0, 5), look: new THREE.Vector3(0, 0, 0) };
@@ -336,6 +402,8 @@ export default function ZoomScene({ stage }: Props) {
     };
 
     const cur: Targets = {
+      humanSolid: stageOpacities[0].humanSolid,
+      humanWire: stageOpacities[0].humanWire,
       brainSolid: stageOpacities[0].brainSolid,
       brainWire: stageOpacities[0].brainWire,
       brainDots: stageOpacities[0].brainDots,
@@ -384,13 +452,15 @@ export default function ZoomScene({ stage }: Props) {
         targetCamPos.copy(tc.pos);
         targetCamLook.copy(tc.look);
         lastStage = s;
-        // Stage 1 needs V1-aware retint (positions may have been computed
+        // Stage 2 needs V1-aware retint (positions may have been computed
         // before manifest arrived).
-        if (s === 1) retintByV1();
+        if (s === 2) retintByV1();
       }
 
       const target = stageOpacities[s];
       const k = 0.04;
+      cur.humanSolid += (target.humanSolid - cur.humanSolid) * k;
+      cur.humanWire += (target.humanWire - cur.humanWire) * k;
       cur.brainSolid += (target.brainSolid - cur.brainSolid) * k;
       cur.brainWire += (target.brainWire - cur.brainWire) * k;
       cur.brainDots += (target.brainDots - cur.brainDots) * k;
@@ -398,12 +468,15 @@ export default function ZoomScene({ stage }: Props) {
       cur.cells += (target.cells - cur.cells) * k;
       cur.hero += (target.hero - cur.hero) * k;
 
+      humanBrainSolidMaterials.forEach((m) => (m.opacity = cur.humanSolid));
+      humanBrainWireMaterials.forEach((m) => (m.opacity = cur.humanWire));
       brainShellSolidMaterials.forEach((m) => (m.opacity = cur.brainSolid));
       brainShellWireMaterials.forEach((m) => (m.opacity = cur.brainWire));
       if (brainPointsMaterial) {
         brainPointsMaterial.opacity = cur.brainDots;
         brainPointsMaterial.size = cur.dotSize;
       }
+      if (humanBrainShell) humanBrainShell.visible = cur.humanSolid + cur.humanWire > 0.001;
       if (brainShell) brainShell.visible = cur.brainSolid + cur.brainWire > 0.001;
       if (brainPoints) brainPoints.visible = cur.brainDots > 0.001;
 
@@ -411,17 +484,22 @@ export default function ZoomScene({ stage }: Props) {
         setCellOpacity(n.id, n.id === HERO_ID ? cur.hero : cur.cells);
       }
 
-      // Slow rotation only in stage 0 (whole-brain overview). Past stage 0 the
-      // brain holds still so V1 stays where the camera is pointing.
-      if (s === 0) {
+      // Slow rotation on the human brain only in stage 0.
+      if (s === 0 && humanBrainShell) {
+        humanBrainShell.rotation.y = t * 0.05;
+      }
+      // Slow rotation on the mouse brain only in stage 1 (whole-brain overview).
+      // Past stage 1 the mouse brain holds still so V1 stays where the camera
+      // is pointing.
+      if (s === 1) {
         if (brainShell) brainShell.rotation.y = t * 0.04;
         if (brainPoints) brainPoints.rotation.y = t * 0.04;
       }
 
-      // Stage 1 — track V1's world position each frame in case the brain has
+      // Stage 2 — track V1's world position each frame in case the brain has
       // any residual rotation, and re-derive the camera offset along V1's
       // outward normal so the framing is always tight on V1 itself.
-      if (s === 1 && brainShell) {
+      if (s === 2 && brainShell && !userInteracting) {
         const worldV1 = v1Right.clone();
         brainShell.localToWorld(worldV1);
         const outward = worldV1.clone().normalize();
@@ -438,7 +516,7 @@ export default function ZoomScene({ stage }: Props) {
       // Camera lerp — only runs when the user isn't actively orbiting. Once
       // they grab the canvas, OrbitControls owns position + target until they
       // release; then the scripted lerp resumes from wherever they left off.
-      const camK = s <= 1 ? 0.025 : 0.045;
+      const camK = s <= 2 ? 0.025 : 0.045;
       if (!userInteracting) {
         camera.position.lerp(targetCamPos, camK);
         curCamLook.lerp(targetCamLook, camK * 1.5);
@@ -469,6 +547,16 @@ export default function ZoomScene({ stage }: Props) {
       }
       if (brainShell) {
         brainShell.traverse((obj) => {
+          if (obj instanceof THREE.Mesh) {
+            obj.geometry.dispose();
+            const m = obj.material;
+            if (Array.isArray(m)) m.forEach((mm) => mm.dispose());
+            else (m as THREE.Material).dispose();
+          }
+        });
+      }
+      if (humanBrainShell) {
+        humanBrainShell.traverse((obj) => {
           if (obj instanceof THREE.Mesh) {
             obj.geometry.dispose();
             const m = obj.material;
