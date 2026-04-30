@@ -501,35 +501,39 @@ export default function ZoomScene({ stage }: Props) {
 
     // Camera waypoints (positions + look-at). Stage 3 is recomputed per-frame
     // in animate() because the brain's rotation moves V1's world position.
+    // Look-at Y values are intentionally negative on every stage so each
+    // mesh's center of rotation lands in the upper third of the frame
+    // (above the stage label/copy, not behind it).
     const stageCameras = (s: number, v1: THREE.Vector3): { pos: THREE.Vector3; look: THREE.Vector3 } => {
       switch (s) {
         case 0:
           // Human brain — wide shot from a slight 3/4 angle so folds read.
-          return { pos: new THREE.Vector3(0.4, 0.3, 2.9), look: new THREE.Vector3(0, 0, 0) };
+          return { pos: new THREE.Vector3(0.4, 0.3, 2.9), look: new THREE.Vector3(0, -0.4, 0) };
         case 1:
           // Comparison — pull back so both human (centered) and tiny mouse
           // (offset to lower-right) are framed together. Look-at is between
           // the two so the human fills most of the frame on the left.
-          return { pos: new THREE.Vector3(0.6, 0.2, 4.6), look: new THREE.Vector3(0.5, -0.1, 0) };
+          return { pos: new THREE.Vector3(0.6, 0.2, 4.6), look: new THREE.Vector3(0.5, -0.5, 0) };
         case 2:
           // Mouse whole brain
-          return { pos: new THREE.Vector3(1.6, 1.0, 2.6), look: new THREE.Vector3(0, 0, 0) };
+          return { pos: new THREE.Vector3(1.6, 1.0, 2.6), look: new THREE.Vector3(0, -0.4, 0) };
         case 3: {
           // Tight on V1 — along V1's outward normal so it fills the frame.
           const outward = v1.clone().normalize();
           const pos = v1.clone().addScaledVector(outward, 0.45);
-          return { pos, look: v1.clone() };
+          const look = v1.clone();
+          look.y -= 0.25; // raise V1 in frame, above the stage label
+          return { pos, look };
         }
         case 4:
           // Cell cluster
-          return { pos: new THREE.Vector3(0.4, 0.2, 3.6), look: new THREE.Vector3(0, 0, 0) };
+          return { pos: new THREE.Vector3(0.4, 0.2, 3.6), look: new THREE.Vector3(0, -0.4, 0) };
         case 5:
           // Single neuron
-          return { pos: new THREE.Vector3(0, 0.1, 2.4), look: new THREE.Vector3(0, 0, 0) };
+          return { pos: new THREE.Vector3(0, 0.1, 2.4), look: new THREE.Vector3(0, -0.3, 0) };
         case 6:
           // Synapse — close to origin. Look-at lowered so the contact sits
-          // in the upper-middle of the frame, above the stage label, not
-          // behind it.
+          // in the upper-middle of the frame, above the stage label.
           return { pos: new THREE.Vector3(0.12, -0.18, 0.32), look: new THREE.Vector3(0, -0.22, 0) };
         default:
           return { pos: new THREE.Vector3(0, 0, 5), look: new THREE.Vector3(0, 0, 0) };
@@ -717,13 +721,15 @@ export default function ZoomScene({ stage }: Props) {
 
       // Stage 3 — track V1's world position each frame in case the brain has
       // any residual rotation, and re-derive the camera offset along V1's
-      // outward normal so the framing is always tight on V1 itself.
+      // outward normal so the framing is always tight on V1 itself. Look-at
+      // is shifted down so V1 sits in the upper part of the frame.
       if (s === 3 && brainShell && !userOwnsCamera) {
         const worldV1 = v1Right.clone();
         brainShell.localToWorld(worldV1);
         const outward = worldV1.clone().normalize();
         targetCamPos.copy(worldV1).addScaledVector(outward, 0.45);
         targetCamLook.copy(worldV1);
+        targetCamLook.y -= 0.25;
       }
 
       // Cells gently rotate
