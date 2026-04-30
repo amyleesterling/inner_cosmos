@@ -40,7 +40,7 @@ const STAGES = [
     eyebrow: "Stage 2 of 7",
     title: "Next to a mouse brain.",
     subtitle:
-      "About 15 times smaller in every direction — roughly the volume of a peanut. Inside that peanut: 70 million neurons, connected by ~200 billion synapses. Drag to look around.",
+      "About 15 times smaller in every direction, roughly the volume of a peanut. Inside that peanut: 70 million neurons, connected by ~200 billion synapses. Mice are a key model organism, helping scientists uncover the principles that also shape the human brain. Drag to look around.",
   },
   {
     eyebrow: "Stage 3 of 7",
