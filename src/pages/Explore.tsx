@@ -38,7 +38,7 @@ const STAGES = [
     eyebrow: "Stage 6 of 7",
     title: "A neuron.",
     subtitle:
-      "One cell. Thousands of branches reaching for thousands of others.",
+      "One cell. Thousands of connections. The upper branches — its dendrites — receive signals. The cell sends its own signals out through its axon, making synapses with other cells, which connect to more cells. A neural network is born — to represent reality, and experience.",
   },
   {
     eyebrow: "Stage 7 of 7",
