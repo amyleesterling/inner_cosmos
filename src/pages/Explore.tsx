@@ -3,6 +3,18 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import ZoomScene from "../components/ZoomScene";
 
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="flex items-center gap-2">
+      <span
+        className="w-2 h-2 rounded-full"
+        style={{ background: color, boxShadow: `0 0 8px ${color}aa` }}
+      />
+      {label}
+    </span>
+  );
+}
+
 const STAGES = [
   {
     eyebrow: "Stage 1 of 7",
@@ -162,6 +174,17 @@ export default function Explore() {
                 </p>
               </motion.div>
             </AnimatePresence>
+
+            {/* Color legend — only on the cortex-cluster stage. Lives between
+                the copy and the controls so it reads as caption rather than
+                interface chrome. */}
+            {stage === 4 && (
+              <div className="mt-6 flex items-center justify-center flex-wrap gap-x-6 gap-y-2 text-[11px] uppercase tracking-[0.18em] text-white/55">
+                <LegendDot color="#7ee0ff" label="Excitatory" />
+                <LegendDot color="#ff7ee0" label="Inhibitory" />
+                <LegendDot color="#ff9fdb" label="Long-range axon" />
+              </div>
+            )}
 
             {/* Controls — opt back into pointer events here, since the parent
                 <main> is pointer-events-none to let canvas drag through. */}

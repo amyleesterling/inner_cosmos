@@ -11,8 +11,17 @@ export default function NavBar() {
         aria-label="Inner Cosmos — home"
       >
         <span className="relative inline-flex items-center justify-center w-7 h-7">
-          <span className="absolute inset-0 rounded-full bg-gradient-to-br from-[var(--color-glow-cyan)] via-[var(--color-glow-violet)] to-[var(--color-glow-magenta)] opacity-70 blur-[6px]" />
-          <span className="relative w-2 h-2 rounded-full bg-white" />
+          {/* Soft violet glow under the brain icon — matches the stage-1 mesh
+              tint without the rainbow-halo competing with its color. */}
+          <span
+            className="absolute inset-0 rounded-full opacity-55 blur-[8px]"
+            style={{ background: "#a87ee0" }}
+          />
+          <img
+            src={`${import.meta.env.BASE_URL}brain-favicon.png`}
+            alt=""
+            className="relative w-7 h-7 object-contain pointer-events-none"
+          />
         </span>
         <span className="font-display tracking-wide text-[15px] text-white/90 group-hover:text-white">
           Inner Cosmos
