@@ -5,37 +5,43 @@ import ZoomScene from "../components/ZoomScene";
 
 const STAGES = [
   {
-    eyebrow: "Stage 1 of 6",
+    eyebrow: "Stage 1 of 7",
     title: "Your brain.",
     subtitle:
       "Every thought, every memory, every feeling — happens in here. About 86 billion cells, talking to each other in patterns we're only beginning to understand.",
   },
   {
-    eyebrow: "Stage 2 of 6",
-    title: "A mouse brain.",
+    eyebrow: "Stage 2 of 7",
+    title: "Next to a mouse brain.",
     subtitle:
-      "About a thousand times smaller than yours, with a thousand times fewer cells. Small enough that we can map every wire — which is exactly what the MICrONS project did.",
+      "About 14 times smaller in every direction. Roughly the volume of a peanut, with about a thousand times fewer neurons — small enough that scientists can map every single one. Drag to look around.",
   },
   {
-    eyebrow: "Stage 3 of 6",
+    eyebrow: "Stage 3 of 7",
+    title: "Inside the mouse brain.",
+    subtitle:
+      "This is the mesh of an actual mouse brain from the Allen Institute. The dots inside are placeholders for the ~70 million neurons that live in here.",
+  },
+  {
+    eyebrow: "Stage 4 of 7",
     title: "Primary visual cortex.",
     subtitle:
       "About a teaspoon of tissue, on the back of the cortex. This is where MICrONS mapped a chunk of mouse brain neuron by neuron — the cells you'll meet next all came from here.",
   },
   {
-    eyebrow: "Stage 4 of 6",
+    eyebrow: "Stage 5 of 7",
     title: "A piece of cortex.",
     subtitle:
       "MICrONS reconstructed about a cubic millimeter of this region. Nine cells from that volume — drag to look around.",
   },
   {
-    eyebrow: "Stage 5 of 6",
+    eyebrow: "Stage 6 of 7",
     title: "A neuron.",
     subtitle:
       "One cell. Thousands of branches reaching for thousands of others.",
   },
   {
-    eyebrow: "Stage 6 of 6",
+    eyebrow: "Stage 7 of 7",
     title: "One synapse.",
     subtitle:
       "Tendril's axon meets Aura's dendrite right here. One inhibitory cell, one Layer 5 pyramidal — the size of a few hundred nanometers.",

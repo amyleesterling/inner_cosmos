@@ -438,21 +438,45 @@ export default function ZoomScene({ stage }: Props) {
       synapseMarker: number;    // glow sphere at the synapse contact (stage 5)
     };
     const stageOpacities: Targets[] = [
-      // 0 — human brain (intro). Solid-dominant so cortical-fold shape reads.
+      // 0 — human brain alone. Solid-dominant so cortical folds read.
       { humanSolid: 0.55, humanWire: 0.08, brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0,    hero: 0,    synapsePair: 0,    synapseMarker: 0    },
-      // 1 — mouse whole brain
+      // 1 — comparison: human + small mouse to scale, dots off
+      { humanSolid: 0.50, humanWire: 0.06, brainSolid: 0.55, brainWire: 0.10, brainDots: 0,    dotSize: 0.011, cells: 0,    hero: 0,    synapsePair: 0,    synapseMarker: 0    },
+      // 2 — mouse alone (full size)
       { humanSolid: 0,    humanWire: 0,    brainSolid: 0.10, brainWire: 0.30, brainDots: 0.85, dotSize: 0.011, cells: 0,    hero: 0,    synapsePair: 0,    synapseMarker: 0    },
-      // 2 — V1 close
+      // 3 — V1 close
       { humanSolid: 0,    humanWire: 0,    brainSolid: 0.06, brainWire: 0.22, brainDots: 0.95, dotSize: 0.018, cells: 0,    hero: 0,    synapsePair: 0,    synapseMarker: 0    },
-      // 3 — circuit
+      // 4 — circuit
       { humanSolid: 0,    humanWire: 0,    brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0.9,  hero: 0.9,  synapsePair: 0,    synapseMarker: 0    },
-      // 4 — single neuron
+      // 5 — single neuron
       { humanSolid: 0,    humanWire: 0,    brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0.07, hero: 0.95, synapsePair: 0,    synapseMarker: 0    },
-      // 5 — synapse: cluster gone, hero gone, synapse pair + contact marker visible.
+      // 6 — synapse: cluster gone, hero gone, synapse pair + contact marker visible.
       { humanSolid: 0,    humanWire: 0,    brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0.0,  hero: 0,    synapsePair: 0.85, synapseMarker: 0.85 },
     ];
 
-    // Camera waypoints (positions + look-at). Stage 2 is recomputed per-frame
+    // Mouse-brain transform per stage. The brain mesh is normally at origin
+    // with scale 1, but in stage 1 (comparison) we shrink + offset it so it
+    // sits next to the human brain at its real-world size ratio: 1/15 of
+    // human linear (mouse ~12mm vs human ~180mm), which is ~3,375× smaller
+    // in volume. Stage 0 keeps it at the small pos so when we transition to
+    // stage 1 it doesn't fly in from elsewhere.
+    type MouseTransform = { pos: THREE.Vector3; scale: number };
+    const MOUSE_SCALE_VS_HUMAN = 1 / 15;
+    const stageMouseTransforms: MouseTransform[] = [
+      { pos: new THREE.Vector3(1.45, -0.4, 0.2), scale: MOUSE_SCALE_VS_HUMAN }, // 0 — invisible, preset for stage 1
+      { pos: new THREE.Vector3(1.45, -0.4, 0.2), scale: MOUSE_SCALE_VS_HUMAN }, // 1 — comparison
+      { pos: new THREE.Vector3(0, 0, 0),         scale: 1.0 }, // 2 — full size
+      { pos: new THREE.Vector3(0, 0, 0),         scale: 1.0 }, // 3
+      { pos: new THREE.Vector3(0, 0, 0),         scale: 1.0 }, // 4
+      { pos: new THREE.Vector3(0, 0, 0),         scale: 1.0 }, // 5
+      { pos: new THREE.Vector3(0, 0, 0),         scale: 1.0 }, // 6
+    ];
+    const curMousePos = stageMouseTransforms[0].pos.clone();
+    let curMouseScale = stageMouseTransforms[0].scale;
+    const targetMousePos = stageMouseTransforms[0].pos.clone();
+    let targetMouseScale = stageMouseTransforms[0].scale;
+
+    // Camera waypoints (positions + look-at). Stage 3 is recomputed per-frame
     // in animate() because the brain's rotation moves V1's world position.
     const stageCameras = (s: number, v1: THREE.Vector3): { pos: THREE.Vector3; look: THREE.Vector3 } => {
       switch (s) {
@@ -460,21 +484,26 @@ export default function ZoomScene({ stage }: Props) {
           // Human brain — wide shot from a slight 3/4 angle so folds read.
           return { pos: new THREE.Vector3(0.4, 0.3, 2.9), look: new THREE.Vector3(0, 0, 0) };
         case 1:
+          // Comparison — pull back so both human (centered) and tiny mouse
+          // (offset to lower-right) are framed together. Look-at is between
+          // the two so the human fills most of the frame on the left.
+          return { pos: new THREE.Vector3(0.6, 0.2, 4.6), look: new THREE.Vector3(0.5, -0.1, 0) };
+        case 2:
           // Mouse whole brain
           return { pos: new THREE.Vector3(1.6, 1.0, 2.6), look: new THREE.Vector3(0, 0, 0) };
-        case 2: {
+        case 3: {
           // Tight on V1 — along V1's outward normal so it fills the frame.
           const outward = v1.clone().normalize();
           const pos = v1.clone().addScaledVector(outward, 0.45);
           return { pos, look: v1.clone() };
         }
-        case 3:
+        case 4:
           // Cell cluster
           return { pos: new THREE.Vector3(0.4, 0.2, 3.6), look: new THREE.Vector3(0, 0, 0) };
-        case 4:
+        case 5:
           // Single neuron
           return { pos: new THREE.Vector3(0, 0.1, 2.4), look: new THREE.Vector3(0, 0, 0) };
-        case 5:
+        case 6:
           // Synapse — close to origin (the actual contact). User can drag/zoom
           // to explore Aura's dendrite + Tendril's axon meeting at this point.
           return { pos: new THREE.Vector3(0.12, 0.04, 0.32), look: new THREE.Vector3(0, 0, 0) };
@@ -552,13 +581,16 @@ export default function ZoomScene({ stage }: Props) {
         const tc = stageCameras(s, v1Right);
         targetCamPos.copy(tc.pos);
         targetCamLook.copy(tc.look);
+        // New mouse-brain transform target — lerp from current toward this.
+        targetMousePos.copy(stageMouseTransforms[s].pos);
+        targetMouseScale = stageMouseTransforms[s].scale;
         lastStage = s;
         // New stage: scripted camera takes back over from any user-orbited
         // view, lerping to the new waypoint.
         userOwnsCamera = false;
-        // Stage 2 needs V1-aware retint (positions may have been computed
+        // Stage 3 needs V1-aware retint (positions may have been computed
         // before manifest arrived).
-        if (s === 2) retintByV1();
+        if (s === 3) retintByV1();
       }
 
       const target = stageOpacities[s];
@@ -607,22 +639,33 @@ export default function ZoomScene({ stage }: Props) {
         setCellOpacity(n.id, n.id === HERO_ID ? cur.hero : cur.cells);
       }
 
-      // Slow rotation on the human brain only in stage 0.
-      if (s === 0 && humanBrainShell) {
-        humanBrainShell.rotation.y = t * 0.05;
-      }
-      // Slow rotation on the mouse brain only in stage 1 (whole-brain overview).
-      // Past stage 1 the mouse brain holds still so V1 stays where the camera
-      // is pointing.
-      if (s === 1) {
-        if (brainShell) brainShell.rotation.y = t * 0.04;
-        if (brainPoints) brainPoints.rotation.y = t * 0.04;
+      // Lerp mouse-brain transform every frame so stage transitions glide
+      // smoothly between "small + offset" and "full + centered".
+      curMousePos.lerp(targetMousePos, k);
+      curMouseScale += (targetMouseScale - curMouseScale) * k;
+      if (brainShell) {
+        brainShell.position.copy(curMousePos);
+        brainShell.scale.setScalar(curMouseScale);
       }
 
-      // Stage 2 — track V1's world position each frame in case the brain has
+      // Slow rotation on the human brain in stages 0 + 1 (intro + comparison).
+      if ((s === 0 || s === 1) && humanBrainShell) {
+        humanBrainShell.rotation.y = t * 0.05;
+      }
+      // Slow rotation on the mouse brain in stages 1 + 2 (comparison + whole
+      // mouse). Past stage 2 it holds still so V1 stays where the camera is.
+      if (s === 1 || s === 2) {
+        if (brainShell) brainShell.rotation.y = t * 0.04;
+      }
+      // Brain dots only rotate when full-size + visible (stages 2+, scale=1).
+      if (s === 2 && brainPoints) {
+        brainPoints.rotation.y = t * 0.04;
+      }
+
+      // Stage 3 — track V1's world position each frame in case the brain has
       // any residual rotation, and re-derive the camera offset along V1's
       // outward normal so the framing is always tight on V1 itself.
-      if (s === 2 && brainShell && !userOwnsCamera) {
+      if (s === 3 && brainShell && !userOwnsCamera) {
         const worldV1 = v1Right.clone();
         brainShell.localToWorld(worldV1);
         const outward = worldV1.clone().normalize();
@@ -639,7 +682,9 @@ export default function ZoomScene({ stage }: Props) {
       // Camera lerp — only runs when the user isn't actively orbiting. Once
       // they grab the canvas, OrbitControls owns position + target until they
       // release; then the scripted lerp resumes from wherever they left off.
-      const camK = s <= 2 ? 0.025 : 0.045;
+      // Slow camera lerp through the long stage 0→3 traversal (human →
+      // comparison → mouse → V1); snappier for the closer-in stages.
+      const camK = s <= 3 ? 0.025 : 0.045;
       if (!userOwnsCamera) {
         camera.position.lerp(targetCamPos, camK);
         curCamLook.lerp(targetCamLook, camK * 1.5);
