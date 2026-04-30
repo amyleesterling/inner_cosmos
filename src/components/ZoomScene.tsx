@@ -74,11 +74,14 @@ export default function ZoomScene({ stage }: Props) {
     renderer.setClearColor(0x000000, 0);
     container.appendChild(renderer.domElement);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-    const key = new THREE.DirectionalLight(0xffffff, 0.85);
+    // Lighting kept low: ambient/key at high intensity wash cell colors
+    // toward white. Self-glow (emissive) on each cell does most of the
+    // colorful lifting now.
+    scene.add(new THREE.AmbientLight(0xffffff, 0.28));
+    const key = new THREE.DirectionalLight(0xffffff, 0.55);
     key.position.set(2, 4, 5);
     scene.add(key);
-    const fill = new THREE.DirectionalLight(new THREE.Color("#7ee0ff"), 0.3);
+    const fill = new THREE.DirectionalLight(new THREE.Color("#7ee0ff"), 0.18);
     fill.position.set(-3, 1, -2);
     scene.add(fill);
 
@@ -337,9 +340,9 @@ export default function ZoomScene({ stage }: Props) {
           for (const obj of sourceMeshes) {
             const mainMat = new THREE.MeshStandardMaterial({
               color: cellColor,
-              emissive: cellColor.clone().multiplyScalar(0.22),
-              metalness: 0.1,
-              roughness: 0.55,
+              emissive: cellColor.clone().multiplyScalar(0.55),
+              metalness: 0.0,
+              roughness: 0.7,
               transparent: true,
               opacity: 0,
               side: THREE.DoubleSide,
@@ -352,7 +355,7 @@ export default function ZoomScene({ stage }: Props) {
               wireframe: true,
               transparent: true,
               opacity: 0,
-              blending: THREE.AdditiveBlending,
+              // NormalBlending — no white-washing additive overlay.
               depthWrite: false,
             });
             const wireMesh = new THREE.Mesh(obj.geometry, wireMat);
@@ -397,9 +400,12 @@ export default function ZoomScene({ stage }: Props) {
 
             const mainMat = new THREE.MeshStandardMaterial({
               color: cellColor,
-              emissive: cellColor.clone().multiplyScalar(0.18),
-              metalness: 0.1,
-              roughness: 0.55,
+              // Higher emissive means each cell glows in its own color
+              // even where the directional lights don't reach — keeps the
+              // palette saturated instead of washing to white.
+              emissive: cellColor.clone().multiplyScalar(0.55),
+              metalness: 0.0,
+              roughness: 0.7,
               transparent: true,
               opacity: 0,
               side: THREE.DoubleSide,
@@ -411,7 +417,9 @@ export default function ZoomScene({ stage }: Props) {
               wireframe: true,
               transparent: true,
               opacity: 0,
-              blending: THREE.AdditiveBlending,
+              // NormalBlending instead of AdditiveBlending — the latter
+              // sums color toward white wherever lines overlap, which
+              // gave the cluster a washed-out / ghosty look.
               depthWrite: false,
             });
             const wireMesh = new THREE.Mesh(obj.geometry, wireMat);
