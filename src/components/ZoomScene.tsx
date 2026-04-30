@@ -110,56 +110,56 @@ export default function ZoomScene({ stage }: Props) {
     let synapseTendrilGroup: THREE.Group | null = null;
     const synapseAuraMaterials: THREE.MeshStandardMaterial[] = [];
     const synapseTendrilMaterials: THREE.MeshStandardMaterial[] = [];
-    // Bloom factory — 3 nested additive-blended spheres: tight bright core,
-    // soft mid glow, wide outer halo. Used for both the static synapse
-    // contact marker AND the moving action-potential pulses on stage 8.
-    const makePulseBloom = (coreColor: number, glowColor: number) => {
-      const group = new THREE.Group();
-      const coreMat = new THREE.MeshBasicMaterial({
-        color: coreColor,
+    // Bloom sprite factory — uses a canvas-generated radial-gradient texture
+    // so the glow has TRUE soft edges (no visible discrete sphere outlines).
+    // Each bloom is a single THREE.Sprite (always faces the camera).
+    const makeBloomSprite = (rgb: [number, number, number], scale: number) => {
+      const size = 256;
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = size;
+      const ctx = canvas.getContext("2d")!;
+      const cx = size / 2;
+      const grad = ctx.createRadialGradient(cx, cx, 0, cx, cx, cx);
+      const [r, g, b] = rgb;
+      grad.addColorStop(0.00, "rgba(255,255,255,1)");
+      grad.addColorStop(0.06, "rgba(255,255,255,0.95)");
+      grad.addColorStop(0.18, `rgba(${r},${g},${b},0.7)`);
+      grad.addColorStop(0.42, `rgba(${r},${g},${b},0.22)`);
+      grad.addColorStop(0.75, `rgba(${r},${g},${b},0.05)`);
+      grad.addColorStop(1.00, `rgba(${r},${g},${b},0)`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, size, size);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.minFilter = THREE.LinearFilter;
+      const mat = new THREE.SpriteMaterial({
+        map: tex,
         transparent: true,
         opacity: 0,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
       });
-      const midMat = new THREE.MeshBasicMaterial({
-        color: glowColor,
-        transparent: true,
-        opacity: 0,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-      });
-      const haloMat = new THREE.MeshBasicMaterial({
-        color: glowColor,
-        transparent: true,
-        opacity: 0,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-      });
-      group.add(new THREE.Mesh(new THREE.SphereGeometry(0.085, 24, 24), haloMat));
-      group.add(new THREE.Mesh(new THREE.SphereGeometry(0.038, 24, 24), midMat));
-      group.add(new THREE.Mesh(new THREE.SphereGeometry(0.013, 20, 20), coreMat));
-      return { group, coreMat, midMat, haloMat };
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.set(scale, scale, 1);
+      return { sprite, mat, tex };
     };
-    const axonBloom = makePulseBloom(0xffffff, 0xffd860);   // gold halo, white core
-    const pyramidBloom = makePulseBloom(0xffffff, 0x88cfff); // blue halo, white core
-    scene.add(axonBloom.group);
-    scene.add(pyramidBloom.group);
-    // Static contact-point bloom at origin — same factory as the AP pulses
-    // but pinned to the synapse coordinate. Cool white core with a subtle
-    // green-cyan halo (the "yellow + blue makes" combo, in additive light).
-    const synapseBloom = makePulseBloom(0xffffff, 0x9ce8c0);
-    synapseBloom.group.position.set(0, 0, 0);
-    scene.add(synapseBloom.group);
+    const axonBloom = makeBloomSprite([255, 216, 96], 0.32);     // gold
+    const pyramidBloom = makeBloomSprite([136, 207, 255], 0.32); // blue
+    const synapseBloom = makeBloomSprite([156, 232, 192], 0.20); // soft green-cyan
+    scene.add(axonBloom.sprite);
+    scene.add(pyramidBloom.sprite);
+    scene.add(synapseBloom.sprite);
+    synapseBloom.sprite.position.set(0, 0, 0);
     // Aliases used by animation block below
-    const apAxonPulse = axonBloom.group;
-    const apPyramidPulse = pyramidBloom.group;
-    // Approximate end points based on the synapse-pair bbox extents:
-    //   Tendril soma side ≈ (0.92, -0.10, 0.05)
-    //   Aura soma         ≈ (0.05, -0.77, 0.02)
-    // Both meshes are centered on the synapse contact (origin).
+    const apAxonPulse = axonBloom.sprite;
+    const apPyramidPulse = pyramidBloom.sprite;
+    // Path waypoints for the action potential, expressed in the synapse-
+    // pair's shared frame (origin = synapse contact).
+    //   TENDRIL_FAR  = far end of Tendril's axon (signal start)
+    //   AURA_SOMA    = Aura's cell body, where dendrite + soma + axon meet
+    //   AURA_AXON_END = end of Aura's own axon, where the next signal departs
     const TENDRIL_FAR = new THREE.Vector3(0.92, -0.10, 0.05);
-    const AURA_SOMA = new THREE.Vector3(0.05, -0.77, 0.02);
+    const AURA_SOMA = new THREE.Vector3(0.05, -0.55, 0.02);
+    const AURA_AXON_END = new THREE.Vector3(0.05, -0.95, 0.02);
     let brainShell: THREE.Group | null = null;
     const brainShellWireMaterials: THREE.MeshBasicMaterial[] = [];
     const brainShellSolidMaterials: THREE.MeshStandardMaterial[] = [];
@@ -581,14 +581,14 @@ export default function ZoomScene({ stage }: Props) {
           // Single neuron
           return { pos: new THREE.Vector3(0, 0.1, 2.4), look: new THREE.Vector3(0, -0.3, 0) };
         case 6:
-          // Synapse close-up — look-at lowered so the contact bloom sits
-          // in the upper third of the frame (above the stage label).
-          // Camera nudged up to compensate for the angled-down look.
-          return { pos: new THREE.Vector3(0.04, -0.05, 0.42), look: new THREE.Vector3(0, -0.22, 0) };
+          // Synapse close-up — look-at IS the synapse (origin) so it stays
+          // dead-center when the user drags. Camera positioned higher and
+          // tilted down so the contact still reads above the stage label.
+          return { pos: new THREE.Vector3(0.04, 0.18, 0.42), look: new THREE.Vector3(0, 0, 0) };
         case 7:
-          // Action potential — wide shot framing both meshes end-to-end
-          // so the pulses' full path is visible.
-          return { pos: new THREE.Vector3(0.45, -0.05, 1.95), look: new THREE.Vector3(0.30, -0.30, 0) };
+          // Action potential — wide shot framing both meshes end-to-end.
+          // Look-at on the geometric center of the synapse pair.
+          return { pos: new THREE.Vector3(0.45, 0.20, 2.10), look: new THREE.Vector3(0.30, -0.10, 0) };
         default:
           return { pos: new THREE.Vector3(0, 0, 5), look: new THREE.Vector3(0, 0, 0) };
       }
@@ -670,6 +670,15 @@ export default function ZoomScene({ stage }: Props) {
         const tc = stageCameras(s, v1Right);
         targetCamPos.copy(tc.pos);
         targetCamLook.copy(tc.look);
+        // Stage 7 (action potential) — SNAP camera to the wide shot
+        // immediately on entry rather than lerping. The pull-back is the
+        // user's whole point of clicking "Send signal", so it should feel
+        // immediate, not gradual.
+        if (s === 7) {
+          camera.position.copy(tc.pos);
+          curCamLook.copy(tc.look);
+          controls.target.copy(tc.look);
+        }
         lastStage = s;
         // New stage: scripted camera takes back over from any user-orbited
         // view, lerping to the new waypoint.
@@ -739,22 +748,18 @@ export default function ZoomScene({ stage }: Props) {
       };
       applySynapseGroup(synapseAuraGroup, synapseAuraMaterials);
       applySynapseGroup(synapseTendrilGroup, synapseTendrilMaterials);
-      // Synapse contact-point bloom — same opacity layering as the AP pulses
-      synapseBloom.coreMat.opacity = cur.synapseMarker * 1.0;
-      synapseBloom.midMat.opacity  = cur.synapseMarker * 0.55;
-      synapseBloom.haloMat.opacity = cur.synapseMarker * 0.20;
-      synapseBloom.group.visible = cur.synapseMarker > 0.001;
+      // Synapse contact-point bloom — sprite with soft radial glow
+      synapseBloom.mat.opacity = cur.synapseMarker;
+      synapseBloom.sprite.visible = cur.synapseMarker > 0.001;
 
       // Action-potential animation — only on stage 7. 2-second lead-in
-      // before the first pulse, then the cycle repeats. Bloom intensity
-      // applied across the 3 layered spheres of each pulse.
+      // before the first pulse, then the cycle repeats. Sprite-based bloom
+      // gives true soft edges.
       const setBloom = (
-        bloom: { coreMat: THREE.MeshBasicMaterial; midMat: THREE.MeshBasicMaterial; haloMat: THREE.MeshBasicMaterial },
+        bloom: { mat: THREE.SpriteMaterial },
         intensity: number,
       ) => {
-        bloom.coreMat.opacity = intensity * 1.0;
-        bloom.midMat.opacity  = intensity * 0.55;
-        bloom.haloMat.opacity = intensity * 0.20;
+        bloom.mat.opacity = intensity;
       };
 
       if (s === 7 && cur.synapsePair > 0.05) {
@@ -769,11 +774,18 @@ export default function ZoomScene({ stage }: Props) {
           apPyramidPulse.visible = false;
         } else {
           const animT = stageT - LEAD_IN;
-          const PERIOD = 3.4;
+          const PERIOD = 4.0;
           const phase = (animT % PERIOD) / PERIOD;
-          const AXON_END   = 0.40;
-          const CROSS_END  = 0.50;
-          const PYRA_END   = 0.95;
+          // Phases:
+          //   0.00–0.30  axon pulse travels Tendril FAR → synapse
+          //   0.30–0.38  brief crossing flash at synapse
+          //   0.38–0.65  pyramidal pulse: synapse → Aura soma (apical)
+          //   0.65–0.95  pyramidal pulse: Aura soma → end of Aura's axon
+          //   0.95–1.00  reset gap
+          const AXON_END  = 0.30;
+          const CROSS_END = 0.38;
+          const SOMA_END  = 0.65;
+          const PYRA_END  = 0.95;
 
           if (phase < AXON_END) {
             const u = phase / AXON_END;
@@ -790,9 +802,18 @@ export default function ZoomScene({ stage }: Props) {
             setBloom(pyramidBloom, cur.synapsePair * 0.95 * u);
             apAxonPulse.visible = true;
             apPyramidPulse.visible = true;
+          } else if (phase < SOMA_END) {
+            // Synapse → soma (down the apical dendrite)
+            const u = (phase - CROSS_END) / (SOMA_END - CROSS_END);
+            apPyramidPulse.position.lerpVectors(new THREE.Vector3(0, 0, 0), AURA_SOMA, u);
+            setBloom(axonBloom, 0);
+            setBloom(pyramidBloom, cur.synapsePair * 0.95);
+            apAxonPulse.visible = false;
+            apPyramidPulse.visible = true;
           } else if (phase < PYRA_END) {
-            const u = (phase - CROSS_END) / (PYRA_END - CROSS_END);
-            apPyramidPulse.position.copy(AURA_SOMA).multiplyScalar(u);
+            // Soma → end of axon (down the cell's own output)
+            const u = (phase - SOMA_END) / (PYRA_END - SOMA_END);
+            apPyramidPulse.position.lerpVectors(AURA_SOMA, AURA_AXON_END, u);
             setBloom(axonBloom, 0);
             setBloom(pyramidBloom, cur.synapsePair * 0.95);
             apAxonPulse.visible = false;
@@ -930,19 +951,9 @@ export default function ZoomScene({ stage }: Props) {
           }
         });
       });
-      synapseBloom.group.traverse((obj) => {
-        if (obj instanceof THREE.Mesh) obj.geometry.dispose();
-      });
-      synapseBloom.coreMat.dispose();
-      synapseBloom.midMat.dispose();
-      synapseBloom.haloMat.dispose();
-      [axonBloom, pyramidBloom].forEach(({ group, coreMat, midMat, haloMat }) => {
-        group.traverse((obj) => {
-          if (obj instanceof THREE.Mesh) obj.geometry.dispose();
-        });
-        coreMat.dispose();
-        midMat.dispose();
-        haloMat.dispose();
+      [axonBloom, pyramidBloom, synapseBloom].forEach(({ mat, tex }) => {
+        mat.dispose();
+        tex.dispose();
       });
       Object.values(cellGroups).forEach((g) => {
         g.traverse((obj) => {

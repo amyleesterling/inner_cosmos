@@ -146,51 +146,52 @@ export default function Explore() {
       {/* `pointer-events-none` on the wrapper lets drag/scroll fall through to
           the canvas behind. Re-enabled on the actual interactive controls
           (progress dots + buttons) so users can still click/tap them. */}
-      {/* Sci-fi stage progress bar — bottom-left HUD. Numbered chips per
-          stage: filled glow on the active one, dim for past, outlined for
-          future. Reads as a clean chapter selector, not a weird dashed line. */}
-      <div className="fixed bottom-6 left-6 z-30 pointer-events-auto flex items-center gap-2.5">
-        <span className="text-[9px] font-mono uppercase tracking-[0.3em] text-white/35 tabular-nums">
-          STAGE
+      {/* Stage progress bar — actual filled bar at the bottom. Cyan fill
+          grows left-to-right as you advance; tick marks at each stage are
+          clickable. Stage counter on the left. */}
+      <div className="fixed bottom-5 left-6 right-6 z-30 pointer-events-auto flex items-center gap-4 max-w-[520px]">
+        <span className="text-[10px] font-mono uppercase tracking-[0.3em] text-white/55 tabular-nums whitespace-nowrap">
+          {String(stage + 1).padStart(2, "0")}
+          <span className="text-white/25"> / {String(STAGES.length).padStart(2, "0")}</span>
         </span>
-        <div className="flex items-center gap-1">
-          {STAGES.map((_, i) => {
-            const active = i === stage;
-            const past = i < stage;
-            return (
-              <button
-                key={i}
-                onClick={() => setStage(i)}
-                aria-label={`Go to stage ${i + 1}`}
-                className={`relative w-6 h-6 rounded-md text-[10px] font-mono tabular-nums transition-all duration-300 flex items-center justify-center ${
-                  active
-                    ? "text-[#04060c] font-semibold"
-                    : past
-                    ? "text-white/55 hover:text-white/85"
-                    : "text-white/30 hover:text-white/55"
-                }`}
+        <div className="relative h-[3px] flex-1">
+          {/* Track */}
+          <div className="absolute inset-0 rounded-full bg-white/10" />
+          {/* Filled portion */}
+          <div
+            className="absolute inset-y-0 left-0 rounded-full transition-all duration-700 ease-out"
+            style={{
+              width: `${((stage + 1) / STAGES.length) * 100}%`,
+              background: "linear-gradient(90deg, rgba(142,218,255,0.7) 0%, rgba(142,218,255,1) 100%)",
+              boxShadow: "0 0 8px rgba(142, 218, 255, 0.65)",
+            }}
+          />
+          {/* Stage tick marks (clickable) */}
+          {STAGES.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setStage(i)}
+              aria-label={`Go to stage ${i + 1}`}
+              className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 flex items-center justify-center group"
+              style={{ left: `${(i / (STAGES.length - 1)) * 100}%` }}
+            >
+              <span
+                className="block rounded-full transition-all duration-300"
                 style={
-                  active
+                  i === stage
                     ? {
+                        width: 10,
+                        height: 10,
                         background: "#8edaff",
-                        boxShadow:
-                          "0 0 12px rgba(142, 218, 255, 0.65), 0 0 4px rgba(142, 218, 255, 0.95), inset 0 0 6px rgba(255,255,255,0.4)",
+                        boxShadow: "0 0 10px rgba(142,218,255,0.95)",
                       }
-                    : past
-                    ? {
-                        background: "rgba(142, 218, 255, 0.10)",
-                        boxShadow: "inset 0 0 0 1px rgba(142, 218, 255, 0.35)",
-                      }
-                    : {
-                        background: "rgba(255, 255, 255, 0.025)",
-                        boxShadow: "inset 0 0 0 1px rgba(255, 255, 255, 0.10)",
-                      }
+                    : i < stage
+                    ? { width: 5, height: 5, background: "rgba(142,218,255,0.7)" }
+                    : { width: 5, height: 5, background: "rgba(255,255,255,0.18)" }
                 }
-              >
-                {i + 1}
-              </button>
-            );
-          })}
+              />
+            </button>
+          ))}
         </div>
       </div>
 
