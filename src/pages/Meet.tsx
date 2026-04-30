@@ -118,6 +118,38 @@ export default function Meet() {
             );
           })}
         </div>
+
+        {/* Learn-more footer — points to the source data + the Nature
+            publications. External links open in a new tab. */}
+        <div className="mt-32 max-w-2xl mx-auto text-center">
+          <p className="text-[11px] uppercase tracking-[0.4em] text-white/40 mb-6">
+            Want to learn more?
+          </p>
+          <div className="space-y-3 text-sm text-white/70 font-light leading-relaxed">
+            <p>
+              Explore the source data:{" "}
+              <a
+                href="https://www.microns-explorer.org/"
+                target="_blank"
+                rel="noreferrer"
+                className="text-white/90 underline underline-offset-4 decoration-white/30 hover:decoration-white/80 transition"
+              >
+                microns-explorer.org
+              </a>
+            </p>
+            <p>
+              Read the Nature publications:{" "}
+              <a
+                href="https://www.nature.com/immersive/d42859-025-00001-w/index.html"
+                target="_blank"
+                rel="noreferrer"
+                className="text-white/90 underline underline-offset-4 decoration-white/30 hover:decoration-white/80 transition"
+              >
+                MICrONS connectome on Nature
+              </a>
+            </p>
+          </div>
+        </div>
       </main>
     </>
   );
