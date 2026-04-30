@@ -15,7 +15,10 @@ const CELL_POSITIONS: Record<string, [number, number, number]> = {
   "candelabra": [-0.55, -0.15, 0.35],
   "reaching-hand": [0.45, -0.55, 0.5],
   "dust-star": [-0.7, 0.55, -0.35],
-  "forest-floor": [0.4, 0.6, 0.55],
+  // forest-floor (astrocyte) intentionally omitted — its 350K-face fluffy
+  // arbor visually swallows the other cells in the cluster view. Still
+  // shown on /meet. Re-add here when we have a way to render it more
+  // sparsely (e.g. point-cloud mode for glia).
   // Spelunker-circuit additions — clustered toward the back-left so they read
   // as a coherent motif within the larger cluster.
   "spire":   [-0.5, -0.55, -0.55],

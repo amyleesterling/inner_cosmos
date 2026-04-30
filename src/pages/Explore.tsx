@@ -32,7 +32,7 @@ const STAGES = [
     eyebrow: "Stage 5 of 7",
     title: "A piece of cortex.",
     subtitle:
-      "MICrONS reconstructed about a cubic millimeter of this region. Nine cells from that volume — drag to look around.",
+      "MICrONS reconstructed about a cubic millimeter of this region. Inside that cube: roughly 200,000 cells (neurons + glia), wired together by ~523 million synapses. Eight of those cells are shown here — drag to look around.",
   },
   {
     eyebrow: "Stage 6 of 7",
