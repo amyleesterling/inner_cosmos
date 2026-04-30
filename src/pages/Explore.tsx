@@ -96,9 +96,12 @@ export default function Explore() {
         }}
       />
 
-      <main className="relative z-10 min-h-screen flex flex-col">
+      {/* `pointer-events-none` on the wrapper lets drag/scroll fall through to
+          the canvas behind. Re-enabled on the actual interactive controls
+          (progress dots + buttons) so users can still click/tap them. */}
+      <main className="relative z-10 min-h-screen flex flex-col pointer-events-none">
         {/* Stage progress dots */}
-        <div className="pt-28 flex items-center justify-center gap-2">
+        <div className="pt-28 flex items-center justify-center gap-2 pointer-events-auto">
           {STAGES.map((_, i) => (
             <button
               key={i}
@@ -154,8 +157,9 @@ export default function Explore() {
               </motion.div>
             </AnimatePresence>
 
-            {/* Controls */}
-            <div className="mt-10 flex items-center justify-center gap-3">
+            {/* Controls — opt back into pointer events here, since the parent
+                <main> is pointer-events-none to let canvas drag through. */}
+            <div className="mt-10 flex items-center justify-center gap-3 pointer-events-auto">
               <button
                 onClick={() => setStage((s) => Math.max(0, s - 1))}
                 disabled={stage === 0}

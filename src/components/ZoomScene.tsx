@@ -119,21 +119,24 @@ export default function ZoomScene({ stage }: Props) {
           if (obj instanceof THREE.Mesh) sourceMeshes.push(obj);
         });
         for (const obj of sourceMeshes) {
+          // Warm pink-violet, glow from emissive so the gyri+sulci read in
+          // the dark scene without needing the wireframe to define them.
           const mat = new THREE.MeshStandardMaterial({
-            color: new THREE.Color("#c9b8e8"),
-            emissive: new THREE.Color("#3a2a55"),
-            roughness: 0.85,
-            metalness: 0.0,
+            color: new THREE.Color("#d8a8d8"),
+            emissive: new THREE.Color("#6b3a8a"),
+            emissiveIntensity: 0.35,
+            roughness: 0.55,
+            metalness: 0.05,
             transparent: true,
             opacity: 0.0,
             side: THREE.DoubleSide,
-            depthWrite: false,
+            depthWrite: true,
           });
           obj.material = mat;
           humanBrainSolidMaterials.push(mat);
 
           const wireMat = new THREE.MeshBasicMaterial({
-            color: new THREE.Color("#e6b9ff"),
+            color: new THREE.Color("#ffd8ff"),
             wireframe: true,
             transparent: true,
             opacity: 0.0,
@@ -345,8 +348,9 @@ export default function ZoomScene({ stage }: Props) {
       hero: number;             // hero cell opacity
     };
     const stageOpacities: Targets[] = [
-      // 0 — human brain (intro)
-      { humanSolid: 0.12, humanWire: 0.32, brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0,    hero: 0    },
+      // 0 — human brain (intro). Solid-dominant so the cortical-fold shape
+      // reads clearly; wireframe is a hint, not the dominant element.
+      { humanSolid: 0.55, humanWire: 0.08, brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0,    hero: 0    },
       // 1 — mouse whole brain
       { humanSolid: 0,    humanWire: 0,    brainSolid: 0.10, brainWire: 0.30, brainDots: 0.85, dotSize: 0.011, cells: 0,    hero: 0    },
       // 2 — V1 close
