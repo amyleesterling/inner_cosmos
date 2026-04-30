@@ -112,7 +112,7 @@ export default function LandingNeurons() {
     const target = new THREE.Vector2(0, 0);
     const current = new THREE.Vector2(0, 0);
 
-    function placeInstance(group: THREE.Group, i: number) {
+    function placeInstance(group: THREE.Group) {
       const aspect = camera.aspect;
       // Tighter spread so cells stay near the visible field at the closer
       // camera distance — they read as a small nearby population, not a
@@ -207,7 +207,7 @@ export default function LandingNeurons() {
                   const wireMesh = new THREE.Mesh(src.geometry, wireMat);
                   group.add(wireMesh);
                 }
-                placeInstance(group, instances.length);
+                placeInstance(group);
                 scene.add(group);
               }
             },
@@ -234,10 +234,7 @@ export default function LandingNeurons() {
     window.addEventListener("resize", onResize);
 
     let frameId = 0;
-    const start = performance.now();
     const animate = () => {
-      const t = (performance.now() - start) / 1000;
-
       // Mouse parallax is now subordinate to OrbitControls — when the user
       // hasn't grabbed the canvas, parallax still nudges the camera. Once
       // they drag, OrbitControls owns the camera until they release.
