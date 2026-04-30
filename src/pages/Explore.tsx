@@ -75,7 +75,7 @@ const STAGES = [
     eyebrow: "Stage 8 of 8",
     title: "Action potential.",
     subtitle:
-      "Watch the signal travel. A pulse races down the axon to the synapse, briefly flashes as it crosses, and then ignites a new pulse that travels down the pyramidal cell. This is one neuron, talking to the next. Repeats every few seconds.",
+      "The signals neurons send are called action potentials. It means the neuron received information that it relays to other cells. Watch the signal travel: a pulse races down the axon to the synapse, briefly flashes as it crosses, and then ignites a new pulse that travels down the pyramidal cell. This is one neuron, talking to the next. Your brain sends on the order of a quadrillion (1,000,000,000,000,000) electrical signals every second.",
   },
 ];
 
