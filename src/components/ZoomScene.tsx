@@ -52,12 +52,20 @@ type BrainManifest = {
 
 interface Props {
   stage: number;
+  // Increments every time the user wants to (re)fire the action-potential
+  // animation on stage 8. The first fire happens automatically when stage
+  // becomes 7 (UI 8 of 8); subsequent fires come from the on-screen
+  // "Send action potential" button. Animation runs ONE cycle per token,
+  // then idles, so the user controls the cadence.
+  apFireToken?: number;
 }
 
-export default function ZoomScene({ stage }: Props) {
+export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef(stage);
   stageRef.current = stage;
+  const apFireTokenRef = useRef(apFireToken);
+  apFireTokenRef.current = apFireToken;
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
@@ -890,8 +898,14 @@ export default function ZoomScene({ stage }: Props) {
       };
       applySynapseGroup(synapseAuraGroup, synapseAuraMaterials);
       applySynapseGroup(synapseTendrilGroup, synapseTendrilMaterials);
-      // Synapse contact-point bloom — sprite with soft radial glow
-      synapseBloom.mat.opacity = cur.synapseMarker;
+      // Synapse contact-point bloom — breathes via combined opacity +
+      // scale modulation. Period ~3s, opacity range ±35%, scale range
+      // ±25% of the base 0.07. Subtle but actually visible if you watch.
+      const breathPhase = t * (Math.PI * 2 / 3.0);
+      const breathOpac = 1 + 0.35 * Math.sin(breathPhase);
+      const breathScale = 0.07 * (1 + 0.25 * Math.sin(breathPhase));
+      synapseBloom.mat.opacity = cur.synapseMarker * breathOpac;
+      synapseBloom.sprite.scale.set(breathScale, breathScale, 1);
       synapseBloom.sprite.visible = cur.synapseMarker > 0.001;
       // Human brain halo — fades with the human brain solid opacity.
       humanHaloBloom.mat.opacity = cur.humanSolid * 0.55;
