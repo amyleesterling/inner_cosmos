@@ -33,7 +33,11 @@ export default function Hero() {
         style={{ fontSize: "clamp(0.95rem, 1.4vw, 1.25rem)" }}
         className="mt-8 max-w-xl text-balance text-white/65 font-light leading-relaxed"
       >
-        Real connectomics data. Real neurons. Zoom from a whole brain down to a single synapse — no log-in, no jargon.
+        Real connectomics data.{" "}
+        <span className="bg-gradient-to-r from-[#23baff] via-[#5b7cff] to-[#8aa6ff] bg-clip-text text-transparent font-normal">
+          Real neurons.
+        </span>{" "}
+        Zoom from a whole brain down to a single synapse. No log-in.
       </motion.p>
 
       <motion.div
