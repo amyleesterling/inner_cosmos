@@ -18,6 +18,13 @@ interface Props {
   elapsedSec: number;
   /** Reports loading progress 0..1. */
   onProgress?: (loaded: number, total: number) => void;
+  /** Reports when the scene is ready to render frames (all GLBs loaded,
+   *  camera framed). Used by the headless capture pipeline. */
+  onReady?: () => void;
+  /** When set, OrbitControls + auto-rotate are disabled and the camera is
+   *  driven from this angle instead. theta=0 looks from +Z; θ ↑ orbits east.
+   *  Used for deterministic 360° loop captures. */
+  captureCameraTheta?: number;
   className?: string;
 }
 
@@ -25,15 +32,25 @@ interface Props {
  *  at their true cortical coordinates, glowing in time with their measured 2P
  *  calcium activity. OrbitControls drives the camera (drag to rotate, scroll
  *  to zoom — same interaction model as the rest of the project). */
-export default function CellSwarm({ manifest, traces, elapsedSec, onProgress, className }: Props) {
+export default function CellSwarm({
+  manifest,
+  traces,
+  elapsedSec,
+  onProgress,
+  onReady,
+  captureCameraTheta,
+  className,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const elapsedRef = useRef(elapsedSec);
+  const captureThetaRef = useRef(captureCameraTheta);
   const [ready, setReady] = useState(false);
 
-  // Keep the latest elapsedSec in a ref so the rAF loop reads it without
-  // re-binding (re-creating the scene on every parent render would be a
-  // disaster with 200 GLBs).
+  // Keep the latest elapsedSec + capture angle in refs so the rAF loop reads
+  // them without re-binding (re-creating the scene on every parent render
+  // would be a disaster with 100+ GLBs).
   useEffect(() => { elapsedRef.current = elapsedSec; }, [elapsedSec]);
+  useEffect(() => { captureThetaRef.current = captureCameraTheta; }, [captureCameraTheta]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -62,14 +79,16 @@ export default function CellSwarm({ manifest, traces, elapsedSec, onProgress, cl
     renderer.toneMappingExposure = 1.05;
     container.appendChild(renderer.domElement);
 
+    const isCapture = captureThetaRef.current !== undefined;
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
+    controls.enableDamping = !isCapture;
     controls.dampingFactor = 0.08;
     controls.enablePan = false;
-    controls.autoRotate = true;
+    controls.autoRotate = !isCapture;
     controls.autoRotateSpeed = 0.35;
     controls.minDistance = 1.5;
     controls.maxDistance = 18;
+    controls.enabled = !isCapture;
     // Pause auto-rotate while the user is interacting, then resume after idle.
     let resumeTimer: number | undefined;
     const stopAuto = () => {
@@ -167,21 +186,27 @@ export default function CellSwarm({ manifest, traces, elapsedSec, onProgress, cl
             for (const c of cells) bbox.expandByObject(c.group);
             if (!bbox.isEmpty()) {
               const size = new THREE.Vector3();
-              const center = new THREE.Vector3();
               bbox.getSize(size);
-              bbox.getCenter(center);
+              bbox.getCenter(swarmCenter);
               const radius = Math.max(size.x, size.y, size.z) * 0.6 + 0.4;
               const fov = (camera.fov * Math.PI) / 180;
-              const dist = radius / Math.tan(fov / 2);
-              camera.position.set(center.x + dist * 0.7, center.y + dist * 0.45, center.z + dist * 0.85);
-              camera.lookAt(center);
-              controls.target.copy(center);
-              controls.minDistance = Math.max(0.4, dist * 0.25);
-              controls.maxDistance = dist * 6;
+              swarmRadius = radius / Math.tan(fov / 2);
+              camera.position.set(
+                swarmCenter.x + swarmRadius * 0.7,
+                swarmCenter.y + swarmRadius * 0.45,
+                swarmCenter.z + swarmRadius * 0.85,
+              );
+              camera.lookAt(swarmCenter);
+              controls.target.copy(swarmCenter);
+              controls.minDistance = Math.max(0.4, swarmRadius * 0.25);
+              controls.maxDistance = swarmRadius * 6;
               controls.update();
             }
           }
-          if (loadedCount === total) setReady(true);
+          if (loadedCount === total) {
+            setReady(true);
+            onReady?.();
+          }
           loadNext();
         },
         undefined,
@@ -199,9 +224,29 @@ export default function CellSwarm({ manifest, traces, elapsedSec, onProgress, cl
     // Pre-allocated scratch color so we don't allocate every frame.
     const scratch = new THREE.Color();
 
+    // Swarm bounding sphere — populated once meshes start landing. The
+    // capture-mode camera orbits at swarmRadius around swarmCenter so the
+    // recorded loop tracks the swarm as it gets discovered, even if the
+    // camera was queued before all cells were loaded.
+    const swarmCenter = new THREE.Vector3();
+    let swarmRadius = 6;
+
     let frameId = 0;
     const animate = () => {
-      controls.update();
+      const theta = captureThetaRef.current;
+      if (theta !== undefined) {
+        // Drive camera deterministically — one full revolution per loop.
+        // Slight upward tilt so the swarm reads as 3D, not flat.
+        const tiltY = swarmRadius * 0.35;
+        camera.position.set(
+          swarmCenter.x + swarmRadius * Math.cos(theta),
+          swarmCenter.y + tiltY,
+          swarmCenter.z + swarmRadius * Math.sin(theta),
+        );
+        camera.lookAt(swarmCenter);
+      } else {
+        controls.update();
+      }
 
       // Look up activity at the current looped time.
       const totalSec = manifest.seconds;

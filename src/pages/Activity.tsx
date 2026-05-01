@@ -21,11 +21,23 @@ const FIELD_LABEL: Record<number, string> = {
   6: "L5",
 };
 
+/** When mounted at /activity?capture=1 the page hides all UI chrome and
+ *  exposes window.__activityCapture so an external script (Playwright) can
+ *  step through frames deterministically and screenshot each one. Used by
+ *  scripts/render-activity-video.mjs to pre-render the 360° loop. */
+const captureMode =
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).has("capture");
+
 export default function Activity() {
   const [load, setLoad] = useState<LoadState>({ status: "loading" });
   const [progress, setProgress] = useState({ loaded: 0, total: 0 });
   const [playing, setPlaying] = useState(true);
   const [elapsed, setElapsed] = useState(0);
+  const [captureTheta, setCaptureTheta] = useState<number | undefined>(
+    captureMode ? 0 : undefined,
+  );
+  const [swarmReady, setSwarmReady] = useState(false);
 
   const lastTickRef = useRef<number | null>(null);
 
@@ -48,9 +60,10 @@ export default function Activity() {
   }, []);
 
   // Drive the timeline. Loops on the manifest's reported length so the
-  // animation cycles indefinitely without user interaction.
+  // animation cycles indefinitely without user interaction. Disabled in
+  // capture mode — the external renderer steps elapsed manually.
   useEffect(() => {
-    if (load.status !== "ready" || !playing) {
+    if (load.status !== "ready" || !playing || captureMode) {
       lastTickRef.current = null;
       return;
     }
@@ -72,12 +85,50 @@ export default function Activity() {
     return () => cancelAnimationFrame(frameId);
   }, [load, playing]);
 
+  // Capture-mode bridge for Playwright: window.__activityCapture exposes
+  // setFrame(t, theta) for deterministic stepping, plus an isReady() probe
+  // that flips true once all GLBs have rendered at least once.
+  useEffect(() => {
+    if (!captureMode) return;
+    const api = {
+      setFrame(elapsedSec: number, theta: number) {
+        setElapsed(elapsedSec);
+        setCaptureTheta(theta);
+      },
+      isReady: () => swarmReady && load.status === "ready",
+      cellCount: () =>
+        load.status === "ready" ? load.manifest.cells.length : 0,
+      loopSeconds: () =>
+        load.status === "ready" ? load.manifest.seconds : 0,
+    };
+    (window as unknown as { __activityCapture: typeof api }).__activityCapture = api;
+  }, [load, swarmReady]);
+
   // Layers actually present in this dataset — used to render only the
   // legend chips that match real cells in the scene.
   const layersPresent =
     load.status === "ready"
       ? Array.from(new Set(load.manifest.cells.map((c) => c.field))).sort()
       : [];
+
+  // Capture mode: full-bleed canvas, no chrome, opaque background so the
+  // video has clean frames the encoder doesn't have to flatten.
+  if (captureMode) {
+    return (
+      <div className="fixed inset-0 bg-[var(--color-ink-950)]">
+        {load.status === "ready" && (
+          <CellSwarm
+            manifest={load.manifest}
+            traces={load.traces}
+            elapsedSec={elapsed}
+            captureCameraTheta={captureTheta}
+            onReady={() => setSwarmReady(true)}
+            className="absolute inset-0"
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <>

@@ -46,6 +46,34 @@ npm run dev
 
 Then open the dev URL it prints.
 
+## Pre-render the /activity 360° loop to MP4
+
+The `/activity` page can be captured to a video file using a headless
+browser. The capture mode hides all UI chrome and drives the camera +
+calcium time deterministically — one full revolution per loop, the
+calcium activity playing simultaneously.
+
+```bash
+# one-time setup (downloads ~150 MB of Chromium for Playwright)
+npx playwright install chromium
+
+# in one terminal — leave running
+npm run dev
+
+# in another terminal — outputs public/activity-loop.mp4
+npm run render-video
+```
+
+By default the script captures at 1280×800 / 30 fps. Override:
+
+```bash
+npm run render-video -- --width 1080 --height 1080 --fps 30
+```
+
+The render takes ~2–5 minutes on a machine with a real GPU; software
+WebGL (e.g. inside a container with no GPU passthrough) is dramatically
+slower. Requires `ffmpeg` on your `PATH` for encoding.
+
 ## Build & deploy
 
 ```bash
