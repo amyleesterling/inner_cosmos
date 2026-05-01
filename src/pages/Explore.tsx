@@ -33,7 +33,7 @@ const STAGES = [
     eyebrow: "Stage 1 of 8",
     title: "Your brain",
     subtitle:
-      "Every thought, every memory, every feeling — happens in here. About 86 billion cells, talking to each other in patterns we're only beginning to understand.",
+      "Every thought. Every memory and feeling. You happen here. In the beautiful human brain. About 86 billion cells, talking to each other in patterns we're only beginning to understand.",
   },
   {
     eyebrow: "Stage 2 of 8",
