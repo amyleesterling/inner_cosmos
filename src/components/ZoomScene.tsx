@@ -431,11 +431,12 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
       const points = new THREE.Points(geom, mat);
       return { points, mat };
     };
-    // Violet motes for the human brain — denser inner shell, bigger sparkles
-    const humanParticles = makeParticleCloud(360, 1.0, 2.4, "#c08bff", "#fff5ff", 80);
+    // Violet motes for the human brain — sparse + smaller so they read as
+    // distant pinpricks rather than crowded fluffy blobs.
+    const humanParticles = makeParticleCloud(220, 1.0, 2.4, "#c08bff", "#fff5ff", 50);
     scene.add(humanParticles.points);
-    // Cyan motes for the mouse brain — same shape but tuned colors
-    const mouseParticles = makeParticleCloud(310, 0.9, 2.2, "#7ed9ff", "#eafaff", 75);
+    // Cyan motes for the mouse brain — same treatment.
+    const mouseParticles = makeParticleCloud(200, 0.9, 2.2, "#7ed9ff", "#eafaff", 45);
     scene.add(mouseParticles.points);
     // Mouse-brain hologram overlay — Prometheus-style: dotted topographic
     // contours wrapping the surface, a vertical scanning bar, and a bright
@@ -588,7 +589,11 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
             metalness: 0.0,
             transparent: true,
             opacity: 0.0,
-            side: THREE.FrontSide,
+            // DoubleSide so the brain reads as a solid object even if
+            // the camera ends up close to or just inside the surface —
+            // FrontSide left the inside hollow, which made the brain
+            // look see-through at high zoom.
+            side: THREE.DoubleSide,
             depthWrite: true,
           });
           obj.material = mat;
@@ -914,11 +919,14 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
       synapseMarker: number;    // glow sphere at the synapse contact (stage 5)
     };
     const stageOpacities: Targets[] = [
-      // 0 — human brain alone. Fully opaque so it reads as a solid 3D form
-      // (FrontSide + opacity 1.0 = no see-through dark patches).
-      { humanSolid: 1.00, humanWire: 0.05, brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0,    hero: 0,    synapsePair: 0,    synapseMarker: 0    },
+      // 0 — human brain alone. Fully opaque + DoubleSide so the surface
+      // reads as a solid object even at close zoom. humanWire dropped to
+      // 0 — the additive wireframe overlay was painting visible triangle
+      // edges that read as a "see-through mesh net" under the new
+      // studio lighting; the lit surface itself now carries definition.
+      { humanSolid: 1.00, humanWire: 0,    brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0,    hero: 0,    synapsePair: 0,    synapseMarker: 0    },
       // 1 — comparison: human + small mouse to scale, dots off
-      { humanSolid: 1.00, humanWire: 0.04, brainSolid: 0.55, brainWire: 0.10, brainDots: 0,    dotSize: 0.011, cells: 0,    hero: 0,    synapsePair: 0,    synapseMarker: 0    },
+      { humanSolid: 1.00, humanWire: 0,    brainSolid: 0.55, brainWire: 0.10, brainDots: 0,    dotSize: 0.011, cells: 0,    hero: 0,    synapsePair: 0,    synapseMarker: 0    },
       // 2 — mouse alone (full size)
       { humanSolid: 0,    humanWire: 0,    brainSolid: 0.10, brainWire: 0.30, brainDots: 0.85, dotSize: 0.011, cells: 0,    hero: 0,    synapsePair: 0,    synapseMarker: 0    },
       // 3 — V1 close
@@ -1056,7 +1064,11 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
     controls.enablePan = true;
     controls.panSpeed = 0.8;
     controls.screenSpacePanning = true;
-    controls.minDistance = 0.05;
+    // Min 0.05 let users zoom right inside meshes (the brain showed its
+    // back-faces / triangulation as see-through artefacts). 0.6 keeps
+    // the camera safely outside the brain volume on stages 0/1 while
+    // still letting close-ups on the cluster + synapse stages work.
+    controls.minDistance = 0.6;
     controls.maxDistance = 12;
     controls.target.copy(curCamLook);
     renderer.domElement.style.touchAction = "none";
