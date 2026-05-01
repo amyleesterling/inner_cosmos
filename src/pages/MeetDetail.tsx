@@ -75,9 +75,11 @@ export default function MeetDetail() {
               >
                 {neuron.nickname}
               </h1>
-              <p className="mt-5 text-white/85 text-lg font-light leading-relaxed text-balance">
-                {neuron.oneLiner}
-              </p>
+              {neuron.oneLiner && (
+                <p className="mt-5 text-white/85 text-lg font-light leading-relaxed text-balance">
+                  {neuron.oneLiner}
+                </p>
+              )}
 
               <Section label="Shape">{neuron.shapeAnalogy}</Section>
               <Section label="What it does">{neuron.whatItDoes}</Section>

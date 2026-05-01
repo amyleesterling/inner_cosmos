@@ -49,9 +49,11 @@ function NeuronCard({ n, index }: { n: FeaturedNeuron; index: number }) {
         <h2 className="font-display text-2xl font-light leading-tight">
           {n.nickname}
         </h2>
-        <p className="mt-2.5 text-[13px] text-white/55 leading-relaxed">
-          {n.oneLiner}
-        </p>
+        {n.oneLiner && (
+          <p className="mt-2.5 text-[13px] text-white/55 leading-relaxed">
+            {n.oneLiner}
+          </p>
+        )}
       </Link>
     </motion.div>
   );

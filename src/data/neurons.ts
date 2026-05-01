@@ -9,7 +9,7 @@ export interface FeaturedNeuron {
   morphologyPreset: "pyramidal" | "basket" | "chandelier" | "martinotti" | "stellate" | "astrocyte";
   color: string;            // hex
   shapeAnalogy: string;     // "Lightning Tree", "Coral Fan", etc.
-  oneLiner: string;          // shown on card
+  oneLiner?: string;         // shown on card; optional — some cells skip the card hook
   whatItDoes: string;        // longer, on detail page
   whyItMatters: string;
   /** filename in gs://microns-static-links/mm3/ — the curated gallery state file.
@@ -202,8 +202,7 @@ export const featuredNeurons: FeaturedNeuron[] = [
     category: "excitatory",
     morphologyPreset: "pyramidal",
     color: "#1f78ff",
-    shapeAnalogy: "A pyramid soma with a single tall apical dendrite climbing upward — narrow at the base, opening into a tuft near the top.",
-    oneLiner: "The center of its local circuit — every nearby inhibitory cell reaches toward it.",
+    shapeAnalogy: "A pyramid shaped soma with a single tall apical dendrite climbing upward. Singular at the trunk and opening into a branched tuft toward the top.",
     whatItDoes:
       "Pyramidal neurons are cortex's main excitatory cells. They gather inputs across a wide dendritic field and forward processed signals to other regions of the brain.",
     whyItMatters:
