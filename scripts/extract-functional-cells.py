@@ -148,7 +148,11 @@ def fetch_and_export(row: dict, centroid_nm: np.ndarray) -> dict | None:
         # Already decimated to a sensible size — accept it.
         return {**row, "glb": out_path.name, "skipped": True}
 
-    cv = CloudVolume(SEG_SRC, use_https=True, parallel=2, progress=False)
+    # parallel=1 — cloud-volume's internal multiprocess pool conflicts with
+    # the outer ThreadPoolExecutor (BrokenPipeError as the parent process
+    # tears the pool down between jobs). Single-stream fetch per worker is
+    # plenty when we have 8 workers in flight already.
+    cv = CloudVolume(SEG_SRC, use_https=True, parallel=1, progress=False)
     try:
         raw = cv.mesh.get(seg_id)
         if isinstance(raw, dict):
