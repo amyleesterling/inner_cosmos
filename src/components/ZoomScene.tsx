@@ -599,14 +599,19 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
           obj.material = mat;
           humanBrainSolidMaterials.push(mat);
 
-          // Bright violet wireframe with additive blending so the gyri
-          // edges glow.
+          // Stylistic glowing-gyri overlay: bright lavender wireframe
+          // with additive blending, sitting ON TOP of the now-solid
+          // DoubleSide brain. polygonOffset lifts the lines just off
+          // the surface so they don't z-fight with it.
           const wireMat = new THREE.MeshBasicMaterial({
-            color: new THREE.Color("#e8a8ff"),
+            color: new THREE.Color("#f0c0ff"),
             wireframe: true,
             transparent: true,
             opacity: 0.0,
             blending: THREE.AdditiveBlending,
+            polygonOffset: true,
+            polygonOffsetFactor: -1,
+            polygonOffsetUnits: -1,
             depthWrite: false,
           });
           const wireMesh = new THREE.Mesh(obj.geometry, wireMat);
@@ -920,13 +925,12 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
     };
     const stageOpacities: Targets[] = [
       // 0 — human brain alone. Fully opaque + DoubleSide so the surface
-      // reads as a solid object even at close zoom. humanWire dropped to
-      // 0 — the additive wireframe overlay was painting visible triangle
-      // edges that read as a "see-through mesh net" under the new
-      // studio lighting; the lit surface itself now carries definition.
-      { humanSolid: 1.00, humanWire: 0,    brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0,    hero: 0,    synapsePair: 0,    synapseMarker: 0    },
+      // reads as a solid object even at close zoom; the additive
+      // wireframe sits ON TOP of that solid surface as a stylistic
+      // glowing-gyri treatment, not as a net you can see through.
+      { humanSolid: 1.00, humanWire: 0.07, brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0,    hero: 0,    synapsePair: 0,    synapseMarker: 0    },
       // 1 — comparison: human + small mouse to scale, dots off
-      { humanSolid: 1.00, humanWire: 0,    brainSolid: 0.55, brainWire: 0.10, brainDots: 0,    dotSize: 0.011, cells: 0,    hero: 0,    synapsePair: 0,    synapseMarker: 0    },
+      { humanSolid: 1.00, humanWire: 0.06, brainSolid: 0.55, brainWire: 0.10, brainDots: 0,    dotSize: 0.011, cells: 0,    hero: 0,    synapsePair: 0,    synapseMarker: 0    },
       // 2 — mouse alone (full size)
       { humanSolid: 0,    humanWire: 0,    brainSolid: 0.10, brainWire: 0.30, brainDots: 0.85, dotSize: 0.011, cells: 0,    hero: 0,    synapsePair: 0,    synapseMarker: 0    },
       // 3 — V1 close
