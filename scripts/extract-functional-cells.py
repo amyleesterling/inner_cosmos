@@ -50,9 +50,13 @@ SEG_SRC = "precomputed://gs://iarpa_microns/minnie/minnie65/seg_m1300"
 COREG_FIELDS = (2, 4, 6)
 
 TARGET_CELLS = 200
-TARGET_FACES = 6000           # per-cell budget — they're tiny in a 200-cell scene
+# Per-cell face budget. 6K turned out to be too few — at this density the
+# fine dendrites collapse into jagged origami in the renderer. 60K (10× the
+# initial budget) reads as a real cell with resolvable spines and dendrites,
+# at the cost of bigger files (~700 KB per cell, ~140 MB across 200 cells).
+TARGET_FACES = 60000
 TRACE_FPS = 30                # output playback rate
-TRACE_SECONDS = 60            # one-minute loop
+TRACE_SECONDS = 30            # 30-second loop
 
 # Same shared scale as scripts/extract-cluster.py so this scene mixes well
 # with the existing project. 1 mm of cortex = 2.5 scene units.
