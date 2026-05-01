@@ -162,14 +162,61 @@ export default function ZoomScene({ stage }: Props) {
     // Aliases used by animation block below
     const apAxonPulse = axonBloom.sprite;
     const apPyramidPulse = pyramidBloom.sprite;
-    // Path waypoints for the action potential, expressed in the synapse-
-    // pair's shared frame (origin = synapse contact).
-    //   TENDRIL_FAR  = far end of Tendril's axon (signal start)
-    //   AURA_SOMA    = Aura's cell body, where dendrite + soma + axon meet
-    //   AURA_AXON_END = end of Aura's own axon, where the next signal departs
-    const TENDRIL_FAR = new THREE.Vector3(0.92, -0.10, 0.05);
-    const AURA_SOMA = new THREE.Vector3(0.05, -0.55, 0.02);
-    const AURA_AXON_END = new THREE.Vector3(0.05, -0.95, 0.02);
+    // Action-potential paths walk the actual mesh skeleton (NOT straight
+    // lines). Loaded from /meshes/synapse-skeletons.json — three paths
+    // resampled to 200 evenly-spaced points each, all in the synapse-pair's
+    // shared frame (origin = synapse contact).
+    //   tendril      = Tendril axon distal tip -> synapse
+    //   aura_apical  = synapse -> Aura soma (down post-synaptic dendrite)
+    //   aura_axon    = Aura soma -> axon distal tip
+    // Until the JSON loads, fall back to the old straight-line waypoints
+    // so the animation still renders something coherent on first paint.
+    let tendrilPath: THREE.Vector3[] | null = null;
+    let auraApicalPath: THREE.Vector3[] | null = null;
+    let auraAxonPath: THREE.Vector3[] | null = null;
+    const FALLBACK_TENDRIL_FAR = new THREE.Vector3(0.92, -0.10, 0.05);
+    const FALLBACK_AURA_SOMA = new THREE.Vector3(0.05, -0.55, 0.02);
+    const FALLBACK_AURA_AXON_END = new THREE.Vector3(0.05, -0.95, 0.02);
+    fetch(`${BASE}meshes/synapse-skeletons.json`)
+      .then((r) => r.json())
+      .then((data) => {
+        const toVec3s = (pts: number[][]) =>
+          pts.map((p) => new THREE.Vector3(p[0], p[1], p[2]));
+        tendrilPath = toVec3s(data.tendril.points);
+        auraApicalPath = toVec3s(data.aura_apical.points);
+        auraAxonPath = toVec3s(data.aura_axon.points);
+        // QA hook — read tendrilPath / pulse positions live with preview_eval
+        if (typeof window !== "undefined") {
+          (window as unknown as { __ap?: unknown }).__ap = {
+            tendrilPath,
+            auraApicalPath,
+            auraAxonPath,
+            axonPulse: apAxonPulse,
+            pyramidPulse: apPyramidPulse,
+            stageRef,
+          };
+        }
+      })
+      .catch((e) => console.error("synapse skeletons", e));
+
+    // Sample a resampled path at u in [0, 1] with linear interpolation
+    // between adjacent points. Writes into `out` to avoid allocations.
+    const samplePath = (
+      path: THREE.Vector3[],
+      u: number,
+      out: THREE.Vector3,
+    ) => {
+      const n = path.length;
+      const f = Math.max(0, Math.min(n - 1, u * (n - 1)));
+      const i = Math.floor(f);
+      const t = f - i;
+      if (i >= n - 1) {
+        out.copy(path[n - 1]);
+      } else {
+        out.copy(path[i]).lerp(path[i + 1], t);
+      }
+      return out;
+    };
     let brainShell: THREE.Group | null = null;
     const brainShellWireMaterials: THREE.MeshBasicMaterial[] = [];
     const brainShellSolidMaterials: THREE.MeshStandardMaterial[] = [];
@@ -806,10 +853,13 @@ export default function ZoomScene({ stage }: Props) {
           const PERIOD = 4.0;
           const phase = (animT % PERIOD) / PERIOD;
           // Phases:
-          //   0.00–0.30  axon pulse travels Tendril FAR → synapse
+          //   0.00–0.30  axon pulse travels Tendril far end → synapse
+          //                (along Tendril skeleton, NOT a straight line)
           //   0.30–0.38  brief crossing flash at synapse
-          //   0.38–0.65  pyramidal pulse: synapse → Aura soma (apical)
-          //   0.65–0.95  pyramidal pulse: Aura soma → end of Aura's axon
+          //   0.38–0.65  pyramidal pulse: synapse → Aura soma (along
+          //                Aura's post-synaptic dendrite skeleton)
+          //   0.65–0.95  pyramidal pulse: Aura soma → axon distal tip
+          //                (along Aura's axon skeleton)
           //   0.95–1.00  reset gap
           const AXON_END  = 0.30;
           const CROSS_END = 0.38;
@@ -818,7 +868,12 @@ export default function ZoomScene({ stage }: Props) {
 
           if (phase < AXON_END) {
             const u = phase / AXON_END;
-            apAxonPulse.position.copy(TENDRIL_FAR).multiplyScalar(1 - u);
+            // Walk Tendril from far end (u=0) to synapse (u=1).
+            if (tendrilPath) {
+              samplePath(tendrilPath, u, apAxonPulse.position);
+            } else {
+              apAxonPulse.position.copy(FALLBACK_TENDRIL_FAR).multiplyScalar(1 - u);
+            }
             setBloom(axonBloom, cur.synapsePair * 0.95);
             setBloom(pyramidBloom, 0);
             apAxonPulse.visible = true;
@@ -832,17 +887,25 @@ export default function ZoomScene({ stage }: Props) {
             apAxonPulse.visible = true;
             apPyramidPulse.visible = true;
           } else if (phase < SOMA_END) {
-            // Synapse → soma (down the apical dendrite)
+            // Synapse → soma along Aura's post-synaptic dendrite.
             const u = (phase - CROSS_END) / (SOMA_END - CROSS_END);
-            apPyramidPulse.position.lerpVectors(new THREE.Vector3(0, 0, 0), AURA_SOMA, u);
+            if (auraApicalPath) {
+              samplePath(auraApicalPath, u, apPyramidPulse.position);
+            } else {
+              apPyramidPulse.position.lerpVectors(new THREE.Vector3(0, 0, 0), FALLBACK_AURA_SOMA, u);
+            }
             setBloom(axonBloom, 0);
             setBloom(pyramidBloom, cur.synapsePair * 0.95);
             apAxonPulse.visible = false;
             apPyramidPulse.visible = true;
           } else if (phase < PYRA_END) {
-            // Soma → end of axon (down the cell's own output)
+            // Soma → axon distal tip along Aura's axon.
             const u = (phase - SOMA_END) / (PYRA_END - SOMA_END);
-            apPyramidPulse.position.lerpVectors(AURA_SOMA, AURA_AXON_END, u);
+            if (auraAxonPath) {
+              samplePath(auraAxonPath, u, apPyramidPulse.position);
+            } else {
+              apPyramidPulse.position.lerpVectors(FALLBACK_AURA_SOMA, FALLBACK_AURA_AXON_END, u);
+            }
             setBloom(axonBloom, 0);
             setBloom(pyramidBloom, cur.synapsePair * 0.95);
             apAxonPulse.visible = false;
