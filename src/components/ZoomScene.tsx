@@ -209,6 +209,60 @@ export default function ZoomScene({ stage }: Props) {
     let brainShell: THREE.Group | null = null;
     const brainShellWireMaterials: THREE.MeshBasicMaterial[] = [];
     const brainShellSolidMaterials: THREE.MeshStandardMaterial[] = [];
+    // Mouse-brain hologram overlay — adds Fresnel edge glow + animated
+    // scanlines on top of the existing solid + wireframe setup. Opacity
+    // tracks `cur.brainHologram` (a fraction of brainSolid+brainWire); the
+    // uTime uniform is bumped every frame so scanlines drift.
+    const brainHologramMaterials: THREE.ShaderMaterial[] = [];
+    const HOLOGRAM_VERT = /* glsl */ `
+      varying vec3 vWorldPos;
+      varying vec3 vNormal;
+      varying vec3 vViewDir;
+      varying vec3 vLocalPos;
+      void main() {
+        vLocalPos = position;
+        vec4 worldPos = modelMatrix * vec4(position, 1.0);
+        vWorldPos = worldPos.xyz;
+        vNormal = normalize(mat3(modelMatrix) * normal);
+        vViewDir = normalize(cameraPosition - worldPos.xyz);
+        gl_Position = projectionMatrix * viewMatrix * worldPos;
+      }
+    `;
+    const HOLOGRAM_FRAG = /* glsl */ `
+      uniform float uTime;
+      uniform float uOpacity;
+      uniform vec3  uBaseColor;
+      uniform vec3  uEdgeColor;
+      varying vec3 vWorldPos;
+      varying vec3 vNormal;
+      varying vec3 vViewDir;
+      varying vec3 vLocalPos;
+
+      void main() {
+        // Fresnel: edges (normal perpendicular to view) glow more.
+        float fres = 1.0 - max(0.0, dot(normalize(vNormal), normalize(vViewDir)));
+        float fresEdge = pow(fres, 2.4);  // sharp rim
+        float fresFill = pow(fres, 0.9);  // soft body wash
+
+        // Animated horizontal scanlines along the brain's local Y axis
+        // (cortical-ish axis). Local position so they don't shear when
+        // the brain rotates.
+        float scan = 0.5 + 0.5 * sin(vLocalPos.y * 90.0 - uTime * 1.4);
+        scan = pow(scan, 6.0);  // narrow bright bands
+
+        // A slower modulation so the whole shell breathes
+        float pulse = 0.5 + 0.5 * sin(uTime * 0.55);
+
+        vec3 color = mix(uBaseColor, uEdgeColor, fresEdge);
+        // Add a tiny scanline highlight so the bands shimmer toward white
+        color += vec3(0.35, 0.55, 0.7) * scan * 0.55;
+
+        float alpha = (fresEdge * 0.55 + fresFill * 0.18 + scan * 0.22) * uOpacity;
+        alpha *= 0.82 + pulse * 0.18;
+
+        gl_FragColor = vec4(color, alpha);
+      }
+    `;
     let brainPoints: THREE.Points | null = null;
     let brainPointsMaterial: THREE.PointsMaterial | null = null;
     const v1Right = new THREE.Vector3(0.31, 0.28, 0.29); // updated when manifest loads
@@ -330,6 +384,27 @@ export default function ZoomScene({ stage }: Props) {
           const wireMesh = new THREE.Mesh(obj.geometry, wireMat);
           obj.add(wireMesh);
           brainShellWireMaterials.push(wireMat);
+
+          // Hologram overlay — Fresnel + animated scanlines, additive,
+          // depthWrite off so it never occludes other layers.
+          const hologramMat = new THREE.ShaderMaterial({
+            uniforms: {
+              uTime: { value: 0 },
+              uOpacity: { value: 0 },
+              uBaseColor: { value: new THREE.Color("#3aa0ff") },
+              uEdgeColor: { value: new THREE.Color("#bfeaff") },
+            },
+            vertexShader: HOLOGRAM_VERT,
+            fragmentShader: HOLOGRAM_FRAG,
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            side: THREE.DoubleSide,
+          });
+          const hologramMesh = new THREE.Mesh(obj.geometry, hologramMat);
+          obj.add(hologramMesh);
+          brainHologramMaterials.push(hologramMat);
+
           brainShell.add(obj);
         }
         scene.add(brainShell);
@@ -779,6 +854,16 @@ export default function ZoomScene({ stage }: Props) {
       humanBrainWireMaterials.forEach((m) => (m.opacity = cur.humanWire));
       brainShellSolidMaterials.forEach((m) => (m.opacity = cur.brainSolid));
       brainShellWireMaterials.forEach((m) => (m.opacity = cur.brainWire));
+      // Hologram overlay: tracks the wireframe presence (a fraction of
+      // it, so it stays subtle), and animates uTime so scanlines drift.
+      // Cap by stage: brightest on stages 2+3 (full mouse + V1), dimmer
+      // when only the comparison cameo is showing.
+      const hologramScale = (s === 2 || s === 3) ? 1.0 : 0.55;
+      const hologramOpacity = cur.brainWire * 1.6 * hologramScale;
+      for (const m of brainHologramMaterials) {
+        m.uniforms.uTime.value = t;
+        m.uniforms.uOpacity.value = hologramOpacity;
+      }
       if (brainPointsMaterial) {
         brainPointsMaterial.opacity = cur.brainDots;
         brainPointsMaterial.size = cur.dotSize;
