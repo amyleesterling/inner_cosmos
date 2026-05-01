@@ -29,3 +29,9 @@ scripts/__pycache__/
 # (the current script writes to .functional-cache/ instead).
 public/data/_nwb_cache/
 public/data/_resolved_roots.json
+
+# WIP — pipeline currently fetching the activity dataset; this entry will be
+# removed and the full set committed once the script finishes.
+public/meshes/activity/
+public/data/activity-manifest.json
+public/data/activity-traces.bin
