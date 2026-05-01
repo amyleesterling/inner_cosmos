@@ -26,7 +26,7 @@ CACHE_DIR = ROOT / ".functional-cache"
 NWB_S3 = "https://dandiarchive.s3.amazonaws.com/blobs/058/2e9/0582e94c-190b-46c7-bae4-28c684f396ff"
 COREG_FIELDS = (2, 4, 6)
 TRACE_FPS = 30
-TRACE_SECONDS = 60
+TRACE_SECONDS = 30
 SHARED_SCALE = 2.5 / 1_000_000
 
 

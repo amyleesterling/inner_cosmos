@@ -44,10 +44,11 @@ export default function CellSwarm({ manifest, traces, elapsedSec, onProgress, cl
     const h = container.clientHeight;
     const camera = new THREE.PerspectiveCamera(40, w / h, 0.05, 200);
 
-    // Frame the swarm. Cells are scaled at 2.5 scene-units per mm, and the
-    // imaged volume is roughly 1.4×0.87×0.66 mm — so the bounding region is
-    // a few units across.
+    // Initial camera placement; auto-frames to the swarm bounding box once
+    // the first few meshes have loaded so a single cell or 200 of them both
+    // fill the canvas.
     camera.position.set(4.2, 2.8, 5.5);
+    let framed = false;
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -154,6 +155,28 @@ export default function CellSwarm({ manifest, traces, elapsedSec, onProgress, cl
           cells.push({ cell, group, materials, baseColor, hotColor });
           loadedCount += 1;
           onProgress?.(loadedCount, total);
+          // First-frame camera positioning: once all (or a meaningful prefix
+          // of) meshes have loaded, fit the swarm bbox into the viewport.
+          if (!framed && (loadedCount === total || loadedCount >= 12)) {
+            framed = true;
+            const bbox = new THREE.Box3();
+            for (const c of cells) bbox.expandByObject(c.group);
+            if (!bbox.isEmpty()) {
+              const size = new THREE.Vector3();
+              const center = new THREE.Vector3();
+              bbox.getSize(size);
+              bbox.getCenter(center);
+              const radius = Math.max(size.x, size.y, size.z) * 0.6 + 0.4;
+              const fov = (camera.fov * Math.PI) / 180;
+              const dist = radius / Math.tan(fov / 2);
+              camera.position.set(center.x + dist * 0.7, center.y + dist * 0.45, center.z + dist * 0.85);
+              camera.lookAt(center);
+              controls.target.copy(center);
+              controls.minDistance = Math.max(0.4, dist * 0.25);
+              controls.maxDistance = dist * 6;
+              controls.update();
+            }
+          }
           if (loadedCount === total) setReady(true);
           loadNext();
         },
