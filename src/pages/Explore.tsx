@@ -31,49 +31,49 @@ function LegendDot({ color, label }: { color: string; label: string }) {
 const STAGES = [
   {
     eyebrow: "Stage 1 of 8",
-    title: "Your brain.",
+    title: "Your brain",
     subtitle:
       "Every thought, every memory, every feeling — happens in here. About 86 billion cells, talking to each other in patterns we're only beginning to understand.",
   },
   {
     eyebrow: "Stage 2 of 8",
-    title: "Next to a mouse brain.",
+    title: "Next to a mouse brain",
     subtitle:
       "About 15 times smaller in every direction, roughly the volume of a peanut. Inside that peanut: 70 million neurons, connected by ~200 billion synapses. Mice are a key model organism, helping scientists uncover the principles that also shape the human brain. Drag to look around.",
   },
   {
     eyebrow: "Stage 3 of 8",
-    title: "Inside the mouse brain.",
+    title: "Inside the mouse brain",
     subtitle:
       "This is the mesh of an actual mouse brain from the Allen Institute. The dots inside are placeholders for some of the ~70 million neurons that live in here.",
   },
   {
     eyebrow: "Stage 4 of 8",
-    title: "Primary visual cortex.",
+    title: "Primary visual cortex",
     subtitle:
       "Where the eye meets the brain. About a teaspoon of tissue at the back of the cortex, the first place signals from the retina turn into something the rest of the brain can use. Sight begins to become perception. The cells you'll meet next all came from this region.",
   },
   {
     eyebrow: "Stage 5 of 8",
-    title: "A piece of cortex.",
+    title: "A piece of cortex",
     subtitle:
       "MICrONS reconstructed about a cubic millimeter of this region. Inside that cube: roughly 200,000 cells (neurons + glia), wired together by ~523 million synapses. Ten of those cells are shown here, drag to look around.",
   },
   {
     eyebrow: "Stage 6 of 8",
-    title: "A neuron.",
+    title: "A neuron",
     subtitle:
       "One cell. Thousands of connections. The upper branches, called dendrites, receive signals. The cell sends its own signals out through its axon, making synapses with other cells, which connect to more cells. Thus a neural network is born, representing reality and experience.",
   },
   {
     eyebrow: "Stage 7 of 8",
-    title: "One synapse.",
+    title: "One synapse",
     subtitle:
       "An axon from a cell somewhere far away in the brain reaches up to form a synapse. It connects with the blue cell, a tufted pyramidal neuron that lives deep in cortex. The blue cell is excitatory: when it sends a signal out its own axon, it will encourage downstream cells to send their signals too. The whole contact is the size of a few hundred nanometers.",
   },
   {
     eyebrow: "Stage 8 of 8",
-    title: "Action potential.",
+    title: "Action potential",
     subtitle:
       "The signals neurons send are called action potentials. Watch the signal travel: a pulse races down the axon to the synapse, briefly flashes as it crosses, and then ignites a new pulse that travels down the pyramidal cell. This is one neuron, talking to the next. Your brain sends on the order of a quadrillion (1,000,000,000,000,000) electrical signals every second.",
   },
