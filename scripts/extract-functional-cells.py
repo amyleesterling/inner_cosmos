@@ -125,12 +125,27 @@ def resolve_v1300_roots(rows: list[dict]) -> list[dict]:
     return unique
 
 
+def _decimate(verts: np.ndarray, faces: np.ndarray, target: int) -> tuple[np.ndarray, np.ndarray]:
+    """Aggressive multi-pass decimation via fast_simplification.
+
+    Going straight from ~4 M faces to 6 K in one pass occasionally returns
+    a partially-decimated result, so we step down through ~50× ratios.
+    """
+    import fast_simplification
+    v = np.asarray(verts, dtype=np.float32)
+    f = np.asarray(faces, dtype=np.int32)
+    while len(f) > target * 1.05:
+        step_target = max(target, len(f) // 50)
+        v, f = fast_simplification.simplify(v, f, target_count=step_target)
+    return v, f
+
+
 def fetch_and_export(row: dict, centroid_nm: np.ndarray) -> dict | None:
     """Fetch a v1300 mesh, decimate, export as GLB. Returns enriched row or None."""
     seg_id = row["v1300_root"]
     out_path = MESH_DIR / f"{seg_id}.glb"
-    if out_path.exists():
-        # Resume support — accept whatever's on disk
+    if out_path.exists() and out_path.stat().st_size < 500_000:
+        # Already decimated to a sensible size — accept it.
         return {**row, "glb": out_path.name, "skipped": True}
 
     cv = CloudVolume(SEG_SRC, use_https=True, parallel=2, progress=False)
@@ -139,50 +154,42 @@ def fetch_and_export(row: dict, centroid_nm: np.ndarray) -> dict | None:
         if isinstance(raw, dict):
             raw = raw.get(seg_id) or next(iter(raw.values()))
     except Exception as e:
+        print(f"  fetch fail {seg_id}: {e}", file=sys.stderr)
         return None
 
     n_v_raw = len(raw.vertices)
     if n_v_raw < 5000:
-        # Stub mesh (proofread away or just a small fragment) — skip
         return None
 
-    tm = trimesh.Trimesh(vertices=raw.vertices, faces=raw.faces, process=False)
-
-    # Position the soma at its real cortical location, but keep the cell
-    # oriented around its own soma point — we centre on the NWB-provided
-    # soma point (not the vertex mean), since the centroid of the mesh can
-    # be biased toward dense dendritic regions and would offset the cell
-    # from where it actually was in the brain.
     soma = np.array(row["soma_nm"], dtype=np.float64)
-    tm.vertices = tm.vertices - soma  # cell now centred on its own soma
+    verts = np.asarray(raw.vertices, dtype=np.float64) - soma
+    faces = np.asarray(raw.faces, dtype=np.int32)
 
-    # Decimate hard — 200 cells in one scene means each one is small.
-    if hasattr(tm, "simplify_quadric_decimation") and len(tm.faces) > TARGET_FACES:
-        try:
-            tm = tm.simplify_quadric_decimation(face_count=TARGET_FACES)
-        except Exception:
-            pass
+    try:
+        verts32, faces32 = _decimate(verts, faces, TARGET_FACES)
+    except Exception as e:
+        print(f"  decimate fail {seg_id}: {e}", file=sys.stderr)
+        return None
+    if len(faces32) < 200:
+        return None
 
-    # Translate to world position relative to the swarm centroid, in scene units.
-    # Y-flip so up = pia, matching the rest of the project. Flip face winding so
-    # normals stay outward.
-    tm.vertices = tm.vertices * SHARED_SCALE
-    tm.vertices[:, 1] *= -1
-    tm.faces = tm.faces[:, [0, 2, 1]]
+    # Scene-unit transform: shared scale + Y-flip (so pia is up) + face winding flip.
+    verts64 = verts32.astype(np.float64) * SHARED_SCALE
+    verts64[:, 1] *= -1
+    faces_out = faces32[:, [0, 2, 1]].astype(np.int32)
 
-    # World position of this cell relative to the swarm centroid (also flipped + scaled)
+    # Bake world translation so the GLB lands at the cell's real cortical location.
     world = (soma - centroid_nm) * SHARED_SCALE
     world[1] *= -1
-    # Bake the world translation into the mesh so the GLB lands at its real
-    # cortical location when added to the scene at origin.
-    tm.vertices = tm.vertices + world
+    verts64 = verts64 + world
 
+    tm = trimesh.Trimesh(vertices=verts64, faces=faces_out, process=False)
     tm.export(str(out_path))
     return {
         **row,
         "glb": out_path.name,
         "world": world.tolist(),
-        "n_faces": int(len(tm.faces)),
+        "n_faces": int(len(faces_out)),
         "kb": round(out_path.stat().st_size / 1024, 1),
     }
 
@@ -267,14 +274,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--max-cells", type=int, default=TARGET_CELLS)
     ap.add_argument("--workers", type=int, default=4)
-    ap.add_argument("--cache-only", action="store_true",
-                    help="Skip mesh fetch; only read the resolved-roots cache.")
     args = ap.parse_args()
 
     cache_path = CACHE_DIR / "resolved_roots.json"
-    if cache_path.exists() and args.cache_only:
+    if cache_path.exists():
         unique = json.loads(cache_path.read_text())
-        print(f"loaded {len(unique)} resolved roots from cache", file=sys.stderr)
+        print(f"loaded {len(unique)} resolved roots from cache ({cache_path})", file=sys.stderr)
     else:
         print("opening NWB stream...", file=sys.stderr)
         nwb = open_nwb()
