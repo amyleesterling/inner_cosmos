@@ -30,12 +30,14 @@ export default function Landing() {
         }}
       />
 
-      {/* Foreground content */}
-      <main className="relative z-10 min-h-screen overflow-x-hidden">
+      {/* Foreground content. pointer-events-none lets drag/scroll fall
+          through to the canvas behind; interactive elements (links,
+          buttons, footer) opt back in via pointer-events-auto. */}
+      <main className="relative z-10 min-h-screen overflow-x-hidden pointer-events-none">
         <Hero />
         <WonderStrip />
 
-        <footer className="py-12 px-6 text-center text-xs text-white/35 tracking-wider">
+        <footer className="py-12 px-6 text-center text-xs text-white/35 tracking-wider pointer-events-auto">
           Data:{" "}
           <a className="hover:text-white/70 transition" href="https://www.microns-explorer.org/" target="_blank" rel="noreferrer">
             MICrONS

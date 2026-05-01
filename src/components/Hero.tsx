@@ -44,7 +44,7 @@ export default function Hero() {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1, delay: 0.85, ease: "easeOut" }}
-        className="mt-12 flex flex-col sm:flex-row items-center gap-4"
+        className="mt-12 flex flex-col sm:flex-row items-center gap-4 pointer-events-auto"
       >
         <Link
           to="/explore"

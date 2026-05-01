@@ -3,6 +3,11 @@ import { Link, useLocation } from "react-router-dom";
 export default function NavBar() {
   const { pathname } = useLocation();
 
+  // /kindergarten is a self-contained immersive experience for young kids
+  // (Sophia's class). The brief is "no header, no nav, no instructions" — so
+  // the NavBar (and any other chrome) sits this page out entirely.
+  if (pathname === "/kindergarten") return null;
+
   return (
     <header className="fixed top-0 inset-x-0 z-30 px-5 sm:px-8 py-4 flex items-center justify-between pointer-events-none">
       <Link
