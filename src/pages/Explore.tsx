@@ -146,33 +146,30 @@ export default function Explore() {
       {/* `pointer-events-none` on the wrapper lets drag/scroll fall through to
           the canvas behind. Re-enabled on the actual interactive controls
           (progress dots + buttons) so users can still click/tap them. */}
-      {/* Stage progress bar — actual filled bar at the bottom. Cyan fill
-          grows left-to-right as you advance; tick marks at each stage are
-          clickable. Stage counter on the left. */}
-      <div className="fixed bottom-5 left-6 right-6 z-30 pointer-events-auto flex items-center gap-4 max-w-[520px]">
-        <span className="text-[10px] font-mono uppercase tracking-[0.3em] text-white/55 tabular-nums whitespace-nowrap">
+      {/* Stage progress bar — compact, bottom-left. Cyan fill grows
+          left-to-right as you advance; small clickable tick dots at each
+          stage. */}
+      <div className="fixed bottom-5 left-6 z-30 pointer-events-auto flex items-center gap-3 w-[260px]">
+        <span className="text-[9px] font-mono uppercase tracking-[0.25em] text-white/55 tabular-nums whitespace-nowrap">
           {String(stage + 1).padStart(2, "0")}
           <span className="text-white/25"> / {String(STAGES.length).padStart(2, "0")}</span>
         </span>
-        <div className="relative h-[3px] flex-1">
-          {/* Track */}
+        <div className="relative h-[2px] flex-1">
           <div className="absolute inset-0 rounded-full bg-white/10" />
-          {/* Filled portion */}
           <div
             className="absolute inset-y-0 left-0 rounded-full transition-all duration-700 ease-out"
             style={{
               width: `${((stage + 1) / STAGES.length) * 100}%`,
               background: "linear-gradient(90deg, rgba(142,218,255,0.7) 0%, rgba(142,218,255,1) 100%)",
-              boxShadow: "0 0 8px rgba(142, 218, 255, 0.65)",
+              boxShadow: "0 0 6px rgba(142, 218, 255, 0.55)",
             }}
           />
-          {/* Stage tick marks (clickable) */}
           {STAGES.map((_, i) => (
             <button
               key={i}
               onClick={() => setStage(i)}
               aria-label={`Go to stage ${i + 1}`}
-              className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 flex items-center justify-center group"
+              className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 flex items-center justify-center"
               style={{ left: `${(i / (STAGES.length - 1)) * 100}%` }}
             >
               <span
@@ -180,14 +177,14 @@ export default function Explore() {
                 style={
                   i === stage
                     ? {
-                        width: 10,
-                        height: 10,
+                        width: 7,
+                        height: 7,
                         background: "#8edaff",
-                        boxShadow: "0 0 10px rgba(142,218,255,0.95)",
+                        boxShadow: "0 0 7px rgba(142,218,255,0.95)",
                       }
                     : i < stage
-                    ? { width: 5, height: 5, background: "rgba(142,218,255,0.7)" }
-                    : { width: 5, height: 5, background: "rgba(255,255,255,0.18)" }
+                    ? { width: 3, height: 3, background: "rgba(142,218,255,0.7)" }
+                    : { width: 3, height: 3, background: "rgba(255,255,255,0.18)" }
                 }
               />
             </button>

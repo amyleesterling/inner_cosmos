@@ -521,7 +521,9 @@ export default function ZoomScene({ stage }: Props) {
       { humanSolid: 0,    humanWire: 0,    brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0.9,  hero: 0.9,  synapsePair: 0,    synapseMarker: 0    },
       // 5 — single neuron
       { humanSolid: 0,    humanWire: 0,    brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0.07, hero: 0.95, synapsePair: 0,    synapseMarker: 0    },
-      // 6 — synapse: cluster gone, hero gone, synapse pair + contact marker visible.
+      // 6 — synapse close-up: cluster gone, hero gone, synapse pair + contact marker visible.
+      { humanSolid: 0,    humanWire: 0,    brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0.0,  hero: 0,    synapsePair: 0.85, synapseMarker: 0.85 },
+      // 7 — action potential: same meshes, wider framing (handled by camera).
       { humanSolid: 0,    humanWire: 0,    brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0.0,  hero: 0,    synapsePair: 0.85, synapseMarker: 0.85 },
     ];
 
