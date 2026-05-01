@@ -23,7 +23,8 @@ import json
 import time
 import struct
 import argparse
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures.process import BrokenProcessPool
 from pathlib import Path
 
 import h5py
@@ -301,26 +302,34 @@ def main():
     pts = np.array([r["soma_nm"] for r in targets], dtype=np.float64)
     centroid = pts.mean(axis=0)
 
-    # Fetch + decimate in parallel
-    print(f"fetching meshes ({args.workers} workers)...", file=sys.stderr)
+    # Fetch + decimate in parallel — ProcessPoolExecutor so a segfault in a
+    # cloud-volume C extension only kills one worker; the pool restarts it.
+    print(f"fetching meshes ({args.workers} workers, in chunks of 40)...", file=sys.stderr)
     t0 = time.time()
     enriched: list[dict] = []
-    with ThreadPoolExecutor(max_workers=args.workers) as ex:
-        futures = {ex.submit(fetch_and_export, r, centroid): r for r in targets}
-        for n, fut in enumerate(as_completed(futures), 1):
-            try:
-                res = fut.result()
-            except Exception as e:
-                res = None
-            if res is not None:
-                enriched.append(res)
-            if n % 10 == 0 or n == len(futures):
-                print(f"  {n}/{len(futures)} ({len(enriched)} ok) — {time.time()-t0:.0f}s", file=sys.stderr)
-            if len(enriched) >= args.max_cells:
-                # Cancel pending; we have enough
-                for f in futures:
-                    f.cancel()
-                break
+    chunk_size = 40
+    cursor = 0
+    seen_segs: set[int] = set()
+    while cursor < len(targets) and len(enriched) < args.max_cells:
+        chunk = targets[cursor:cursor + chunk_size]
+        cursor += chunk_size
+        try:
+            with ProcessPoolExecutor(max_workers=args.workers) as ex:
+                futures = {ex.submit(fetch_and_export, r, centroid): r for r in chunk}
+                for fut in as_completed(futures):
+                    try:
+                        res = fut.result(timeout=180)
+                    except Exception as e:
+                        print(f"  worker error: {type(e).__name__}: {e}", file=sys.stderr)
+                        res = None
+                    if res is not None and res["v1300_root"] not in seen_segs:
+                        seen_segs.add(res["v1300_root"])
+                        enriched.append(res)
+        except BrokenProcessPool as e:
+            # A worker segfaulted hard enough to take the pool with it. Skip
+            # this chunk and continue with the next.
+            print(f"  pool broken on chunk; continuing: {e}", file=sys.stderr)
+        print(f"  chunk done — {len(enriched)} ok, {cursor}/{len(targets)} considered ({time.time()-t0:.0f}s)", file=sys.stderr)
     enriched = enriched[: args.max_cells]
     print(f"finalised {len(enriched)} cells", file=sys.stderr)
 
