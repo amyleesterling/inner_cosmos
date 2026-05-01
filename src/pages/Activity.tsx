@@ -15,10 +15,10 @@ type LoadState =
   | { status: "missing" }
   | { status: "error"; message: string };
 
-const FIELD_LABEL: Record<number, { label: string; color: string }> = {
-  2: { label: "L2/3 pyramidal", color: "#8edaff" },
-  4: { label: "L4", color: "#aab8ff" },
-  6: { label: "L5 pyramidal", color: "#ffc88a" },
+const FIELD_LABEL: Record<number, string> = {
+  2: "L2/3",
+  4: "L4",
+  6: "L5",
 };
 
 export default function Activity() {
@@ -172,15 +172,16 @@ export default function Activity() {
 
         {load.status === "ready" && (
           <div className="max-w-6xl mx-auto mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px] text-white/55">
-            {layersPresent.map((f) => {
-              const meta = FIELD_LABEL[f];
-              if (!meta) return null;
-              return <LayerKey key={f} color={meta.color} label={meta.label} />;
-            })}
-            <span className="text-white/30">·</span>
             <span>
               {load.manifest.cells.length}{" "}
-              {load.manifest.cells.length === 1 ? "cell" : "cells"} ·{" "}
+              {load.manifest.cells.length === 1 ? "cell" : "cells"}
+              {layersPresent.length > 0 && (
+                <>
+                  {" "}across{" "}
+                  {layersPresent.map((f) => FIELD_LABEL[f]).filter(Boolean).join(", ")}
+                </>
+              )}
+              {" · "}
               {load.manifest.seconds}s loop
             </span>
             <span className="ml-auto">
@@ -207,18 +208,6 @@ export default function Activity() {
         )}
       </main>
     </>
-  );
-}
-
-function LayerKey({ color, label }: { color: string; label: string }) {
-  return (
-    <span className="inline-flex items-center gap-2">
-      <span
-        className="inline-block w-2.5 h-2.5 rounded-full"
-        style={{ background: color, boxShadow: `0 0 10px ${color}` }}
-      />
-      {label}
-    </span>
   );
 }
 
