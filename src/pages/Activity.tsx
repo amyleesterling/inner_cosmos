@@ -104,16 +104,15 @@ export default function Activity() {
             style={{ fontSize: "clamp(1.6rem, 5vw, 4rem)" }}
             className="font-display font-light leading-[1.1] text-balance"
           >
-            Real neurons, watching a movie.
+            Visual neurons firing in response to watching a movie.
           </h1>
           <p
             style={{ fontSize: "clamp(0.9rem, 1.2vw, 1.05rem)" }}
             className="mt-4 sm:mt-6 text-white/60 font-light leading-relaxed text-balance"
           >
             Each cell here is a real pyramidal neuron from the MICrONS cubic
-            millimeter dataset. The glow is its measured calcium activity,
-            recorded from the same animal before its brain was extracted for
-            electron microscopy. Drag to rotate, pinch to zoom.
+            millimeter dataset, glowing in time with its measured calcium
+            activity. Drag to rotate, pinch to zoom.
           </p>
         </motion.div>
 
