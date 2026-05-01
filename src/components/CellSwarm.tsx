@@ -1,0 +1,250 @@
+import { useEffect, useRef, useState } from "react";
+import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import {
+  type ActivityManifest,
+  type ActivityTraces,
+  type ActivityCell,
+  meshUrl,
+  colorForField,
+} from "../data/activityCells";
+
+interface Props {
+  manifest: ActivityManifest;
+  traces: ActivityTraces;
+  /** Wall-clock seconds elapsed in the (looped) trace timeline. Driven by the
+   *  parent's transport so the scrubber and play/pause stay in sync. */
+  elapsedSec: number;
+  /** Reports loading progress 0..1. */
+  onProgress?: (loaded: number, total: number) => void;
+  className?: string;
+}
+
+/** Renders the full activity swarm: 200 real MICrONS pyramidal cells positioned
+ *  at their true cortical coordinates, glowing in time with their measured 2P
+ *  calcium activity. OrbitControls drives the camera (drag to rotate, scroll
+ *  to zoom — same interaction model as the rest of the project). */
+export default function CellSwarm({ manifest, traces, elapsedSec, onProgress, className }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const elapsedRef = useRef(elapsedSec);
+  const [ready, setReady] = useState(false);
+
+  // Keep the latest elapsedSec in a ref so the rAF loop reads it without
+  // re-binding (re-creating the scene on every parent render would be a
+  // disaster with 200 GLBs).
+  useEffect(() => { elapsedRef.current = elapsedSec; }, [elapsedSec]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const scene = new THREE.Scene();
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    const camera = new THREE.PerspectiveCamera(40, w / h, 0.05, 200);
+
+    // Frame the swarm. Cells are scaled at 2.5 scene-units per mm, and the
+    // imaged volume is roughly 1.4×0.87×0.66 mm — so the bounding region is
+    // a few units across.
+    camera.position.set(4.2, 2.8, 5.5);
+
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      powerPreference: "high-performance",
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.6));
+    renderer.setSize(w, h);
+    renderer.setClearColor(0x000000, 0);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    container.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.enablePan = false;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.35;
+    controls.minDistance = 1.5;
+    controls.maxDistance = 18;
+    // Pause auto-rotate while the user is interacting, then resume after idle.
+    let resumeTimer: number | undefined;
+    const stopAuto = () => {
+      controls.autoRotate = false;
+      window.clearTimeout(resumeTimer);
+    };
+    const resumeAuto = () => {
+      window.clearTimeout(resumeTimer);
+      resumeTimer = window.setTimeout(() => { controls.autoRotate = true; }, 2200);
+    };
+    renderer.domElement.addEventListener("pointerdown", stopAuto);
+    renderer.domElement.addEventListener("pointerup", resumeAuto);
+    renderer.domElement.addEventListener("pointercancel", resumeAuto);
+    renderer.domElement.addEventListener("wheel", () => {
+      stopAuto();
+      resumeAuto();
+    }, { passive: true });
+    renderer.domElement.style.touchAction = "none";
+    renderer.domElement.style.cursor = "grab";
+    renderer.domElement.addEventListener("pointerdown", () => { renderer.domElement.style.cursor = "grabbing"; });
+    renderer.domElement.addEventListener("pointerup", () => { renderer.domElement.style.cursor = "grab"; });
+
+    // Lighting — gentle ambient + warm key from above (mimics the cortical
+    // surface direction). Most of the visible signal comes from each cell's
+    // own emissive material when it's firing.
+    scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+    const key = new THREE.DirectionalLight(0xffffff, 0.55);
+    key.position.set(2.5, 5, 4);
+    scene.add(key);
+    const fill = new THREE.DirectionalLight(0x6080ff, 0.25);
+    fill.position.set(-3, -1, -3);
+    scene.add(fill);
+
+    // Per-cell state, indexed parallel to manifest.cells.
+    const cells: Array<{
+      cell: ActivityCell;
+      group: THREE.Group;
+      materials: THREE.MeshStandardMaterial[];
+      baseColor: THREE.Color;
+      hotColor: THREE.Color;
+    }> = [];
+
+    const loader = new GLTFLoader();
+    let cancelled = false;
+    let loadedCount = 0;
+    const total = manifest.cells.length;
+
+    // Distribute loads across a small concurrency window so the network
+    // doesn't bottleneck on a single inflight request and we stream in
+    // visibly.
+    const CONCURRENCY = 8;
+    const queue = [...manifest.cells];
+
+    function loadNext() {
+      if (cancelled) return;
+      const cell = queue.shift();
+      if (!cell) return;
+      const baseColor = new THREE.Color(colorForField(cell.field));
+      const hotColor = new THREE.Color("#fff4dc"); // warm white peak — reads as "firing"
+      loader.load(
+        meshUrl(cell),
+        (gltf) => {
+          if (cancelled) return;
+          const group = new THREE.Group();
+          const materials: THREE.MeshStandardMaterial[] = [];
+          gltf.scene.traverse((obj) => {
+            if (obj instanceof THREE.Mesh) {
+              const mat = new THREE.MeshStandardMaterial({
+                color: baseColor,
+                emissive: baseColor.clone().multiplyScalar(0.35),
+                emissiveIntensity: 0.5,
+                metalness: 0.05,
+                roughness: 0.6,
+                transparent: true,
+                opacity: 0.92,
+              });
+              obj.material = mat;
+              materials.push(mat);
+              group.add(obj);
+            }
+          });
+          scene.add(group);
+          cells.push({ cell, group, materials, baseColor, hotColor });
+          loadedCount += 1;
+          onProgress?.(loadedCount, total);
+          if (loadedCount === total) setReady(true);
+          loadNext();
+        },
+        undefined,
+        () => {
+          // Skip silently — bad GLB, just move on.
+          loadedCount += 1;
+          onProgress?.(loadedCount, total);
+          if (loadedCount === total) setReady(true);
+          loadNext();
+        },
+      );
+    }
+    for (let i = 0; i < CONCURRENCY; i++) loadNext();
+
+    // Pre-allocated scratch color so we don't allocate every frame.
+    const scratch = new THREE.Color();
+
+    let frameId = 0;
+    const animate = () => {
+      controls.update();
+
+      // Look up activity at the current looped time.
+      const totalSec = manifest.seconds;
+      const t = ((elapsedRef.current % totalSec) + totalSec) % totalSec;
+      const fIdx = Math.min(traces.frames - 1, Math.floor(t * traces.fps));
+      const rowOffset = fIdx * traces.cells;
+
+      // Drive each cell's emissive intensity from its trace value. We map
+      // [0,1] activity → [0.4, 4.5] emissiveIntensity, and lerp the emissive
+      // color from the cell's base hue toward warm-white at peak — together
+      // these read as a glow that pulses with the calcium signal.
+      for (let i = 0; i < cells.length; i++) {
+        const c = cells[i];
+        const a = traces.data[rowOffset + i] ?? 0;
+        const intensity = 0.4 + a * a * 4.1; // gamma > 1 makes peaks pop
+        scratch.copy(c.baseColor).lerp(c.hotColor, Math.min(1, a * 1.3));
+        for (let m = 0; m < c.materials.length; m++) {
+          c.materials[m].emissive.copy(scratch);
+          c.materials[m].emissiveIntensity = intensity;
+        }
+      }
+
+      renderer.render(scene, camera);
+      frameId = requestAnimationFrame(animate);
+    };
+    animate();
+
+    const onResize = () => {
+      const cw = container.clientWidth;
+      const ch = container.clientHeight;
+      camera.aspect = cw / ch;
+      camera.updateProjectionMatrix();
+      renderer.setSize(cw, ch);
+    };
+    const observer = new ResizeObserver(onResize);
+    observer.observe(container);
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frameId);
+      window.clearTimeout(resumeTimer);
+      observer.disconnect();
+      controls.dispose();
+      for (const c of cells) {
+        c.group.traverse((obj) => {
+          if (obj instanceof THREE.Mesh) {
+            obj.geometry.dispose();
+            const m = obj.material;
+            if (Array.isArray(m)) m.forEach((mm) => mm.dispose());
+            else m.dispose();
+          }
+        });
+      }
+      renderer.dispose();
+      if (renderer.domElement.parentNode) {
+        renderer.domElement.parentNode.removeChild(renderer.domElement);
+      }
+    };
+    // We intentionally bind manifest+traces ONCE; updates would invalidate
+    // the entire scene. Caller is expected to remount on dataset change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manifest, traces]);
+
+  return (
+    <div ref={containerRef} className={className}>
+      {!ready && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="text-white/40 text-xs uppercase tracking-[0.3em]">loading swarm…</div>
+        </div>
+      )}
+    </div>
+  );
+}

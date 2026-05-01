@@ -23,3 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 scripts/__pycache__/
+.functional-cache/
+
+# Intermediate caches written by older runs of scripts/extract-functional-cells.py
+# (the current script writes to .functional-cache/ instead).
+public/data/_nwb_cache/
+public/data/_resolved_roots.json
