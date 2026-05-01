@@ -1182,9 +1182,10 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
       humanParticles.points.rotation.x = Math.sin(t * 0.025) * 0.18;
 
       mouseParticles.mat.uniforms.uTime.value = t * 1.05;  // slight detune
-      // Visible on stages 2-3 (full mouse brain) and faintly on stage 1
-      // (comparison cameo) so the small mouse brain still sparkles.
-      const mouseSparkle = (s === 1) ? cur.brainSolid * 0.35
+      // Visible on stages 2-3 (full mouse brain) and very faintly on
+      // stage 1. The comparison cameo showed a too-strong cyan halo
+      // around the small mouse brain — a hint of sparkle is enough.
+      const mouseSparkle = (s === 1) ? cur.brainSolid * 0.10
                           : (s === 2 || s === 3) ? cur.brainSolid * 1.0
                           : 0;
       mouseParticles.mat.uniforms.uOpacity.value = mouseSparkle;

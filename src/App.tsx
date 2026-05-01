@@ -18,6 +18,7 @@ export default function App() {
         <Route path="/meet" element={<Meet />} />
         <Route path="/meet/:id" element={<MeetDetail />} />
         <Route path="/explore" element={<Explore />} />
+        <Route path="/explore/:stage" element={<Explore />} />
       </Routes>
     </BrowserRouter>
   );

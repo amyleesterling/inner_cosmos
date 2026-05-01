@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import ZoomScene from "../components/ZoomScene";
 // Hand-curated legend for the cluster stage. Color-by-type: every
 // pyramidal subtype shares one "Pyramidal neuron" entry, since they're
@@ -80,16 +80,33 @@ const STAGES = [
 ];
 
 export default function Explore() {
-  // ?stage=N (1-indexed) lets QA jump straight to a stage. Stripped from
-  // URL after first read so refreshes don't lock you to the same stage.
-  const initialStage = (() => {
-    if (typeof window === "undefined") return 0;
-    const p = new URLSearchParams(window.location.search).get("stage");
-    if (!p) return 0;
-    const n = parseInt(p, 10);
+  // /explore/:stage (1-indexed) gives every stage its own shareable URL.
+  // /explore alone defaults to stage 1. The local stage state and the URL
+  // are kept in sync both ways: state→URL via replace() (so each click
+  // doesn't pile up history) and URL→state (so browser back/forward and
+  // address-bar edits work).
+  const params = useParams<{ stage?: string }>();
+  const navigate = useNavigate();
+  const parseStage = (raw: string | undefined): number => {
+    if (!raw) return 0;
+    const n = parseInt(raw, 10);
     return Number.isFinite(n) ? Math.max(0, Math.min(STAGES.length - 1, n - 1)) : 0;
-  })();
-  const [stage, setStage] = useState(initialStage);
+  };
+  const [stage, setStage] = useState(() => parseStage(params.stage));
+  // Keep the URL in sync with the current stage (1-indexed). Use replace
+  // so each click/keypress doesn't pile up history entries.
+  useEffect(() => {
+    const desired = `/explore/${stage + 1}`;
+    if (window.location.pathname.replace(/\/$/, "").endsWith(desired)) return;
+    navigate(desired, { replace: true });
+  }, [stage, navigate]);
+  // And keep the state in sync with the URL — covers browser back/forward
+  // and someone editing the address bar by hand.
+  useEffect(() => {
+    const fromUrl = parseStage(params.stage);
+    if (fromUrl !== stage) setStage(fromUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.stage]);
   // Increments every time the user wants to (re)fire the AP animation
   // on stage 8. ZoomScene watches this token and starts a fresh cycle
   // when it changes; the first fire happens automatically on entry.
@@ -334,7 +351,7 @@ export default function Explore() {
                 aria-label={textCollapsed ? "Show description" : "Hide description"}
                 title={textCollapsed ? "Show description" : "Hide description"}
               >
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ transform: textCollapsed ? "rotate(0deg)" : "rotate(180deg)", transition: "transform 0.25s ease" }}>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ transform: textCollapsed ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.25s ease" }}>
                   <path d="M3 6l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
