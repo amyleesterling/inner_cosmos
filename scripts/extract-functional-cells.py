@@ -149,8 +149,10 @@ def fetch_and_export(row: dict, centroid_nm: np.ndarray) -> dict | None:
     """Fetch a v1300 mesh, decimate, export as GLB. Returns enriched row or None."""
     seg_id = row["v1300_root"]
     out_path = MESH_DIR / f"{seg_id}.glb"
-    if out_path.exists() and out_path.stat().st_size < 500_000:
-        # Already decimated to a sensible size — accept it.
+    if out_path.exists() and 100_000 < out_path.stat().st_size < 5_000_000:
+        # Already on disk at a sensible size — reuse. The lower bound rejects
+        # truncated writes; the upper bound rejects the 12 MB un-decimated
+        # files an old version of this script used to produce.
         return {**row, "glb": out_path.name, "skipped": True}
 
     # parallel=1 — cloud-volume's internal multiprocess pool conflicts with

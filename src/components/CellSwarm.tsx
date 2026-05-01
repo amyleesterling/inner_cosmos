@@ -7,7 +7,7 @@ import {
   type ActivityTraces,
   type ActivityCell,
   meshUrl,
-  colorForField,
+  colorForCell,
 } from "../data/activityCells";
 
 interface Props {
@@ -127,8 +127,12 @@ export default function CellSwarm({ manifest, traces, elapsedSec, onProgress, cl
       if (cancelled) return;
       const cell = queue.shift();
       if (!cell) return;
-      const baseColor = new THREE.Color(colorForField(cell.field));
-      const hotColor = new THREE.Color("#fff4dc"); // warm white peak — reads as "firing"
+      const baseColor = new THREE.Color(colorForCell(cell.segId));
+      // Peak colour: the cell's own hue, brightened — keeps each cell's
+      // identity visible at the moment it fires. (Lerping all to white at
+      // peak homogenised the swarm; a saturated palette deserves saturated
+      // peaks too.)
+      const hotColor = baseColor.clone().lerp(new THREE.Color("#ffffff"), 0.45);
       loader.load(
         meshUrl(cell),
         (gltf) => {

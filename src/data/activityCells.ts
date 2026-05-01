@@ -70,11 +70,24 @@ export function meshUrl(cell: ActivityCell): string {
   return `${BASE}meshes/activity/${cell.segId}.glb`;
 }
 
-/** Cell color by imaging field — cooler at the top of cortex, warmer deeper.
- *  This mirrors the project's existing pyramidal palette (Crown / Dust Star /
- *  Lightning Tree) but tints by layer for visual depth. */
+/** Per-cell colour from the seg ID. Uses the golden-angle hue increment so
+ *  the palette stays well-separated and rainbow-y across any subset of cells.
+ *  Saturated + bright on purpose — at swarm scale a muted palette flattens
+ *  into a single fog. */
+export function colorForCell(segId: string): string {
+  // The last ~9 digits of a MICrONS root_id give us a uniform spread; multiply
+  // by the golden angle (137.508°) for maximum hue separation between
+  // consecutive IDs.
+  const tail = Number.parseInt(segId.slice(-9), 10) || 0;
+  const hue = (tail * 137.508) % 360;
+  return `hsl(${hue.toFixed(0)}, 82%, 64%)`;
+}
+
+/** Layer-tinted palette — kept around in case we ever want to colour by
+ *  cortical depth instead of identity. Currently unused; the per-cell
+ *  rainbow looks better in the swarm. */
 export function colorForField(field: number): string {
-  if (field === 2) return "#8edaff";   // L2/3 — sky blue (matches Crown)
-  if (field === 4) return "#aab8ff";   // L4 — soft indigo
-  return "#ffc88a";                     // L5 — warm amber (matches Lightning Tree's deeper cousin)
+  if (field === 2) return "#8edaff";
+  if (field === 4) return "#aab8ff";
+  return "#ffc88a";
 }
