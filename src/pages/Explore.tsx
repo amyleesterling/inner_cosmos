@@ -94,15 +94,30 @@ export default function Explore() {
   // on stage 8. ZoomScene watches this token and starts a fresh cycle
   // when it changes; the first fire happens automatically on entry.
   const [apFireToken, setApFireToken] = useState(0);
+  // Collapsed-text mode: hide title/subtitle so the 3D scene takes the
+  // whole viewport. Mainly for mobile where the copy block was eating
+  // half the screen. Toggled via a chevron button next to the controls;
+  // expanding any new stage auto-shows the copy again so newcomers don't
+  // have to know the toggle exists.
+  const [textCollapsed, setTextCollapsed] = useState(false);
   const last = STAGES.length - 1;
 
-  // Keyboard arrows
+  // Keyboard arrows. Advancing or stepping back also re-expands the text
+  // so the new stage's copy is visible by default.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight" || e.key === " " || e.key === "Enter") {
-        setStage((s) => Math.min(last, s + 1));
+        setStage((s) => {
+          const n = Math.min(last, s + 1);
+          if (n !== s) setTextCollapsed(false);
+          return n;
+        });
       } else if (e.key === "ArrowLeft" || e.key === "Backspace") {
-        setStage((s) => Math.max(0, s - 1));
+        setStage((s) => {
+          const n = Math.max(0, s - 1);
+          if (n !== s) setTextCollapsed(false);
+          return n;
+        });
       }
     };
     window.addEventListener("keydown", onKey);
@@ -211,46 +226,53 @@ export default function Explore() {
         <div className="flex-1 flex flex-col justify-end pb-32 sm:pb-40 px-6">
           <div className="max-w-3xl mx-auto text-center">
             <AnimatePresence mode="wait">
-              <motion.div
-                key={stage}
-                initial={{ opacity: 0, y: 20, filter: "blur(6px)" }}
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                exit={{ opacity: 0, y: -16, filter: "blur(6px)" }}
-                transition={{ duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
-              >
-                <p
-                  className="text-[11px] uppercase tracking-[0.4em] text-white/55 mb-4"
-                  style={{ textShadow: "0 1px 12px rgba(4,6,12,0.95)" }}
+              {!textCollapsed && (
+                <motion.div
+                  key={stage}
+                  initial={{ opacity: 0, y: 20, filter: "blur(6px)" }}
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, y: -16, filter: "blur(6px)" }}
+                  transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
                 >
-                  {cur.eyebrow}
-                </p>
-                <h2
-                  style={{
-                    fontSize: "clamp(1.75rem, 4.5vw, 3.5rem)",
-                    textShadow:
-                      "0 2px 24px rgba(4,6,12,0.95), 0 0 12px rgba(4,6,12,0.85)",
-                  }}
-                  className="font-display font-light leading-[1.05]"
-                >
-                  {cur.title}
-                </h2>
-                <p
-                  style={{
-                    fontSize: "clamp(0.95rem, 1.4vw, 1.2rem)",
-                    textShadow: "0 1px 16px rgba(4,6,12,0.95)",
-                  }}
-                  className="mt-5 text-white/80 font-light leading-relaxed text-balance"
-                >
-                  {cur.subtitle}
-                </p>
-              </motion.div>
+                  <p
+                    className="text-[11px] uppercase tracking-[0.4em] text-white/55 mb-4"
+                    style={{ textShadow: "0 1px 12px rgba(4,6,12,0.95)" }}
+                  >
+                    {cur.eyebrow}
+                  </p>
+                  <h2
+                    style={{
+                      fontSize: "clamp(1.75rem, 4.5vw, 3.5rem)",
+                      textShadow:
+                        "0 2px 24px rgba(4,6,12,0.95), 0 0 12px rgba(4,6,12,0.85)",
+                    }}
+                    className="font-display font-light leading-[1.05]"
+                  >
+                    {cur.title}
+                  </h2>
+                  <p
+                    style={{
+                      fontSize: "clamp(0.95rem, 1.4vw, 1.2rem)",
+                      textShadow: "0 1px 16px rgba(4,6,12,0.95)",
+                    }}
+                    className="mt-5 text-white/80 font-light leading-relaxed text-balance"
+                  >
+                    {cur.subtitle}
+                  </p>
+                </motion.div>
+              )}
             </AnimatePresence>
 
             {/* Controls — opt back into pointer events here, since the parent
-                <main> is pointer-events-none to let canvas drag through. */}
-            <div className="mt-10 flex items-center justify-center gap-3 pointer-events-auto">
+                <main> is pointer-events-none to let canvas drag through.
+                When the text is collapsed we lift the controls to sit closer
+                to where the title block was, so they don't float in space. */}
+            <div className={`flex items-center justify-center gap-3 pointer-events-auto ${textCollapsed ? "mt-0" : "mt-10"}`}>
               <button
-                onClick={() => setStage((s) => Math.max(0, s - 1))}
+                onClick={() => {
+                  setStage((s) => Math.max(0, s - 1));
+                  setTextCollapsed(false);
+                }}
                 disabled={stage === 0}
                 className="p-2.5 rounded-full glass disabled:opacity-25 disabled:cursor-default hover:bg-white/[0.08] transition cursor-pointer"
                 aria-label="Previous stage"
@@ -262,7 +284,10 @@ export default function Explore() {
 
               {!isLast ? (
                 <button
-                  onClick={() => setStage((s) => Math.min(last, s + 1))}
+                  onClick={() => {
+                    setStage((s) => Math.min(last, s + 1));
+                    setTextCollapsed(false);
+                  }}
                   className="group px-6 py-2.5 rounded-full glass-strong hover:bg-white/[0.08] transition flex items-center gap-2.5 cursor-pointer text-sm font-medium"
                 >
                   <span>
@@ -299,11 +324,27 @@ export default function Explore() {
                   </Link>
                 </>
               )}
+
+              {/* Collapse toggle — hides title/subtitle so the 3D scene
+                  fills the screen. Tap again (or any nav action) brings
+                  the copy back. */}
+              <button
+                onClick={() => setTextCollapsed((c) => !c)}
+                className="p-2.5 rounded-full glass hover:bg-white/[0.08] transition cursor-pointer"
+                aria-label={textCollapsed ? "Show description" : "Hide description"}
+                title={textCollapsed ? "Show description" : "Hide description"}
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ transform: textCollapsed ? "rotate(0deg)" : "rotate(180deg)", transition: "transform 0.25s ease" }}>
+                  <path d="M3 6l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
             </div>
 
-            <p className="mt-6 text-[10px] uppercase tracking-[0.3em] text-white/30">
-              Use ← → keys
-            </p>
+            {!textCollapsed && (
+              <p className="mt-6 text-[10px] uppercase tracking-[0.3em] text-white/30">
+                Use ← → keys
+              </p>
+            )}
 
             {/* Color legend — moved below the controls so it reads as a
                 caption / footer rather than competing with the copy. Only

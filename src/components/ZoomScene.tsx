@@ -217,10 +217,116 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
     let brainShell: THREE.Group | null = null;
     const brainShellWireMaterials: THREE.MeshBasicMaterial[] = [];
     const brainShellSolidMaterials: THREE.MeshStandardMaterial[] = [];
-    // Mouse-brain hologram overlay — adds Fresnel edge glow + animated
-    // scanlines on top of the existing solid + wireframe setup. Opacity
-    // tracks `cur.brainHologram` (a fraction of brainSolid+brainWire); the
-    // uTime uniform is bumped every frame so scanlines drift.
+
+    // -------- Orbital particle motes around the brains -----------------
+    // A drifting cloud of tiny twinkling points that surrounds whichever
+    // brain is currently on screen. Mythical / "oddly satisfying" —
+    // points sit on a thick spherical shell, each twinkles on its own
+    // phase, and the whole cloud rotates very slowly. Two clouds: violet
+    // around the human brain (stages 0-1), cyan around the mouse brain
+    // (stages 2-3).
+    const PARTICLE_VERT = /* glsl */ `
+      attribute float aPhase;
+      attribute float aFreq;
+      attribute float aBaseSize;
+      uniform float uTime;
+      uniform float uOpacity;
+      uniform float uSize;
+      varying float vAlpha;
+      void main() {
+        // Per-particle gentle "breathing" radius modulation
+        vec3 p = position;
+        float breathe = 1.0 + 0.04 * sin(uTime * 0.5 + aPhase);
+        p *= breathe;
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        // Twinkle: per-particle oscillating intensity. Some particles are
+        // bright + slow, others dim + faster. A fraction live below
+        // visibility most of the time and "pop" briefly.
+        float blink = 0.5 + 0.5 * sin(uTime * aFreq + aPhase);
+        vAlpha = pow(blink, 1.6) * uOpacity;
+        // Distance attenuation (perspective point sizing)
+        gl_PointSize = uSize * aBaseSize * (1.0 + 0.6 * blink) * (1.0 / max(0.1, -mv.z));
+        gl_Position = projectionMatrix * mv;
+      }
+    `;
+    const PARTICLE_FRAG = /* glsl */ `
+      uniform vec3 uColor;
+      uniform vec3 uHotColor;
+      varying float vAlpha;
+      void main() {
+        // Soft circular sprite — radial falloff with a small bright core
+        vec2 c = gl_PointCoord - 0.5;
+        float r = length(c);
+        if (r > 0.5) discard;
+        float core = smoothstep(0.5, 0.0, r);
+        float halo = smoothstep(0.5, 0.18, r);
+        vec3 col = mix(uColor, uHotColor, core * core);
+        gl_FragColor = vec4(col, halo * vAlpha);
+      }
+    `;
+    const makeParticleCloud = (
+      count: number,
+      radiusInner: number,
+      radiusOuter: number,
+      color: string,
+      hotColor: string,
+      sizePx: number,
+    ) => {
+      const pos = new Float32Array(count * 3);
+      const phase = new Float32Array(count);
+      const freq = new Float32Array(count);
+      const base = new Float32Array(count);
+      for (let i = 0; i < count; i++) {
+        // Uniform random direction on sphere
+        const u = Math.random();
+        const v = Math.random();
+        const theta = 2 * Math.PI * u;
+        const phi = Math.acos(2 * v - 1);
+        // Radius — biased toward outer shell for "halo" feel
+        const r = radiusInner + (radiusOuter - radiusInner) * Math.pow(Math.random(), 0.5);
+        pos[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
+        pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+        pos[i * 3 + 2] = r * Math.cos(phi);
+        phase[i] = Math.random() * Math.PI * 2;
+        // Per-particle twinkle frequency varies for organic feel
+        freq[i] = 0.4 + Math.random() * 1.6;
+        // Per-particle base size — most small, a few big (sparkles)
+        base[i] = 0.35 + Math.pow(Math.random(), 3.0) * 1.4;
+      }
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      geom.setAttribute("aPhase", new THREE.BufferAttribute(phase, 1));
+      geom.setAttribute("aFreq", new THREE.BufferAttribute(freq, 1));
+      geom.setAttribute("aBaseSize", new THREE.BufferAttribute(base, 1));
+      const mat = new THREE.ShaderMaterial({
+        uniforms: {
+          uTime: { value: 0 },
+          uOpacity: { value: 0 },
+          uSize: { value: sizePx },
+          uColor: { value: new THREE.Color(color) },
+          uHotColor: { value: new THREE.Color(hotColor) },
+        },
+        vertexShader: PARTICLE_VERT,
+        fragmentShader: PARTICLE_FRAG,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      const points = new THREE.Points(geom, mat);
+      return { points, mat };
+    };
+    // Violet motes for the human brain — denser inner shell, bigger sparkles
+    const humanParticles = makeParticleCloud(720, 1.0, 2.4, "#c08bff", "#fff5ff", 80);
+    scene.add(humanParticles.points);
+    // Cyan motes for the mouse brain — same shape but tuned colors
+    const mouseParticles = makeParticleCloud(620, 0.9, 2.2, "#7ed9ff", "#eafaff", 75);
+    scene.add(mouseParticles.points);
+    // Mouse-brain hologram overlay — Prometheus-style: dotted topographic
+    // contours wrapping the surface, a vertical scanning bar, and a bright
+    // Fresnel rim. The dots are discrete (latitude bands × longitude
+    // ticks) so the hologram reads as "constructed of light" rather than
+    // a smooth gradient. Opacity scales with cur.brainWire; uTime drives
+    // the scan bar + a slow drift on the dot pattern.
     const brainHologramMaterials: THREE.ShaderMaterial[] = [];
     const HOLOGRAM_VERT = /* glsl */ `
       varying vec3 vWorldPos;
@@ -246,27 +352,73 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
       varying vec3 vViewDir;
       varying vec3 vLocalPos;
 
+      // Smooth dot mask centered on 0.5 in [0,1] — used to make dotted
+      // patterns from fract() coordinates without aliasing.
+      float dotMask(float v, float thickness) {
+        float d = abs(v - 0.5);
+        return smoothstep(thickness, thickness * 0.5, d);
+      }
+
       void main() {
-        // Fresnel: edges (normal perpendicular to view) glow more.
-        float fres = 1.0 - max(0.0, dot(normalize(vNormal), normalize(vViewDir)));
-        float fresEdge = pow(fres, 2.4);  // sharp rim
-        float fresFill = pow(fres, 0.9);  // soft body wash
+        vec3 N = normalize(vNormal);
+        vec3 V = normalize(vViewDir);
 
-        // Animated horizontal scanlines along the brain's local Y axis
-        // (cortical-ish axis). Local position so they don't shear when
-        // the brain rotates.
-        float scan = 0.5 + 0.5 * sin(vLocalPos.y * 90.0 - uTime * 1.4);
-        scan = pow(scan, 6.0);  // narrow bright bands
+        // ---- Fresnel ----------------------------------------------------
+        float fres = 1.0 - max(0.0, dot(N, V));
+        float fresRim  = pow(fres, 2.6);   // sharp edge highlight
+        float fresFill = pow(fres, 1.1);   // soft body wash
 
-        // A slower modulation so the whole shell breathes
-        float pulse = 0.5 + 0.5 * sin(uTime * 0.55);
+        // ---- Latitude/longitude wrap -----------------------------------
+        // Treat the brain as a roughly upright shell: latitude = local Y,
+        // longitude = atan(z, x). Dots are placed on a (lat, lon) grid so
+        // they wrap the geometry instead of projecting flat onto screen.
+        float lat = vLocalPos.y;
+        float lon = atan(vLocalPos.z, vLocalPos.x);  // -PI..PI
 
-        vec3 color = mix(uBaseColor, uEdgeColor, fresEdge);
-        // Add a tiny scanline highlight so the bands shimmer toward white
-        color += vec3(0.35, 0.55, 0.7) * scan * 0.55;
+        // ---- Topo contour bands ----------------------------------------
+        // Horizontal contour rings every ~0.06 in local Y, drifting slowly.
+        float bandT = lat * 16.0 + uTime * 0.08;
+        float band = dotMask(fract(bandT), 0.18);
 
-        float alpha = (fresEdge * 0.55 + fresFill * 0.18 + scan * 0.22) * uOpacity;
-        alpha *= 0.82 + pulse * 0.18;
+        // Make the bands DOTTED by modulating along longitude, so each
+        // ring is a dashed circle rather than a continuous line.
+        float lonU = fract(lon * 6.0 / 6.2832 + uTime * 0.05);  // ~12 dashes per ring
+        float dash = dotMask(lonU, 0.30);
+        float contour = band * dash;
+
+        // ---- Surface dot grid ------------------------------------------
+        // Sparse fine dot field across the surface — gives the "made of
+        // light points" texture between contour rings.
+        float gridU = fract(lon * 22.0 / 6.2832);
+        float gridV = fract(lat * 30.0);
+        float dotGrid = dotMask(gridU, 0.22) * dotMask(gridV, 0.22);
+
+        // ---- Sweeping scan bar -----------------------------------------
+        // A bright horizontal bar that travels top→bottom and wraps.
+        float scanRange = 1.4;
+        float scanY = mix(scanRange, -scanRange, fract(uTime * 0.18));
+        float scanDist = abs(lat - scanY);
+        float scanBar = exp(-scanDist * scanDist * 110.0);
+
+        // ---- Compose ---------------------------------------------------
+        // Tone targets: keep total brightness modest. Additive blending
+        // on top of the existing solid + wireframe layers means anything
+        // approaching 1.0 alpha clips to white, so contributions stay low.
+        vec3 dim   = uBaseColor;
+        vec3 mid   = mix(uBaseColor, uEdgeColor, 0.55);
+        vec3 hot   = mix(uBaseColor, uEdgeColor, 0.85);  // soft cyan, NOT near-white
+
+        vec3 color = mid * contour * 0.8;
+        color    += hot * dotGrid * 0.25;
+        color    += hot * scanBar * 0.5;
+        color    += uEdgeColor * fresRim * 0.85;
+
+        float alpha = (
+            fresRim   * 0.45 +
+            contour   * 0.55 +
+            dotGrid   * 0.20 +
+            scanBar   * 0.32
+        ) * uOpacity;
 
         gl_FragColor = vec4(color, alpha);
       }
@@ -305,7 +457,10 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
           if (obj instanceof THREE.Mesh) sourceMeshes.push(obj);
         });
         for (const obj of sourceMeshes) {
-          // Saturated purple with strong emissive glow.
+          // Saturated purple with strong emissive glow. FrontSide only +
+          // depthWrite so the brain renders as a SOLID 3D form rather than
+          // a translucent shell — at full opacity the back faces shouldn't
+          // bleed through and create dark patches.
           const mat = new THREE.MeshStandardMaterial({
             color: new THREE.Color("#b072e0"),
             emissive: new THREE.Color("#7a3ac0"),
@@ -314,7 +469,7 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
             metalness: 0.0,
             transparent: true,
             opacity: 0.0,
-            side: THREE.DoubleSide,
+            side: THREE.FrontSide,
             depthWrite: true,
           });
           obj.material = mat;
@@ -399,8 +554,8 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
             uniforms: {
               uTime: { value: 0 },
               uOpacity: { value: 0 },
-              uBaseColor: { value: new THREE.Color("#3aa0ff") },
-              uEdgeColor: { value: new THREE.Color("#bfeaff") },
+              uBaseColor: { value: new THREE.Color("#0e7fb8") },  // deeper teal-cyan body
+              uEdgeColor: { value: new THREE.Color("#a7f0ff") },  // bright cyan rim
             },
             vertexShader: HOLOGRAM_VERT,
             fragmentShader: HOLOGRAM_FRAG,
@@ -640,10 +795,11 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
       synapseMarker: number;    // glow sphere at the synapse contact (stage 5)
     };
     const stageOpacities: Targets[] = [
-      // 0 — human brain alone. Solid-dominant so cortical folds read.
-      { humanSolid: 0.55, humanWire: 0.08, brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0,    hero: 0,    synapsePair: 0,    synapseMarker: 0    },
+      // 0 — human brain alone. Fully opaque so it reads as a solid 3D form
+      // (FrontSide + opacity 1.0 = no see-through dark patches).
+      { humanSolid: 1.00, humanWire: 0.05, brainSolid: 0,    brainWire: 0,    brainDots: 0,    dotSize: 0.012, cells: 0,    hero: 0,    synapsePair: 0,    synapseMarker: 0    },
       // 1 — comparison: human + small mouse to scale, dots off
-      { humanSolid: 0.50, humanWire: 0.06, brainSolid: 0.55, brainWire: 0.10, brainDots: 0,    dotSize: 0.011, cells: 0,    hero: 0,    synapsePair: 0,    synapseMarker: 0    },
+      { humanSolid: 0.95, humanWire: 0.04, brainSolid: 0.55, brainWire: 0.10, brainDots: 0,    dotSize: 0.011, cells: 0,    hero: 0,    synapsePair: 0,    synapseMarker: 0    },
       // 2 — mouse alone (full size)
       { humanSolid: 0,    humanWire: 0,    brainSolid: 0.10, brainWire: 0.30, brainDots: 0.85, dotSize: 0.011, cells: 0,    hero: 0,    synapsePair: 0,    synapseMarker: 0    },
       // 3 — V1 close
@@ -867,12 +1023,10 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
       humanBrainWireMaterials.forEach((m) => (m.opacity = cur.humanWire));
       brainShellSolidMaterials.forEach((m) => (m.opacity = cur.brainSolid));
       brainShellWireMaterials.forEach((m) => (m.opacity = cur.brainWire));
-      // Hologram overlay: tracks the wireframe presence (a fraction of
-      // it, so it stays subtle), and animates uTime so scanlines drift.
-      // Cap by stage: brightest on stages 2+3 (full mouse + V1), dimmer
-      // when only the comparison cameo is showing.
-      const hologramScale = (s === 2 || s === 3) ? 1.0 : 0.55;
-      const hologramOpacity = cur.brainWire * 1.6 * hologramScale;
+      // Hologram overlay: subtle, tracks wireframe presence. Capped so
+      // the additive contribution doesn't overexpose the surface.
+      const hologramScale = (s === 2 || s === 3) ? 1.0 : 0.45;
+      const hologramOpacity = Math.min(0.55, cur.brainWire * 0.55 * hologramScale);
       for (const m of brainHologramMaterials) {
         m.uniforms.uTime.value = t;
         m.uniforms.uOpacity.value = hologramOpacity;
@@ -920,6 +1074,31 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
       const mouseHaloIntensity = (s === 2 || s === 3) ? cur.brainSolid * 1.8 : 0;
       mouseHaloBloom.mat.opacity = mouseHaloIntensity;
       mouseHaloBloom.sprite.visible = mouseHaloIntensity > 0.005;
+
+      // Orbital particle motes — twinkle every frame, slowly orbit the
+      // brains. Visible whenever the corresponding brain is on screen.
+      humanParticles.mat.uniforms.uTime.value = t;
+      humanParticles.mat.uniforms.uOpacity.value = cur.humanSolid * 0.85;
+      humanParticles.points.visible = cur.humanSolid > 0.01;
+      humanParticles.points.rotation.y = t * 0.04;
+      humanParticles.points.rotation.x = Math.sin(t * 0.025) * 0.18;
+
+      mouseParticles.mat.uniforms.uTime.value = t * 1.05;  // slight detune
+      // Visible on stages 2-3 (full mouse brain) and faintly on stage 1
+      // (comparison cameo) so the small mouse brain still sparkles.
+      const mouseSparkle = (s === 1) ? cur.brainSolid * 0.35
+                          : (s === 2 || s === 3) ? cur.brainSolid * 1.0
+                          : 0;
+      mouseParticles.mat.uniforms.uOpacity.value = mouseSparkle;
+      mouseParticles.points.visible = mouseSparkle > 0.005;
+      mouseParticles.points.rotation.y = t * 0.05;
+      mouseParticles.points.rotation.z = Math.sin(t * 0.022) * 0.15;
+      // Track the mouse brain's position + scale on stage 1 so the
+      // particles surround the small offset brain, not the origin.
+      if (brainShell) {
+        mouseParticles.points.position.copy(brainShell.position);
+        mouseParticles.points.scale.setScalar(brainShell.scale.x);
+      }
 
       // Action-potential animation — only on stage 7. 2-second lead-in
       // before the first pulse, then the cycle repeats. Sprite-based bloom
