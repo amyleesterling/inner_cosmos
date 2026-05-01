@@ -93,16 +93,25 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
     renderer.setClearColor(0x000000, 0);
     container.appendChild(renderer.domElement);
 
-    // Lighting kept low: ambient/key at high intensity wash cell colors
-    // toward white. Self-glow (emissive) on each cell does most of the
-    // colorful lifting now.
-    scene.add(new THREE.AmbientLight(0xffffff, 0.28));
-    const key = new THREE.DirectionalLight(0xffffff, 0.55);
-    key.position.set(2, 4, 5);
-    scene.add(key);
-    const fill = new THREE.DirectionalLight(new THREE.Color("#7ee0ff"), 0.18);
-    fill.position.set(-3, 1, -2);
-    scene.add(fill);
+    // Studio two-key setup so the human brain's gyri/sulci read in 3D.
+    // Previously a single weak key + tiny cyan fill left the surface
+    // mostly emissive-driven, which flattens shape (self-lit pixels look
+    // the same regardless of normal direction). Now: lower ambient for
+    // contrast, a warm front-right KEY rakes light across the folds so
+    // sulci stay dark, and a cooler front-left KEY (acting as a strong
+    // fill) lifts the shadow side without erasing it. The bloom sprite
+    // behind the brain handles rim/separation.
+    // TODO: enable shadowMap (renderer.shadowMap.enabled = true; key.castShadow,
+    // mesh.receiveShadow + castShadow) for true self-shadowing in the
+    // sulci. Skipped for now — emissive reduction + cross-keys gets most
+    // of the win without the perf cost.
+    scene.add(new THREE.AmbientLight(0xffffff, 0.18));
+    const keyWarm = new THREE.DirectionalLight(new THREE.Color("#fff4e0"), 1.05);
+    keyWarm.position.set(2.5, 3.0, 3.0);
+    scene.add(keyWarm);
+    const keyCool = new THREE.DirectionalLight(new THREE.Color("#a8c8ff"), 0.65);
+    keyCool.position.set(-2.5, 2.0, 1.5);
+    scene.add(keyCool);
 
     // ---- Brain meshes + interior neuron dots ------------------------------
     // Stage 0 = human brain (the intro). Stages 1+ = mouse brain (where the
@@ -571,8 +580,11 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
           const mat = new THREE.MeshStandardMaterial({
             color: new THREE.Color("#b072e0"),
             emissive: new THREE.Color("#7a3ac0"),
-            emissiveIntensity: 1.1,
-            roughness: 0.5,
+            // Dropped from 1.1 → 0.35 so the surface isn't entirely
+            // self-illuminated; the studio two-key lighting now defines
+            // the gyri/sulci instead of being washed out by self-glow.
+            emissiveIntensity: 0.35,
+            roughness: 0.7,
             metalness: 0.0,
             transparent: true,
             opacity: 0.0,
