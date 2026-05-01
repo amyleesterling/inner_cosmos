@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import CellSwarm from "../components/CellSwarm";
-import NeuronLoader from "../components/NeuronLoader";
 import {
   ActivityDataMissingError,
   loadActivityManifest,
@@ -132,9 +131,6 @@ export default function Activity() {
                 className="absolute inset-0"
               />
             )}
-            {load.status === "loading" && (
-              <NeuronLoader caption="Connecting" />
-            )}
             {load.status === "missing" && <MissingDataNotice />}
             {load.status === "error" && (
               <div className="absolute inset-0 flex items-center justify-center px-8">
@@ -142,12 +138,12 @@ export default function Activity() {
               </div>
             )}
 
+            {/* Tiny corner pill while meshes stream — gentle confirmation that
+                something's happening, doesn't fight the cells coming in. */}
             {load.status === "ready" && progress.total > 0 && progress.loaded < progress.total && (
-              <NeuronLoader
-                caption="Streaming neurons"
-                loaded={progress.loaded}
-                total={progress.total}
-              />
+              <div className="absolute bottom-4 right-4 px-3 py-1.5 rounded-full glass-strong text-[10px] tracking-[0.25em] uppercase text-white/65 font-mono tabular-nums">
+                {progress.loaded} / {progress.total}
+              </div>
             )}
 
             {/* Single subtle play/pause button — auto-loops, no other transport. */}
