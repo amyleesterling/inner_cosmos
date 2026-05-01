@@ -34,7 +34,7 @@ export default function Hero() {
         className="mt-8 max-w-xl text-balance text-white/65 font-light leading-relaxed"
       >
         Real connectomics data.{" "}
-        <span className="bg-gradient-to-r from-[#23baff] via-[#5b7cff] to-[#8aa6ff] bg-clip-text text-transparent font-normal">
+        <span className="whitespace-nowrap bg-gradient-to-r from-[#23baff] via-[#5b7cff] to-[#8aa6ff] bg-clip-text text-transparent font-normal">
           Real neurons.
         </span>{" "}
         Zoom from a whole brain down to a single synapse. No log-in.
