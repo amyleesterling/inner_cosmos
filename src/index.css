@@ -77,3 +77,39 @@
   from { transform: translateY(8px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
+
+/* Neuron loader — the dendrites sketch themselves in over and over while
+   the swarm streams. Each branch is dasharray-revealed; the basal arbor
+   is offset half a cycle so the apical and basal trees don't pulse in
+   lockstep (a real neuron looks more alive when its arbors breathe out
+   of phase). */
+@keyframes neuron-loader-draw {
+  0%   { stroke-dashoffset: 200; opacity: 0.2; }
+  35%  { stroke-dashoffset: 0;   opacity: 1; }
+  75%  { stroke-dashoffset: 0;   opacity: 1; }
+  100% { stroke-dashoffset: 200; opacity: 0.2; }
+}
+@keyframes neuron-loader-pulse {
+  0%, 100% { transform: scale(1);     filter: drop-shadow(0 0 6px currentColor); }
+  50%      { transform: scale(1.18);  filter: drop-shadow(0 0 16px currentColor); }
+}
+@keyframes neuron-loader-bar-sweep {
+  0%   { left: -33%; }
+  100% { left: 100%; }
+}
+
+.neuron-loader-strokes path {
+  stroke-dasharray: 200;
+  animation: neuron-loader-draw 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.neuron-loader-strokes-basal path {
+  animation-delay: 1.3s;
+}
+.neuron-loader-soma {
+  transform-origin: 100px 184px;
+  transform-box: fill-box;
+  animation: neuron-loader-pulse 1.6s ease-in-out infinite;
+}
+.neuron-loader-bar-indeterminate {
+  animation: neuron-loader-bar-sweep 1.4s ease-in-out infinite;
+}
