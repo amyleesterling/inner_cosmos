@@ -155,13 +155,22 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
     const synapseBloom = makeBloomSprite([156, 232, 192], 0.07); // soft green-cyan, tight
     // Stage-0 halo behind the human brain — large violet bloom that
     // makes the brain feel lit from within rather than floating flat
-    // against the dark background.
+    // against the dark background. Forced to draw as a strict backdrop
+    // (no depth test, negative renderOrder) so the brain's opaque
+    // surface fully occludes it — otherwise the sprite's additive
+    // glow leaks through fragments that sit behind it in z and the
+    // brain looks see-through.
     const humanHaloBloom = makeBloomSprite([184, 110, 230], 3.6);
     humanHaloBloom.sprite.position.set(0, 0, -0.2);
+    humanHaloBloom.mat.depthTest = false;
+    humanHaloBloom.sprite.renderOrder = -10;
     scene.add(humanHaloBloom.sprite);
     // Stage-2/3 halo behind the mouse brain — cyan, hologram cast.
+    // Same backdrop treatment as the human halo.
     const mouseHaloBloom = makeBloomSprite([95, 207, 255], 3.0);
     mouseHaloBloom.sprite.position.set(0, 0, -0.2);
+    mouseHaloBloom.mat.depthTest = false;
+    mouseHaloBloom.sprite.renderOrder = -10;
     scene.add(mouseHaloBloom.sprite);
     scene.add(axonBloom.sprite);
     scene.add(pyramidBloom.sprite);
