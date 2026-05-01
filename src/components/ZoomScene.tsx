@@ -185,17 +185,6 @@ export default function ZoomScene({ stage }: Props) {
         tendrilPath = toVec3s(data.tendril.points);
         auraApicalPath = toVec3s(data.aura_apical.points);
         auraAxonPath = toVec3s(data.aura_axon.points);
-        // QA hook — read tendrilPath / pulse positions live with preview_eval
-        if (typeof window !== "undefined") {
-          (window as unknown as { __ap?: unknown }).__ap = {
-            tendrilPath,
-            auraApicalPath,
-            auraAxonPath,
-            axonPulse: apAxonPulse,
-            pyramidPulse: apPyramidPulse,
-            stageRef,
-          };
-        }
       })
       .catch((e) => console.error("synapse skeletons", e));
 

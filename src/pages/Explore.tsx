@@ -80,7 +80,16 @@ const STAGES = [
 ];
 
 export default function Explore() {
-  const [stage, setStage] = useState(0);
+  // ?stage=N (1-indexed) lets QA jump straight to a stage. Stripped from
+  // URL after first read so refreshes don't lock you to the same stage.
+  const initialStage = (() => {
+    if (typeof window === "undefined") return 0;
+    const p = new URLSearchParams(window.location.search).get("stage");
+    if (!p) return 0;
+    const n = parseInt(p, 10);
+    return Number.isFinite(n) ? Math.max(0, Math.min(STAGES.length - 1, n - 1)) : 0;
+  })();
+  const [stage, setStage] = useState(initialStage);
   const last = STAGES.length - 1;
 
   // Keyboard arrows
