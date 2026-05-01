@@ -202,7 +202,7 @@ export const featuredNeurons: FeaturedNeuron[] = [
     category: "excitatory",
     morphologyPreset: "pyramidal",
     color: "#1f78ff",
-    shapeAnalogy: "A pyramid shaped soma with a single tall apical dendrite climbing upward. Singular at the trunk and opening into a branched tuft toward the top.",
+    shapeAnalogy: "The apical dendrite grows up and branches toward the top.",
     whatItDoes:
       "Pyramidal neurons are cortex's main excitatory cells. They gather inputs across a wide dendritic field and forward processed signals to other regions of the brain.",
     whyItMatters:
