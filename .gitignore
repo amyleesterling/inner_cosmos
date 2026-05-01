@@ -29,3 +29,7 @@ scripts/__pycache__/
 # (the current script writes to .functional-cache/ instead).
 public/data/_nwb_cache/
 public/data/_resolved_roots.json
+
+# Pipeline-in-progress meshes (re-run extract-functional-cells.py to refresh).
+public/meshes/activity/*.glb
+!public/meshes/activity/864691136136406923.glb
