@@ -971,8 +971,12 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
           return { pos, look };
         }
         case 4:
-          // Cell cluster
-          return { pos: new THREE.Vector3(0.4, 0.2, 3.6), look: new THREE.Vector3(0, -0.4, 0) };
+          // Cell cluster — narratively this is "deeper into V1, here are the
+          // cells living inside it", so the camera should NOT pull back from
+          // the tight V1 view. Sit close to origin instead and let the
+          // brainDots→cells cross-fade do the swap, producing a small zoom-in
+          // feel rather than a flyout.
+          return { pos: new THREE.Vector3(0.25, 0.15, 1.6), look: new THREE.Vector3(0, -0.4, 0) };
         case 5:
           // Single neuron
           return { pos: new THREE.Vector3(0, 0.1, 2.4), look: new THREE.Vector3(0, -0.3, 0) };
