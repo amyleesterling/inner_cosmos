@@ -110,7 +110,7 @@ export default function MeetDetail() {
             </Link>
 
             <Link to="/meet" className="text-white/55 hover:text-white transition-colors">
-              All six
+              All cells
             </Link>
 
             <Link
