@@ -972,11 +972,13 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
         }
         case 4:
           // Cell cluster — narratively this is "deeper into V1, here are the
-          // cells living inside it", so the camera should NOT pull back from
-          // the tight V1 view. Sit close to origin instead and let the
-          // brainDots→cells cross-fade do the swap, producing a small zoom-in
-          // feel rather than a flyout.
-          return { pos: new THREE.Vector3(0.25, 0.15, 1.6), look: new THREE.Vector3(0, -0.4, 0) };
+          // cells living inside it." The camera must NOT pull back from the
+          // tight V1 view. Stage 3 cam sits ~0.95 units from world origin;
+          // stage 4 sits CLOSER (~0.85), so the only motion the eye catches
+          // is a small forward push while the brainDots→cells cross-fade
+          // does the swap. Cluster spans ~1u so it spills slightly past the
+          // frame edges — that's the "you're inside it" feel.
+          return { pos: new THREE.Vector3(0.18, 0.10, 0.85), look: new THREE.Vector3(0, -0.4, 0) };
         case 5:
           // Single neuron
           return { pos: new THREE.Vector3(0, 0.1, 2.4), look: new THREE.Vector3(0, -0.3, 0) };
@@ -1241,9 +1243,11 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
           apTokenSeen = apFireTokenRef.current;
         }
         const stageT = apFiredAt < 0 ? -1 : t - apFiredAt;
-        // Lead-in shape: 0..CHARGE = ramp up synapse glow, CHARGE..LEAD_IN = brief release before pulse
-        const CHARGE = 0.95;
-        const LEAD_IN = 1.15;
+        // No charge-up: the pulse fires the instant the user clicks. The
+        // earlier 0.95s ramp + 0.20s release felt like a 1+ second delay
+        // between click and visible motion.
+        const CHARGE = 0;
+        const LEAD_IN = 0;
         const CYCLE_LEN = 4.0;     // single AP cycle, no looping
         const AXON_END  = 0.30;
         const CROSS_END = 0.38;

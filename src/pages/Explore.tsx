@@ -69,7 +69,7 @@ const STAGES = [
     eyebrow: "Stage 7 of 8",
     title: "One synapse",
     subtitle:
-      "An axon from a cell somewhere far away in the brain reaches up to form a synapse. It connects with the blue cell, a tufted pyramidal neuron that lives deep in cortex. The blue cell is excitatory: when it sends a signal out its own axon, it will encourage downstream cells to send their signals too. The whole contact is the size of a few hundred nanometers.",
+      "An axon from a cell somewhere far away in the brain reaches up to form a synapse. It connects with the blue cell, a tufted pyramidal neuron that lives deep in cortex. The blue cell is excitatory: when it sends a signal out its own axon, it will encourage downstream cells to send their signals too.",
   },
   {
     eyebrow: "Stage 8 of 8",
@@ -328,13 +328,13 @@ export default function Explore() {
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="transition-transform group-hover:scale-110">
                       <path d="M9 1L2 9h5l-1 6 7-8H8l1-6z" stroke="#8edaff" strokeWidth="1.4" strokeLinejoin="round" fill="rgba(142,218,255,0.18)" />
                     </svg>
-                    <span>Send action potential</span>
+                    <span className="whitespace-nowrap">Send action potential</span>
                   </button>
                   <Link
                     to="/meet"
                     className="group px-6 py-2.5 rounded-full glass-strong hover:bg-white/[0.08] transition flex items-center gap-2.5 text-sm font-medium"
                   >
-                    <span>Meet a neuron</span>
+                    <span className="whitespace-nowrap">Meet a neuron</span>
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="transition-transform group-hover:translate-x-0.5">
                       <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
