@@ -3,6 +3,7 @@ import Landing from "./pages/Landing";
 import Meet from "./pages/Meet";
 import MeetDetail from "./pages/MeetDetail";
 import Explore from "./pages/Explore";
+import Activity from "./pages/Activity";
 import NavBar from "./components/NavBar";
 
 // Vite's BASE_URL is "/" in dev and "/inner_cosmos/" in production. React
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/meet/:id" element={<MeetDetail />} />
         <Route path="/explore" element={<Explore />} />
         <Route path="/explore/:stage" element={<Explore />} />
+        <Route path="/activity" element={<Activity />} />
       </Routes>
     </BrowserRouter>
   );

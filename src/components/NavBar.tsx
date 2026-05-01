@@ -35,6 +35,9 @@ export default function NavBar() {
         <NavLink to="/explore" current={pathname === "/explore"}>
           Explorer
         </NavLink>
+        <NavLink to="/activity" current={pathname === "/activity"}>
+          Activity
+        </NavLink>
       </nav>
     </header>
   );
