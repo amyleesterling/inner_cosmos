@@ -145,6 +145,16 @@ export default function ZoomScene({ stage }: Props) {
     const axonBloom = makeBloomSprite([255, 216, 96], 0.32);     // gold
     const pyramidBloom = makeBloomSprite([136, 207, 255], 0.32); // blue
     const synapseBloom = makeBloomSprite([156, 232, 192], 0.07); // soft green-cyan, tight
+    // Stage-0 halo behind the human brain — large violet bloom that
+    // makes the brain feel lit from within rather than floating flat
+    // against the dark background.
+    const humanHaloBloom = makeBloomSprite([184, 110, 230], 3.6);
+    humanHaloBloom.sprite.position.set(0, 0, -0.2);
+    scene.add(humanHaloBloom.sprite);
+    // Stage-2/3 halo behind the mouse brain — cyan, hologram cast.
+    const mouseHaloBloom = makeBloomSprite([95, 207, 255], 3.0);
+    mouseHaloBloom.sprite.position.set(0, 0, -0.2);
+    scene.add(mouseHaloBloom.sprite);
     scene.add(axonBloom.sprite);
     scene.add(pyramidBloom.sprite);
     scene.add(synapseBloom.sprite);
@@ -197,15 +207,11 @@ export default function ZoomScene({ stage }: Props) {
           if (obj instanceof THREE.Mesh) sourceMeshes.push(obj);
         });
         for (const obj of sourceMeshes) {
-          // Match the saturated deep purple of the navbar brain favicon —
-          // higher base saturation, brighter emissive, no metalness so
-          // light doesn't reflect as white. Lighting in this scene is now
-          // dimmer (previous change), so the cell relies more on its own
-          // emissive glow to read.
+          // Saturated purple with strong emissive glow.
           const mat = new THREE.MeshStandardMaterial({
-            color: new THREE.Color("#a865d0"),
-            emissive: new THREE.Color("#5a2890"),
-            emissiveIntensity: 0.7,
+            color: new THREE.Color("#b072e0"),
+            emissive: new THREE.Color("#7a3ac0"),
+            emissiveIntensity: 1.1,
             roughness: 0.5,
             metalness: 0.0,
             transparent: true,
@@ -216,13 +222,14 @@ export default function ZoomScene({ stage }: Props) {
           obj.material = mat;
           humanBrainSolidMaterials.push(mat);
 
+          // Bright violet wireframe with additive blending so the gyri
+          // edges glow.
           const wireMat = new THREE.MeshBasicMaterial({
-            color: new THREE.Color("#e8b8ff"),
+            color: new THREE.Color("#e8a8ff"),
             wireframe: true,
             transparent: true,
             opacity: 0.0,
-            // No additive blending — keeps wireframe as faint line work
-            // rather than washing the brain toward white.
+            blending: THREE.AdditiveBlending,
             depthWrite: false,
           });
           const wireMesh = new THREE.Mesh(obj.geometry, wireMat);
@@ -258,10 +265,14 @@ export default function ZoomScene({ stage }: Props) {
           if (obj instanceof THREE.Mesh) sourceMeshes.push(obj);
         });
         for (const obj of sourceMeshes) {
+          // Hologram look: deep dark cyan-blue solid with a brighter cyan
+          // emissive — barely visible alone, the wireframe overlay carries
+          // the visual.
           const mat = new THREE.MeshStandardMaterial({
-            color: new THREE.Color("#9bb6dc"),
-            emissive: new THREE.Color("#1a2640"),
-            roughness: 0.85,
+            color: new THREE.Color("#1a3850"),
+            emissive: new THREE.Color("#3a8eff"),
+            emissiveIntensity: 0.4,
+            roughness: 0.9,
             metalness: 0.0,
             transparent: true,
             opacity: 0.0,
@@ -271,8 +282,9 @@ export default function ZoomScene({ stage }: Props) {
           obj.material = mat;
           brainShellSolidMaterials.push(mat);
 
+          // Bright cyan wireframe with additive blending = hologram glow.
           const wireMat = new THREE.MeshBasicMaterial({
-            color: new THREE.Color("#7ee0ff"),
+            color: new THREE.Color("#5fcfff"),
             wireframe: true,
             transparent: true,
             opacity: 0.0,
@@ -760,6 +772,14 @@ export default function ZoomScene({ stage }: Props) {
       // Synapse contact-point bloom — sprite with soft radial glow
       synapseBloom.mat.opacity = cur.synapseMarker;
       synapseBloom.sprite.visible = cur.synapseMarker > 0.001;
+      // Human brain halo — fades with the human brain solid opacity.
+      humanHaloBloom.mat.opacity = cur.humanSolid * 0.55;
+      humanHaloBloom.sprite.visible = cur.humanSolid > 0.01;
+      // Mouse brain halo — only visible when full-size mouse brain is on
+      // screen (stages 2 + 3, after comparison transition completes).
+      const mouseHaloIntensity = (s === 2 || s === 3) ? cur.brainSolid * 1.8 : 0;
+      mouseHaloBloom.mat.opacity = mouseHaloIntensity;
+      mouseHaloBloom.sprite.visible = mouseHaloIntensity > 0.005;
 
       // Action-potential animation — only on stage 7. 2-second lead-in
       // before the first pulse, then the cycle repeats. Sprite-based bloom
@@ -961,7 +981,7 @@ export default function ZoomScene({ stage }: Props) {
           }
         });
       });
-      [axonBloom, pyramidBloom, synapseBloom].forEach(({ mat, tex }) => {
+      [axonBloom, pyramidBloom, synapseBloom, humanHaloBloom, mouseHaloBloom].forEach(({ mat, tex }) => {
         mat.dispose();
         tex.dispose();
       });
