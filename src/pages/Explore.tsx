@@ -8,7 +8,7 @@ import ZoomScene from "../components/ZoomScene";
 // etc.) differ. Inhibitory subtypes get their own entries because
 // each one does something genuinely different.
 const CLUSTER_LEGEND: { color: string; label: string }[] = [
-  { color: "#8edaff", label: "Pyramidal neuron" },
+  { color: "#5b7cff", label: "Pyramidal neuron" },
   { color: "#b56fd8", label: "Parvalbumin basket cell" },
   { color: "#ffd24a", label: "Chandelier cell" },
   { color: "#3ee0bc", label: "Martinotti cell" },
