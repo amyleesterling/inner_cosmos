@@ -29,3 +29,4 @@ scripts/__pycache__/
 # (the current script writes to .functional-cache/ instead).
 public/data/_nwb_cache/
 public/data/_resolved_roots.json
+
