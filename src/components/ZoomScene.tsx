@@ -170,6 +170,104 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
     // Aliases used by animation block below
     const apAxonPulse = axonBloom.sprite;
     const apPyramidPulse = pyramidBloom.sprite;
+
+    // -------- Comet trails behind the AP pulses ------------------------
+    // Small ring buffer of recent pulse positions, drawn as fading dots
+    // so the action potential reads as "a moving spark + a tail of
+    // fading sparks behind it" instead of a single sprite. One trail
+    // per pulse phase (gold for axon, blue for pyramidal).
+    const TRAIL_LEN = 28;
+    const TRAIL_VERT = /* glsl */ `
+      attribute float aIdx;
+      uniform float uHeadSize;
+      uniform float uOpacity;
+      uniform vec3 uHeadPos;
+      varying float vAlpha;
+      void main() {
+        float age = aIdx / ${TRAIL_LEN.toFixed(1)};      // 0 = head, 1 = tail
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        // Linear fade for soft drag; cube for sharp head
+        vAlpha = pow(1.0 - age, 1.6) * uOpacity;
+        gl_PointSize = uHeadSize * (0.35 + 0.65 * pow(1.0 - age, 1.2)) * (1.0 / max(0.05, -mv.z));
+        gl_Position = projectionMatrix * mv;
+      }
+    `;
+    const TRAIL_FRAG = /* glsl */ `
+      uniform vec3 uColor;
+      varying float vAlpha;
+      void main() {
+        vec2 c = gl_PointCoord - 0.5;
+        float r = length(c);
+        if (r > 0.5) discard;
+        float core = smoothstep(0.5, 0.0, r);
+        float alpha = core * core * vAlpha;
+        gl_FragColor = vec4(uColor, alpha);
+      }
+    `;
+    const makeTrail = (color: string, headSize: number) => {
+      const positions = new Float32Array(TRAIL_LEN * 3);
+      const idx = new Float32Array(TRAIL_LEN);
+      for (let i = 0; i < TRAIL_LEN; i++) idx[i] = i;
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      geom.setAttribute("aIdx", new THREE.BufferAttribute(idx, 1));
+      const mat = new THREE.ShaderMaterial({
+        uniforms: {
+          uHeadSize: { value: headSize },
+          uOpacity: { value: 0 },
+          uColor: { value: new THREE.Color(color) },
+          uHeadPos: { value: new THREE.Vector3() },
+        },
+        vertexShader: TRAIL_VERT,
+        fragmentShader: TRAIL_FRAG,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      const points = new THREE.Points(geom, mat);
+      points.frustumCulled = false; // positions update per frame, BB stale
+      return { points, mat, positions, geom };
+    };
+    const trailGold = makeTrail("#ffe28a", 70);
+    const trailBlue = makeTrail("#9ad4ff", 70);
+    scene.add(trailGold.points);
+    scene.add(trailBlue.points);
+
+    // Stamp the trail's positions: position 0 = head (current pulse loc),
+    // positions 1..N = points behind it on the active path. We sample the
+    // path at decreasing u to get a tail that follows the actual axon
+    // curvature (not a straight line behind the pulse).
+    const stampTrail = (
+      trail: { positions: Float32Array; geom: THREE.BufferGeometry },
+      path: THREE.Vector3[] | null,
+      headU: number,
+      headFallback: THREE.Vector3,
+      stepU: number,
+    ) => {
+      const tmp = new THREE.Vector3();
+      for (let i = 0; i < TRAIL_LEN; i++) {
+        const u = headU - i * stepU;
+        if (u <= 0 || !path) {
+          // Tail extends past the start of the path: collapse onto the
+          // head (zero spacing) so old tail points don't lag at origin.
+          if (path) {
+            tmp.copy(path[0]);
+          } else {
+            tmp.copy(headFallback);
+          }
+        } else {
+          const f = u * (path.length - 1);
+          const j = Math.floor(f);
+          const tt = f - j;
+          if (j >= path.length - 1) tmp.copy(path[path.length - 1]);
+          else tmp.copy(path[j]).lerp(path[j + 1], tt);
+        }
+        trail.positions[i * 3]     = tmp.x;
+        trail.positions[i * 3 + 1] = tmp.y;
+        trail.positions[i * 3 + 2] = tmp.z;
+      }
+      (trail.geom.getAttribute("position") as THREE.BufferAttribute).needsUpdate = true;
+    };
     // Action-potential paths walk the actual mesh skeleton (NOT straight
     // lines). Loaded from /meshes/synapse-skeletons.json — three paths
     // resampled to 200 evenly-spaced points each, all in the synapse-pair's
@@ -1158,6 +1256,11 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
         } else {
           const animT = stageT - LEAD_IN;
           const phase = animT / CYCLE_LEN;
+          // Trail sampling: the tail extends 0.10 of the active path
+          // behind the head (about 10% of the segment), spread across
+          // TRAIL_LEN points.
+          const TRAIL_SPAN_U = 0.10;
+          const trailStep = TRAIL_SPAN_U / (TRAIL_LEN - 1);
           if (phase < AXON_END) {
             const u = phase / AXON_END;
             if (tendrilPath) {
@@ -1169,6 +1272,10 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
             setBloom(pyramidBloom, 0);
             apAxonPulse.visible = true;
             apPyramidPulse.visible = false;
+            // Trail follows the gold pulse along Tendril
+            stampTrail(trailGold, tendrilPath, u, FALLBACK_TENDRIL_FAR, trailStep);
+            trailGold.mat.uniforms.uOpacity.value = cur.synapsePair * 0.85;
+            trailBlue.mat.uniforms.uOpacity.value = 0;
           } else if (phase < CROSS_END) {
             const u = (phase - AXON_END) / (CROSS_END - AXON_END);
             apAxonPulse.position.set(0, 0, 0);
@@ -1177,6 +1284,11 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
             setBloom(pyramidBloom, cur.synapsePair * 0.95 * u);
             apAxonPulse.visible = true;
             apPyramidPulse.visible = true;
+            // Crossing flash: collapse both trails toward origin so they
+            // don't visually trail off in the wrong direction.
+            stampTrail(trailGold, tendrilPath, 1.0, FALLBACK_TENDRIL_FAR, trailStep);
+            trailGold.mat.uniforms.uOpacity.value = cur.synapsePair * 0.85 * (1 - u);
+            trailBlue.mat.uniforms.uOpacity.value = 0;
           } else if (phase < SOMA_END) {
             const u = (phase - CROSS_END) / (SOMA_END - CROSS_END);
             if (auraApicalPath) {
@@ -1188,6 +1300,10 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
             setBloom(pyramidBloom, cur.synapsePair * 0.95);
             apAxonPulse.visible = false;
             apPyramidPulse.visible = true;
+            // Trail follows the blue pulse along the apical dendrite
+            stampTrail(trailBlue, auraApicalPath, u, FALLBACK_AURA_SOMA, trailStep);
+            trailGold.mat.uniforms.uOpacity.value = 0;
+            trailBlue.mat.uniforms.uOpacity.value = cur.synapsePair * 0.85;
           } else if (phase < PYRA_END) {
             const u = (phase - SOMA_END) / (PYRA_END - SOMA_END);
             if (auraAxonPath) {
@@ -1199,12 +1315,23 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
             setBloom(pyramidBloom, cur.synapsePair * 0.95);
             apAxonPulse.visible = false;
             apPyramidPulse.visible = true;
+            // Trail continues behind the blue pulse on the axon
+            stampTrail(trailBlue, auraAxonPath, u, FALLBACK_AURA_AXON_END, trailStep);
+            trailGold.mat.uniforms.uOpacity.value = 0;
+            trailBlue.mat.uniforms.uOpacity.value = cur.synapsePair * 0.85;
           } else {
             setBloom(axonBloom, 0);
             setBloom(pyramidBloom, 0);
             apAxonPulse.visible = false;
             apPyramidPulse.visible = false;
+            trailGold.mat.uniforms.uOpacity.value = 0;
+            trailBlue.mat.uniforms.uOpacity.value = 0;
           }
+        }
+        // Trails always hidden during charge-up + idle phases
+        if (stageT < 0 || stageT < LEAD_IN || stageT >= LEAD_IN + CYCLE_LEN) {
+          trailGold.mat.uniforms.uOpacity.value = 0;
+          trailBlue.mat.uniforms.uOpacity.value = 0;
         }
       } else {
         if (s !== 7) {
@@ -1215,6 +1342,8 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
         setBloom(pyramidBloom, 0);
         apAxonPulse.visible = false;
         apPyramidPulse.visible = false;
+        trailGold.mat.uniforms.uOpacity.value = 0;
+        trailBlue.mat.uniforms.uOpacity.value = 0;
       }
       // Boost the synapse-contact bloom during charge-up so the user
       // sees energy gathering at the synapse before the pulse fires.
