@@ -90,6 +90,10 @@ export default function Explore() {
     return Number.isFinite(n) ? Math.max(0, Math.min(STAGES.length - 1, n - 1)) : 0;
   })();
   const [stage, setStage] = useState(initialStage);
+  // Increments every time the user wants to (re)fire the AP animation
+  // on stage 8. ZoomScene watches this token and starts a fresh cycle
+  // when it changes; the first fire happens automatically on entry.
+  const [apFireToken, setApFireToken] = useState(0);
   const last = STAGES.length - 1;
 
   // Keyboard arrows
@@ -130,7 +134,7 @@ export default function Explore() {
 
       {/* 3D scene fills the viewport behind the UI */}
       <div className="fixed inset-0 z-[1]">
-        <ZoomScene stage={stage} />
+        <ZoomScene stage={stage} apFireToken={apFireToken} />
       </div>
 
       {/* Top vignette */}
@@ -269,15 +273,31 @@ export default function Explore() {
                   </svg>
                 </button>
               ) : (
-                <Link
-                  to="/meet"
-                  className="group px-6 py-2.5 rounded-full glass-strong hover:bg-white/[0.08] transition flex items-center gap-2.5 text-sm font-medium"
-                >
-                  <span>Meet a neuron</span>
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="transition-transform group-hover:translate-x-0.5">
-                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </Link>
+                <>
+                  {/* Replay button — fires another AP cycle on demand. */}
+                  <button
+                    onClick={() => setApFireToken((n) => n + 1)}
+                    className="group px-5 py-2.5 rounded-full glass-strong hover:bg-white/[0.08] transition flex items-center gap-2 cursor-pointer text-sm font-medium"
+                    style={{
+                      boxShadow: "0 0 18px rgba(142,218,255,0.18), inset 0 0 0 1px rgba(142,218,255,0.25)",
+                    }}
+                    aria-label="Send action potential"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="transition-transform group-hover:scale-110">
+                      <path d="M9 1L2 9h5l-1 6 7-8H8l1-6z" stroke="#8edaff" strokeWidth="1.4" strokeLinejoin="round" fill="rgba(142,218,255,0.18)" />
+                    </svg>
+                    <span>Send action potential</span>
+                  </button>
+                  <Link
+                    to="/meet"
+                    className="group px-6 py-2.5 rounded-full glass-strong hover:bg-white/[0.08] transition flex items-center gap-2.5 text-sm font-medium"
+                  >
+                    <span>Meet a neuron</span>
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="transition-transform group-hover:translate-x-0.5">
+                      <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </Link>
+                </>
               )}
             </div>
 

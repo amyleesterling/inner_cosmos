@@ -720,9 +720,12 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
           // below the marker — close enough to feel like rotating around it.)
           return { pos: new THREE.Vector3(0.04, 0.05, 0.42), look: new THREE.Vector3(0, -0.18, 0) };
         case 7:
-          // Action potential — wide shot framing both meshes end-to-end.
-          // Look-at on the geometric center of the synapse pair.
-          return { pos: new THREE.Vector3(0.45, 0.20, 2.10), look: new THREE.Vector3(0.30, -0.10, 0) };
+          // Action potential — wide shot, mesh occupies the upper ~60%
+          // of the viewport with the stage label sitting comfortably
+          // below. Camera is pulled back and look-at is dropped so the
+          // synapse contact (world origin) lands near the top of the
+          // frame, the way Amy sketched the layout.
+          return { pos: new THREE.Vector3(0.45, -0.30, 2.30), look: new THREE.Vector3(0.30, -0.65, 0) };
         default:
           return { pos: new THREE.Vector3(0, 0, 5), look: new THREE.Vector3(0, 0, 0) };
       }
@@ -794,7 +797,9 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
     });
 
     let lastStage = -1;
-    let stage7EnteredAt = -1; // tracks AP-stage entry time for the 2s lead-in
+    let apFiredAt = -1;       // wall-clock of the current AP cycle's start (-1 = idle)
+    let apTokenSeen = -1;     // last apFireToken value we acted on
+    let apCharge = 0;         // 0..1 charge-up brightness during the lead-in
     let frameId = 0;
     const start = performance.now();
     const animate = () => {
@@ -926,37 +931,56 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
         bloom.mat.opacity = intensity;
       };
 
+      // Action-potential animation. ONE cycle per fire-token (the user
+      // owns the cadence): the first token is auto-emitted on stage 7
+      // entry, subsequent tokens come from the on-screen "Send action
+      // potential" button. Cycle = charge-up at synapse → gold pulse
+      // along Tendril → cross flash → blue pulse along Aura → idle.
+      const TOKEN_AUTOFIRE_FIRST = 0; // sentinel; first apTokenSeen so auto-fire happens once on entry
+      apCharge = 0;
       if (s === 7 && cur.synapsePair > 0.05) {
-        if (stage7EnteredAt < 0) stage7EnteredAt = t;
-        const stageT = t - stage7EnteredAt;
-        const LEAD_IN = 1.5;
-        if (stageT < LEAD_IN) {
-          // Wait — show meshes but no pulse yet
+        // Auto-fire the first time we land on the AP stage
+        if (apTokenSeen < TOKEN_AUTOFIRE_FIRST) {
+          apFiredAt = t;
+          apTokenSeen = apFireTokenRef.current;
+        }
+        // User clicked the button → token incremented → restart cycle
+        if (apFireTokenRef.current !== apTokenSeen) {
+          apFiredAt = t;
+          apTokenSeen = apFireTokenRef.current;
+        }
+        const stageT = apFiredAt < 0 ? -1 : t - apFiredAt;
+        // Lead-in shape: 0..CHARGE = ramp up synapse glow, CHARGE..LEAD_IN = brief release before pulse
+        const CHARGE = 0.95;
+        const LEAD_IN = 1.15;
+        const CYCLE_LEN = 4.0;     // single AP cycle, no looping
+        const AXON_END  = 0.30;
+        const CROSS_END = 0.38;
+        const SOMA_END  = 0.65;
+        const PYRA_END  = 0.95;
+        if (stageT < 0 || stageT >= LEAD_IN + CYCLE_LEN) {
+          // Idle (pre-fire OR post-cycle) — pulses off, no charge
+          setBloom(axonBloom, 0);
+          setBloom(pyramidBloom, 0);
+          apAxonPulse.visible = false;
+          apPyramidPulse.visible = false;
+          apCharge = 0;
+        } else if (stageT < LEAD_IN) {
+          // Charging at the synapse — bloom intensifies + grows briefly
+          if (stageT < CHARGE) {
+            apCharge = stageT / CHARGE;          // 0 → 1 ease-in
+          } else {
+            apCharge = 1 - (stageT - CHARGE) / (LEAD_IN - CHARGE); // 1 → 0 release
+          }
           setBloom(axonBloom, 0);
           setBloom(pyramidBloom, 0);
           apAxonPulse.visible = false;
           apPyramidPulse.visible = false;
         } else {
           const animT = stageT - LEAD_IN;
-          const PERIOD = 4.0;
-          const phase = (animT % PERIOD) / PERIOD;
-          // Phases:
-          //   0.00–0.30  axon pulse travels Tendril far end → synapse
-          //                (along Tendril skeleton, NOT a straight line)
-          //   0.30–0.38  brief crossing flash at synapse
-          //   0.38–0.65  pyramidal pulse: synapse → Aura soma (along
-          //                Aura's post-synaptic dendrite skeleton)
-          //   0.65–0.95  pyramidal pulse: Aura soma → axon distal tip
-          //                (along Aura's axon skeleton)
-          //   0.95–1.00  reset gap
-          const AXON_END  = 0.30;
-          const CROSS_END = 0.38;
-          const SOMA_END  = 0.65;
-          const PYRA_END  = 0.95;
-
+          const phase = animT / CYCLE_LEN;
           if (phase < AXON_END) {
             const u = phase / AXON_END;
-            // Walk Tendril from far end (u=0) to synapse (u=1).
             if (tendrilPath) {
               samplePath(tendrilPath, u, apAxonPulse.position);
             } else {
@@ -975,7 +999,6 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
             apAxonPulse.visible = true;
             apPyramidPulse.visible = true;
           } else if (phase < SOMA_END) {
-            // Synapse → soma along Aura's post-synaptic dendrite.
             const u = (phase - CROSS_END) / (SOMA_END - CROSS_END);
             if (auraApicalPath) {
               samplePath(auraApicalPath, u, apPyramidPulse.position);
@@ -987,7 +1010,6 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
             apAxonPulse.visible = false;
             apPyramidPulse.visible = true;
           } else if (phase < PYRA_END) {
-            // Soma → axon distal tip along Aura's axon.
             const u = (phase - SOMA_END) / (PYRA_END - SOMA_END);
             if (auraAxonPath) {
               samplePath(auraAxonPath, u, apPyramidPulse.position);
@@ -1006,11 +1028,23 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
           }
         }
       } else {
-        if (s !== 7) stage7EnteredAt = -1; // reset for next entry
+        if (s !== 7) {
+          apFiredAt = -1;
+          apTokenSeen = -1; // reset so re-entry auto-fires again
+        }
         setBloom(axonBloom, 0);
         setBloom(pyramidBloom, 0);
         apAxonPulse.visible = false;
         apPyramidPulse.visible = false;
+      }
+      // Boost the synapse-contact bloom during charge-up so the user
+      // sees energy gathering at the synapse before the pulse fires.
+      if (apCharge > 0) {
+        synapseBloom.mat.opacity = cur.synapseMarker * (1 + apCharge * 1.6);
+        synapseBloom.sprite.scale.setScalar(0.07 * (1 + apCharge * 0.7));
+        synapseBloom.sprite.visible = true;
+      } else {
+        synapseBloom.sprite.scale.setScalar(0.07);
       }
 
       for (const n of featuredNeurons) {

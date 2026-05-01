@@ -109,9 +109,28 @@ def find_leaves(edges: np.ndarray, n: int) -> np.ndarray:
     return np.where(deg == 1)[0]
 
 
-def resample(verts_shared: np.ndarray, path, n: int):
-    """Resample N evenly-spaced points along a polyline in shared-frame coords."""
-    pts = verts_shared[path]
+def resample(
+    verts_shared: np.ndarray,
+    path,
+    n: int,
+    snap_start_to_origin: bool = False,
+    snap_end_to_origin: bool = False,
+):
+    """Resample N evenly-spaced points along a polyline in shared-frame coords.
+
+    When snap_start_to_origin / snap_end_to_origin is set, the polyline is
+    extended by inserting (0,0,0) at the start or end before resampling.
+    The closest skeleton vertex on Aura is ~2.2 um from the synapse coord;
+    without snapping the gold->blue handoff visibly steps that gap. Snapping
+    forces the resampled path to begin (or end) exactly at the synapse
+    marker, so the AP pulse hands off cleanly at the bloom sprite.
+    """
+    pts = verts_shared[path].tolist()
+    if snap_start_to_origin:
+        pts = [[0.0, 0.0, 0.0]] + pts
+    if snap_end_to_origin:
+        pts = pts + [[0.0, 0.0, 0.0]]
+    pts = np.array(pts)
     cum = np.zeros(len(pts))
     for i in range(1, len(pts)):
         cum[i] = cum[i - 1] + float(np.linalg.norm(pts[i] - pts[i - 1]))
@@ -178,7 +197,9 @@ def main():
     print(f"  axon path:   {len(axon_path)} verts")
 
     aura_shared = to_shared_frame(aura_verts)
-    apical_pts = resample(aura_shared, apical_path, N_SAMPLES)
+    # Apical path starts at the synapse contact - snap so it begins at
+    # exactly origin (where the gold pulse on Tendril will hand off).
+    apical_pts = resample(aura_shared, apical_path, N_SAMPLES, snap_start_to_origin=True)
     axon_pts = resample(aura_shared, axon_path, N_SAMPLES)
 
     # ---- TENDRIL - presynaptic long-range axon ----------------------------
@@ -204,7 +225,9 @@ def main():
     print(f"  tendril path: {len(tendril_path)} verts")
 
     tendril_shared = to_shared_frame(t_verts)
-    tendril_pts = resample(tendril_shared, tendril_path, N_SAMPLES)
+    # Tendril path ends at the synapse contact - snap so the gold pulse
+    # lands exactly at origin (the bloom sprite) at the handoff moment.
+    tendril_pts = resample(tendril_shared, tendril_path, N_SAMPLES, snap_end_to_origin=True)
 
     # ---- Save -------------------------------------------------------------
     payload = {
