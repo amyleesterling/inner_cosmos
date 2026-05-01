@@ -1,0 +1,19 @@
+{
+  "name": "eyewire-ii",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "three": "^0.184.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.184.0",
+    "typescript": "~5.6.0",
+    "vite": "^8.0.10"
+  }
+}
