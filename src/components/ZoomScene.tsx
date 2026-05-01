@@ -995,14 +995,14 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
           return { pos, look };
         }
         case 4:
-          // Cell cluster — narratively this is "deeper into V1, here are the
-          // cells living inside it." The camera must NOT pull back from the
-          // tight V1 view. Stage 3 cam sits ~0.95 units from world origin;
-          // stage 4 sits CLOSER (~0.85), so the only motion the eye catches
-          // is a small forward push while the brainDots→cells cross-fade
-          // does the swap. Cluster spans ~1u so it spills slightly past the
-          // frame edges — that's the "you're inside it" feel.
-          return { pos: new THREE.Vector3(0.18, 0.10, 0.85), look: new THREE.Vector3(0, -0.4, 0) };
+          // Cell cluster — wide enough to frame all ten cells with the
+          // outermost dendrites still in view. The cluster (cell bodies +
+          // apical/basal dendrites) effectively spans ~3 units, so the
+          // camera sits ~3.6 units back. Earlier attempt to make the
+          // stage-3 → stage-4 transition feel like a forward push by
+          // pulling cam in to z=0.85 cropped the outer cells; keeping it
+          // at the original framing here so the whole circuit reads.
+          return { pos: new THREE.Vector3(0.4, 0.2, 3.6), look: new THREE.Vector3(0, -0.4, 0) };
         case 5:
           // Single neuron
           return { pos: new THREE.Vector3(0, 0.1, 2.4), look: new THREE.Vector3(0, -0.3, 0) };
