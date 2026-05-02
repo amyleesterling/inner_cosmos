@@ -218,7 +218,72 @@ export default function Brain2() {
           </button>
         </div>
       )}
+
+      {/* Color key — anchors the visualization in real units. Each colored
+          patch on the cortex represents roughly N million neurons firing
+          (or quiet) together; the gradient shows how the BOLD signal in that
+          patch deviates from its own baseline. Top-center on desktop,
+          tucked inline with the brain on small screens. */}
+      {load.status === "ready" && showCopy && (
+        <ColorKey
+          parcels={load.manifest.parcels}
+          neuronsPerParcel={
+            (load.manifest as BrainActivityManifest & { neuronsPerParcelApprox?: number })
+              .neuronsPerParcelApprox
+          }
+        />
+      )}
     </div>
+  );
+}
+
+function ColorKey({
+  parcels,
+  neuronsPerParcel,
+}: {
+  parcels: number;
+  neuronsPerParcel?: number;
+}) {
+  // ~16 billion neurons in cortex (the cortex's share of 86 B). Falls back
+  // to derivation if the manifest doesn't carry the precomputed number.
+  const NEURONS_CORTEX = 16_000_000_000;
+  const perPatch = neuronsPerParcel ?? Math.round(NEURONS_CORTEX / parcels);
+  const perPatchM = Math.round(perPatch / 1_000_000);
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.7, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+      className="pointer-events-none absolute top-6 left-1/2 -translate-x-1/2 max-w-[92vw]"
+    >
+      <div className="flex flex-col items-center gap-2.5">
+        {/* Gradient bar — must match the asymmetric ramp in BrainSurface.tsx */}
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] uppercase tracking-[0.3em] text-white/45 whitespace-nowrap"
+                style={{ textShadow: "0 1px 8px rgba(4,6,12,0.95)" }}>
+            quiet
+          </span>
+          <div
+            className="h-2 w-[min(280px,55vw)] rounded-full ring-1 ring-white/15"
+            style={{
+              background:
+                "linear-gradient(90deg, #100728 0%, #533c8c 30%, #d94df2 65%, #ff8edb 85%, #fff0c8 100%)",
+              boxShadow: "0 0 12px rgba(217, 77, 242, 0.18)",
+            }}
+          />
+          <span className="text-[10px] uppercase tracking-[0.3em] text-white/85 whitespace-nowrap"
+                style={{ textShadow: "0 1px 8px rgba(4,6,12,0.95)" }}>
+            firing
+          </span>
+        </div>
+        <p
+          className="text-[10px] uppercase tracking-[0.25em] text-white/55 text-center"
+          style={{ textShadow: "0 1px 10px rgba(4,6,12,0.95)" }}
+        >
+          one patch · ≈ {perPatchM.toLocaleString()} million cortical neurons
+        </p>
+      </div>
+    </motion.div>
   );
 }
 
