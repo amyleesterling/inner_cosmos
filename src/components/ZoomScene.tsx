@@ -62,9 +62,25 @@ interface Props {
   // /explore look). /kindergarten passes ~0.2 so the orbital sparkles read
   // as tiny stardust instead of dominating the kid-friendly hero shot.
   particleScale?: number;
+  // Override base + hot colors of the orbital particles. Default keeps the
+  // /explore violet/cyan duality. /kindergarten passes white for tiny
+  // stars regardless of which brain is on screen.
+  particleColor?: string;
+  particleHotColor?: string;
+  // Hide the "Loading the brain · X%" progress indicator. /kindergarten
+  // sets this true — the indicator is academic chrome that doesn't fit
+  // the kid-friendly experience.
+  hideProgress?: boolean;
 }
 
-export default function ZoomScene({ stage, apFireToken = 0, particleScale = 1 }: Props) {
+export default function ZoomScene({
+  stage,
+  apFireToken = 0,
+  particleScale = 1,
+  particleColor,
+  particleHotColor,
+  hideProgress = false,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef(stage);
   stageRef.current = stage;
@@ -125,11 +141,6 @@ export default function ZoomScene({ stage, apFireToken = 0, particleScale = 1 }:
     let humanBrainShell: THREE.Group | null = null;
     const humanBrainSolidMaterials: THREE.MeshStandardMaterial[] = [];
     const humanBrainWireMaterials: THREE.MeshBasicMaterial[] = [];
-    // "The brain is thinking" — sparks fire across the cortex surface,
-    // suggesting ambient neuronal activity. Set when the human-brain
-    // mesh finishes loading (see loader callback below).
-    const humanBrainSparks: { mat: THREE.ShaderMaterial | null } = { mat: null };
-
     // Synapse-stage meshes (Aura + Tendril, both centered on the synapse coord)
     let synapseAuraGroup: THREE.Group | null = null;
     let synapseTendrilGroup: THREE.Group | null = null;
@@ -441,10 +452,10 @@ export default function ZoomScene({ stage, apFireToken = 0, particleScale = 1 }:
     };
     // Violet motes for the human brain — sparse + smaller so they read as
     // distant pinpricks rather than crowded fluffy blobs.
-    const humanParticles = makeParticleCloud(320, 1.0, 2.5, "#c08bff", "#fff5ff", 26 * particleScale);
+    const humanParticles = makeParticleCloud(320, 1.0, 2.5, particleColor ?? "#c08bff", particleHotColor ?? "#fff5ff", 26 * particleScale);
     scene.add(humanParticles.points);
     // Cyan motes for the mouse brain — same treatment.
-    const mouseParticles = makeParticleCloud(280, 0.9, 2.3, "#7ed9ff", "#eafaff", 24 * particleScale);
+    const mouseParticles = makeParticleCloud(280, 0.9, 2.3, particleColor ?? "#7ed9ff", particleHotColor ?? "#eafaff", 24 * particleScale);
     scene.add(mouseParticles.points);
     // Mouse-brain hologram overlay — Prometheus-style: dotted topographic
     // contours wrapping the surface, a vertical scanning bar, and a bright
@@ -630,91 +641,6 @@ export default function ZoomScene({ stage, apFireToken = 0, particleScale = 1 }:
         scene.add(humanBrainShell);
         humanBrainLoaded = true;
         updateProgress();
-
-        // The brain is thinking. Sample N points from the cortex surface
-        // and render them as tiny sparks that pop on/off at random
-        // staggered intensities, so a few are always firing somewhere on
-        // the surface. Suggests neuronal activity without trying to be
-        // anatomically literal.
-        const N_SPARKS = 140;
-        const cortexMesh = sourceMeshes[0]; // the pial surface
-        const cortexPos = cortexMesh.geometry.getAttribute("position") as THREE.BufferAttribute;
-        const sparkPos = new Float32Array(N_SPARKS * 3);
-        const sparkPhase = new Float32Array(N_SPARKS);
-        const sparkRate = new Float32Array(N_SPARKS);
-        for (let i = 0; i < N_SPARKS; i++) {
-          // Pick a random vertex from the cortex; offset along its normal
-          // by a tiny epsilon so sparks float just above the surface and
-          // don't z-fight with the wireframe overlay.
-          const vIdx = (Math.random() * cortexPos.count) | 0;
-          const x = cortexPos.getX(vIdx);
-          const y = cortexPos.getY(vIdx);
-          const z = cortexPos.getZ(vIdx);
-          const len = Math.sqrt(x * x + y * y + z * z) || 1;
-          const eps = 0.012;
-          sparkPos[i * 3]     = x + (x / len) * eps;
-          sparkPos[i * 3 + 1] = y + (y / len) * eps;
-          sparkPos[i * 3 + 2] = z + (z / len) * eps;
-          sparkPhase[i] = Math.random() * Math.PI * 2;
-          // Per-spark firing frequency. Most fire slowly (long quiet
-          // gaps, brief bright pop); a few fire faster to keep visual
-          // rhythm varied.
-          sparkRate[i] = 0.7 + Math.pow(Math.random(), 1.8) * 2.4;
-        }
-        const sparkGeom = new THREE.BufferGeometry();
-        sparkGeom.setAttribute("position", new THREE.BufferAttribute(sparkPos, 3));
-        sparkGeom.setAttribute("aPhase", new THREE.BufferAttribute(sparkPhase, 1));
-        sparkGeom.setAttribute("aRate", new THREE.BufferAttribute(sparkRate, 1));
-        const sparkMat = new THREE.ShaderMaterial({
-          uniforms: {
-            uTime: { value: 0 },
-            uOpacity: { value: 0 },
-            uColor: { value: new THREE.Color("#ffd0ff") },
-            uHotColor: { value: new THREE.Color("#ffffff") },
-            uSize: { value: 22 * particleScale },
-          },
-          vertexShader: /* glsl */ `
-            attribute float aPhase;
-            attribute float aRate;
-            uniform float uTime;
-            uniform float uOpacity;
-            uniform float uSize;
-            varying float vAlpha;
-            void main() {
-              vec4 mv = modelViewMatrix * vec4(position, 1.0);
-              // Spike-shaped activation: most of the cycle near 0,
-              // brief peak near 1. pow(sin^2, K) is cheap and reads as
-              // "neurons firing" — quick on, quick off, rest.
-              float s = 0.5 + 0.5 * sin(uTime * aRate + aPhase);
-              float spike = pow(s, 18.0);
-              vAlpha = spike * uOpacity;
-              gl_PointSize = uSize * (0.4 + 0.6 * spike) * (1.0 / max(0.05, -mv.z));
-              gl_Position = projectionMatrix * mv;
-            }
-          `,
-          fragmentShader: /* glsl */ `
-            uniform vec3 uColor;
-            uniform vec3 uHotColor;
-            varying float vAlpha;
-            void main() {
-              vec2 c = gl_PointCoord - 0.5;
-              float r = length(c);
-              if (r > 0.5) discard;
-              float core = smoothstep(0.5, 0.0, r);
-              float halo = smoothstep(0.5, 0.15, r);
-              vec3 col = mix(uColor, uHotColor, pow(core, 3.0));
-              gl_FragColor = vec4(col, halo * vAlpha);
-            }
-          `,
-          transparent: true,
-          blending: THREE.AdditiveBlending,
-          depthWrite: false,
-        });
-        const sparkPoints = new THREE.Points(sparkGeom, sparkMat);
-        sparkPoints.frustumCulled = false;
-        // Parent to the cortex mesh so sparks rotate exactly with it.
-        cortexMesh.add(sparkPoints);
-        humanBrainSparks.mat = sparkMat;
 
         // Cerebellum lives in the same coordinate frame as the cortex
         // (extract-cerebellum.py reuses the cortex's center+scale). Loaded
@@ -1364,12 +1290,6 @@ export default function ZoomScene({ stage, apFireToken = 0, particleScale = 1 }:
       humanParticles.mat.uniforms.uTime.value = t;
       humanParticles.mat.uniforms.uOpacity.value = cur.humanSolid * 0.85;
       humanParticles.points.visible = cur.humanSolid > 0.01;
-      // Cortex-surface sparks ("the brain is thinking"). Fade with the
-      // brain so they vanish when stage advances past stage 1.
-      if (humanBrainSparks.mat) {
-        humanBrainSparks.mat.uniforms.uTime.value = t;
-        humanBrainSparks.mat.uniforms.uOpacity.value = cur.humanSolid * 0.95;
-      }
       humanParticles.points.rotation.y = t * 0.04;
       humanParticles.points.rotation.x = Math.sin(t * 0.025) * 0.18;
 
@@ -1692,7 +1612,7 @@ export default function ZoomScene({ stage, apFireToken = 0, particleScale = 1 }:
 
   return (
     <div ref={containerRef} className="absolute inset-0" aria-hidden>
-      {progress < 1 && (
+      {progress < 1 && !hideProgress && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-[0.3em] text-white/40 pointer-events-none">
           Loading the brain · {Math.round(progress * 100)}%
         </div>
