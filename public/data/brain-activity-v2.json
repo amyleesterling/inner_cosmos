@@ -15,10 +15,11 @@
   ],
   "task": "500daysofsummer",
   "movie": "(500) Days of Summer",
-  "preprocessingNotes": "Three NNDb participants watching the same movie. Each participant's BOLD was z-scored per voxel, then averaged across the three at every voxel \u2014 this filters out idiosyncratic fluctuations (random thoughts, head motion, scanner noise) and concentrates the signal on what the three brains do in common during the same scene. K=2000 k-means parcellation; per-parcel percentile normalization; gamma 0.85.",
-  "parcels": 2000,
+  "preprocessingNotes": "Three NNDb participants watching the same movie. Each participant's BOLD was z-scored per voxel, then averaged across the three at every voxel \u2014 idiosyncratic fluctuations cancel; shared cognitive response survives. K=4000 k-means parcellation (\u2248 4 million cortical neurons per patch). Per-parcel percentile normalization (5th\u201395th \u2192 [0, 1]); gamma 0.85; real-time playback at TR = 1 s.",
+  "parcels": 4000,
   "frames": 30,
   "trSeconds": 1.0,
   "durationSeconds": 30.0,
-  "vertexCount": 75006
+  "vertexCount": 75006,
+  "neuronsPerParcelApprox": 4000000
 }

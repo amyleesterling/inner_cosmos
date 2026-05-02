@@ -53,7 +53,10 @@ export default function BrainSurface({ activity, elapsedSec, onReady, className 
       alpha: true,
       powerPreference: "high-performance",
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.6));
+    // Allow up to 2.5× for retina phones and 5K monitors. Caps the cost on
+    // ridiculous DPRs (some Chromebooks report 3–4) without leaving any
+    // sharpness on the table for normal devices.
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.5));
     renderer.setSize(w, h);
     renderer.setClearColor(0x000000, 0);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
