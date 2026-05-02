@@ -58,9 +58,13 @@ interface Props {
   // "Send action potential" button. Animation runs ONE cycle per token,
   // then idles, so the user controls the cadence.
   apFireToken?: number;
+  // Multiplier on the particle-mote size (default 1 = the original
+  // /explore look). /kindergarten passes ~0.2 so the orbital sparkles read
+  // as tiny stardust instead of dominating the kid-friendly hero shot.
+  particleScale?: number;
 }
 
-export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
+export default function ZoomScene({ stage, apFireToken = 0, particleScale = 1 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef(stage);
   stageRef.current = stage;
@@ -433,10 +437,10 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
     };
     // Violet motes for the human brain — sparse + smaller so they read as
     // distant pinpricks rather than crowded fluffy blobs.
-    const humanParticles = makeParticleCloud(220, 1.0, 2.4, "#c08bff", "#fff5ff", 50);
+    const humanParticles = makeParticleCloud(220, 1.0, 2.4, "#c08bff", "#fff5ff", 26 * particleScale);
     scene.add(humanParticles.points);
     // Cyan motes for the mouse brain — same treatment.
-    const mouseParticles = makeParticleCloud(200, 0.9, 2.2, "#7ed9ff", "#eafaff", 45);
+    const mouseParticles = makeParticleCloud(200, 0.9, 2.2, "#7ed9ff", "#eafaff", 24 * particleScale);
     scene.add(mouseParticles.points);
     // Mouse-brain hologram overlay — Prometheus-style: dotted topographic
     // contours wrapping the surface, a vertical scanning bar, and a bright
