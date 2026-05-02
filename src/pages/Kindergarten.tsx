@@ -53,7 +53,11 @@ const KG_STAGES: KgStage[] = [
     text: "Synapse",
     subtitle: "Neurons connect and communicate through synapses.",
   },
-  { zoom: 7, text: "Action potential!" },
+  {
+    zoom: 7,
+    text: "Action potential!",
+    subtitle: "The language of neurons — an electrical impulse that travels down a branch to zing other cells.",
+  },
   // Same scene, different beat — the AP keeps firing in the background
   // while the kid lands on the wow-stat that gives it scale.
   {
@@ -156,6 +160,15 @@ export default function Kindergarten() {
         overflow: "hidden",
         userSelect: "none",
         background: "#04060c",
+        // Mobile/iPad: prevent double-tap zoom and tap-flash highlight on
+        // chevrons. Drag-to-spin still works because OrbitControls listens
+        // for pointer events directly on the canvas.
+        touchAction: "manipulation",
+        WebkitTapHighlightColor: "transparent",
+        WebkitTouchCallout: "none",
+        // Block iOS Safari pull-to-refresh / Android overscroll bounce —
+        // the kid swiping down mid-presentation should not nuke the page.
+        overscrollBehavior: "none",
       }}
     >
       <RainbowTieDye opacity={tieDyeOpacity} />
@@ -222,8 +235,10 @@ export default function Kindergarten() {
         <div
           style={{
             position: "absolute",
-            bottom: "1.5vh",
-            right: "2vw",
+            // dvh = dynamic viewport height (Safari URL-bar safe). Fallback
+            // to vh + safe-area inset for older iOS.
+            bottom: "max(env(safe-area-inset-bottom, 0px) + 8px, 1.5dvh)",
+            right: "max(env(safe-area-inset-right, 0px) + 12px, 2vw)",
             fontSize: 11,
             color: "rgba(255, 245, 220, 0.45)",
             fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", sans-serif',
@@ -231,7 +246,7 @@ export default function Kindergarten() {
             zIndex: 240,
             pointerEvents: "none",
             textAlign: "right",
-            maxWidth: "60vw",
+            maxWidth: "min(70vw, 480px)",
           }}
         >
           Made by Amy Sterling for Sophia Sterling's Kindergarten Class · May 1, 2026
@@ -450,12 +465,14 @@ function Caption({
         position: "absolute",
         left: 0,
         right: 0,
-        bottom: "12vh",
+        // dvh keeps the caption fixed against the actual visible viewport
+        // on iOS Safari instead of jumping when the URL bar shows/hides.
+        bottom: "12dvh",
         display: "grid",
         placeItems: "center",
         zIndex: 200,
         pointerEvents: "none",
-        padding: "0 6vw",
+        padding: "0 5vw",
       }}
     >
       <AnimatePresence mode="wait">
@@ -561,18 +578,19 @@ function BottomBar({
         position: "absolute",
         left: 0,
         right: 0,
-        bottom: "5vh",
+        // Lift above iPhone home-indicator + iOS Safari URL bar.
+        bottom: "max(env(safe-area-inset-bottom, 0px) + 16px, 4dvh)",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        gap: 18,
+        gap: 14,
         zIndex: 250,
         pointerEvents: "none",
       }}
     >
       <ChevronButton direction="back" onClick={onBack} visible={idx > 0} />
 
-      <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
         {Array.from({ length: count }).map((_, i) => (
           <span
             key={i}
