@@ -113,3 +113,7 @@
 .neuron-loader-bar-indeterminate {
   animation: neuron-loader-bar-sweep 1.4s ease-in-out infinite;
 }
+
+/* Presentation mode: full-screen 3D, chrome out of the way. Toggled
+   from /explore via the present icon (or "p" key). */
+body.present-mode header { display: none !important; }

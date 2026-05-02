@@ -117,10 +117,26 @@ export default function Explore() {
   // expanding any new stage auto-shows the copy again so newcomers don't
   // have to know the toggle exists.
   const [textCollapsed, setTextCollapsed] = useState(false);
+  // Presentation mode: hide nav chrome, push title + subtitle to the
+  // bottom-right corner, condensed advance + progress on the bottom-right
+  // edge. Designed for live demos where the 3D should fill the screen
+  // and the talk-track sits subtle but readable. Toggled with the
+  // present icon in the controls row, or by pressing "p".
+  const [presentMode, setPresentMode] = useState(false);
   const last = STAGES.length - 1;
 
-  // Keyboard arrows. Advancing or stepping back also re-expands the text
-  // so the new stage's copy is visible by default.
+  // Toggle a body class so NavBar (rendered outside this component) can
+  // hide itself in presentation mode without needing a context Provider.
+  // Cleanup also wipes the class on unmount so navigating away doesn't
+  // leave the rest of the app in present-mode.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.body.classList.toggle("present-mode", presentMode);
+    return () => { document.body.classList.remove("present-mode"); };
+  }, [presentMode]);
+
+  // Keyboard arrows + presentation-mode toggle. Advancing or stepping
+  // back also re-expands the text so the new stage's copy is visible.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight" || e.key === " " || e.key === "Enter") {
@@ -135,6 +151,10 @@ export default function Explore() {
           if (n !== s) setTextCollapsed(false);
           return n;
         });
+      } else if (e.key === "p" || e.key === "P") {
+        setPresentMode((p) => !p);
+      } else if (e.key === "Escape") {
+        setPresentMode(false);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -191,9 +211,111 @@ export default function Explore() {
       {/* `pointer-events-none` on the wrapper lets drag/scroll fall through to
           the canvas behind. Re-enabled on the actual interactive controls
           (progress dots + buttons) so users can still click/tap them. */}
+      {/* Presentation-mode overlay: title + subtitle bottom-right, condensed
+          advance button and progress on the bottom-right edge. The standard
+          centered text + control row is hidden via `presentMode &&` below. */}
+      {presentMode && (
+        <div className="fixed bottom-6 right-6 z-30 pointer-events-auto max-w-[min(560px,46vw)] text-right">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={stage}
+              initial={{ opacity: 0, y: 14, filter: "blur(4px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
+              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <p
+                className="text-[10px] uppercase tracking-[0.4em] text-white/45 mb-2.5"
+                style={{ textShadow: "0 1px 10px rgba(4,6,12,0.95)" }}
+              >
+                {cur.eyebrow}
+              </p>
+              <h2
+                className="font-display font-light leading-[1.1]"
+                style={{
+                  fontSize: "clamp(1.5rem, 2.6vw, 2.4rem)",
+                  textShadow: "0 2px 16px rgba(4,6,12,0.95)",
+                }}
+              >
+                {cur.title}
+              </h2>
+              <p
+                className="mt-3 text-white/75 font-light leading-relaxed"
+                style={{
+                  fontSize: "clamp(0.85rem, 1vw, 1rem)",
+                  textShadow: "0 1px 12px rgba(4,6,12,0.95)",
+                }}
+              >
+                {cur.subtitle}
+              </p>
+            </motion.div>
+          </AnimatePresence>
+
+          <div className="mt-5 flex items-center justify-end gap-3">
+            {/* Compact progress bar */}
+            <div className="flex items-center gap-2 w-[180px]">
+              <span className="text-[9px] font-mono uppercase tracking-[0.25em] text-white/55 tabular-nums whitespace-nowrap">
+                {String(stage + 1).padStart(2, "0")}
+                <span className="text-white/25"> / {String(STAGES.length).padStart(2, "0")}</span>
+              </span>
+              <div className="relative h-[2px] flex-1">
+                <div className="absolute inset-0 rounded-full bg-white/10" />
+                <div
+                  className="absolute inset-y-0 left-0 rounded-full transition-all duration-700 ease-out"
+                  style={{
+                    width: `${((stage + 1) / STAGES.length) * 100}%`,
+                    background: "linear-gradient(90deg, rgba(142,218,255,0.7) 0%, rgba(142,218,255,1) 100%)",
+                    boxShadow: "0 0 6px rgba(142, 218, 255, 0.55)",
+                  }}
+                />
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setStage((s) => Math.max(0, s - 1));
+                setTextCollapsed(false);
+              }}
+              disabled={stage === 0}
+              className="p-2 rounded-full glass disabled:opacity-25 disabled:cursor-default hover:bg-white/[0.08] transition cursor-pointer"
+              aria-label="Previous stage"
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M13 8H3M7 4l-4 4 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            <button
+              onClick={() => {
+                if (isLast) return;
+                setStage((s) => Math.min(last, s + 1));
+                setTextCollapsed(false);
+              }}
+              disabled={isLast}
+              className="px-4 py-2 rounded-full glass-strong hover:bg-white/[0.08] transition flex items-center gap-2 cursor-pointer text-sm font-medium disabled:opacity-25 disabled:cursor-default"
+              aria-label="Next stage"
+            >
+              <span>Next</span>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setPresentMode(false)}
+              className="p-2 rounded-full glass hover:bg-white/[0.08] transition cursor-pointer"
+              aria-label="Exit presentation mode (Esc)"
+              title="Exit presentation mode (Esc)"
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Stage progress bar — compact, bottom-left. Cyan fill grows
           left-to-right as you advance; small clickable tick dots at each
-          stage. */}
+          stage. Hidden in presentation mode (right-side bar replaces it). */}
+      {!presentMode && (
       <div className="fixed bottom-5 left-6 z-30 pointer-events-auto flex items-center gap-3 w-[260px]">
         <span className="text-[9px] font-mono uppercase tracking-[0.25em] text-white/55 tabular-nums whitespace-nowrap">
           {String(stage + 1).padStart(2, "0")}
@@ -236,8 +358,9 @@ export default function Explore() {
           ))}
         </div>
       </div>
+      )}
 
-      <main className="relative z-10 min-h-screen flex flex-col pointer-events-none">
+      <main className={`relative z-10 min-h-screen flex flex-col pointer-events-none ${presentMode ? "hidden" : ""}`}>
 
         {/* Stage label — centered low */}
         <div className="flex-1 flex flex-col justify-end pb-32 sm:pb-40 px-6">
@@ -353,6 +476,18 @@ export default function Explore() {
               >
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ transform: textCollapsed ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.25s ease" }}>
                   <path d="M3 6l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              {/* Presentation mode — full-screen, copy moves to bottom-right.
+                  Press "p" to toggle anywhere; "Esc" exits. */}
+              <button
+                onClick={() => setPresentMode(true)}
+                className="p-2.5 rounded-full glass hover:bg-white/[0.08] transition cursor-pointer"
+                aria-label="Presentation mode (P)"
+                title="Presentation mode (P)"
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                  <path d="M2 3h12v8H2z M5 14h6 M8 11v3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
             </div>

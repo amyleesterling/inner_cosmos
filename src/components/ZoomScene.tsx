@@ -1182,6 +1182,41 @@ export default function ZoomScene({
       renderer.domElement.style.cursor = "grab";
     });
 
+    // Double-click to recentre. Raycast from the click into the scene; if
+    // we hit a mesh, glide controls.target (the orbit pivot) to the hit
+    // point so subsequent drags rotate around what the user double-tapped.
+    // Animation handled inline in the animate loop below.
+    const raycaster = new THREE.Raycaster();
+    const ndc = new THREE.Vector2();
+    let recenterTarget: THREE.Vector3 | null = null;
+    let recenterStartedAt = 0;
+    const RECENTER_DURATION = 0.6;
+    const recenterFrom = new THREE.Vector3();
+    renderer.domElement.addEventListener("dblclick", (e) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      ndc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      ndc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(ndc, camera);
+      // Collect raycastable meshes from the visible scene. Skip wireframe
+      // overlays + the bloom sprites (sprite raycasting is iffy and we
+      // don't want to recentre on a glow).
+      const targets: THREE.Object3D[] = [];
+      scene.traverse((obj) => {
+        if (
+          obj instanceof THREE.Mesh &&
+          obj.visible &&
+          !obj.userData.isWire
+        ) targets.push(obj);
+      });
+      const hits = raycaster.intersectObjects(targets, false);
+      if (hits.length > 0) {
+        recenterFrom.copy(controls.target);
+        recenterTarget = hits[0].point.clone();
+        recenterStartedAt = (performance.now() - start) / 1000;
+        userOwnsCamera = true;
+      }
+    });
+
     let lastStage = -1;
     let apFiredAt = -1;       // wall-clock of the current AP cycle's start (-1 = idle)
     let apTokenSeen = -1;     // last apFireToken value we acted on
@@ -1240,14 +1275,29 @@ export default function ZoomScene({
       // growing. Without this, both meshes cross through each other
       // mid-transition.
       const kHuman = 0.18;
+      // Brain channels (mouse-brain solid / wire / dots) fade OUT fast on
+      // stage transitions so the next stage's content can come forward
+      // cleanly. The "zoom into a square then reveal cells" feel on the
+      // stage 4 → 5 transition relies on the brain clearing in <1s
+      // instead of the slow default lerp.
+      const kFastOut = 0.16;
+      const brainK = (v: number, tgt: number) => (tgt < v ? kFastOut : k);
       cur.humanSolid += (target.humanSolid - cur.humanSolid) * kHuman;
       cur.humanWire += (target.humanWire - cur.humanWire) * kHuman;
-      cur.brainSolid += (target.brainSolid - cur.brainSolid) * k;
-      cur.brainWire += (target.brainWire - cur.brainWire) * k;
-      cur.brainDots += (target.brainDots - cur.brainDots) * k;
+      cur.brainSolid += (target.brainSolid - cur.brainSolid) * brainK(cur.brainSolid, target.brainSolid);
+      cur.brainWire += (target.brainWire - cur.brainWire) * brainK(cur.brainWire, target.brainWire);
+      cur.brainDots += (target.brainDots - cur.brainDots) * brainK(cur.brainDots, target.brainDots);
       cur.dotSize += (target.dotSize - cur.dotSize) * k;
-      cur.cells += (target.cells - cur.cells) * k;
-      cur.hero += (target.hero - cur.hero) * k;
+      // Cells fade-in is gated: don't grow toward target.cells until the
+      // brain has mostly cleared (sum of brain channels < 0.18). Out-fade
+      // uses the normal rate. This is what makes the "zoom into a dot,
+      // then reveal cells" beat read as a clean handoff instead of a
+      // fade-cross.
+      const brainPresence = cur.brainSolid + cur.brainWire + cur.brainDots;
+      const cellsFadingIn = target.cells > cur.cells || target.hero > cur.hero;
+      const cellsK = cellsFadingIn && brainPresence > 0.18 ? 0 : k;
+      cur.cells += (target.cells - cur.cells) * cellsK;
+      cur.hero += (target.hero - cur.hero) * cellsK;
       cur.synapsePair += (target.synapsePair - cur.synapsePair) * k;
       cur.synapseMarker += (target.synapseMarker - cur.synapseMarker) * k;
 
@@ -1574,6 +1624,15 @@ export default function ZoomScene({
         camera.position.lerp(targetCamPos, camK);
         curCamLook.lerp(targetCamLook, camK * 1.5);
         controls.target.copy(curCamLook);
+      }
+      // Double-click recenter — eased lerp of controls.target toward the
+      // hit point, then we let the user keep orbiting from there.
+      if (recenterTarget) {
+        const elapsed = t - recenterStartedAt;
+        const u = Math.min(1, elapsed / RECENTER_DURATION);
+        const ease = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+        controls.target.copy(recenterFrom).lerp(recenterTarget, ease);
+        if (u >= 1) recenterTarget = null;
       }
       controls.update();
 
