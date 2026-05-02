@@ -50,19 +50,30 @@ export class BrainActivityMissingError extends Error {
   }
 }
 
-export async function loadBrainActivityManifest(): Promise<BrainActivityManifest> {
-  const r = await fetch(`${BASE}data/brain-activity.json`);
+/** "v1" = single subject; "v2" = consensus across 3 subjects (group-average). */
+export type BrainActivityVariant = "v1" | "v2";
+
+function suffix(v: BrainActivityVariant): string {
+  return v === "v2" ? "-v2" : "";
+}
+
+export async function loadBrainActivityManifest(
+  variant: BrainActivityVariant = "v1",
+): Promise<BrainActivityManifest> {
+  const r = await fetch(`${BASE}data/brain-activity${suffix(variant)}.json`);
   if (r.status === 404) throw new BrainActivityMissingError();
-  if (!r.ok) throw new Error(`brain-activity.json: ${r.status}`);
+  if (!r.ok) throw new Error(`brain-activity${suffix(variant)}.json: ${r.status}`);
   const ct = r.headers.get("content-type") ?? "";
   if (ct.includes("text/html")) throw new BrainActivityMissingError();
   return r.json();
 }
 
-export async function loadBrainActivity(): Promise<BrainActivityData> {
-  const r = await fetch(`${BASE}data/brain-activity.bin`);
+export async function loadBrainActivity(
+  variant: BrainActivityVariant = "v1",
+): Promise<BrainActivityData> {
+  const r = await fetch(`${BASE}data/brain-activity${suffix(variant)}.bin`);
   if (r.status === 404) throw new BrainActivityMissingError();
-  if (!r.ok) throw new Error(`brain-activity.bin: ${r.status}`);
+  if (!r.ok) throw new Error(`brain-activity${suffix(variant)}.bin: ${r.status}`);
   const ct = r.headers.get("content-type") ?? "";
   if (ct.includes("text/html")) throw new BrainActivityMissingError();
   const buf = await r.arrayBuffer();

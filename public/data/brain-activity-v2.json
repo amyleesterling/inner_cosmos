@@ -1,0 +1,24 @@
+{
+  "schema": "brain-activity/1",
+  "variant": "v2 \u2014 group-averaged consensus brain",
+  "dataset": {
+    "name": "Naturalistic Neuroimaging Database (NNDb)",
+    "openneuroId": "ds002837",
+    "doi": "10.18112/openneuro.ds002837.v2.0.0",
+    "license": "CC0",
+    "citation": "Aliko et al. 2020, Scientific Data 7(1), 347."
+  },
+  "subjects": [
+    "sub-1",
+    "sub-2",
+    "sub-3"
+  ],
+  "task": "500daysofsummer",
+  "movie": "(500) Days of Summer",
+  "preprocessingNotes": "Three NNDb participants watching the same movie. Each participant's BOLD was z-scored per voxel, then averaged across the three at every voxel \u2014 this filters out idiosyncratic fluctuations (random thoughts, head motion, scanner noise) and concentrates the signal on what the three brains do in common during the same scene. K=2000 k-means parcellation; per-parcel percentile normalization; gamma 0.85.",
+  "parcels": 2000,
+  "frames": 30,
+  "trSeconds": 1.0,
+  "durationSeconds": 30.0,
+  "vertexCount": 75006
+}
