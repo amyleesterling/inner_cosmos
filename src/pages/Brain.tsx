@@ -48,6 +48,8 @@ export default function Brain() {
       lastTickRef.current = null;
       return;
     }
+    // 1× — the slowness IS the data. The haemodynamic response is genuinely
+    // a ~10 s curve; speeding playback would distort what BOLD looks like.
     let frameId = 0;
     const tick = (now: number) => {
       const last = lastTickRef.current;

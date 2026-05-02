@@ -91,18 +91,18 @@ export default function BrainSurface({ activity, elapsedSec, onReady, className 
     scene.add(key);
 
     // === Particle drift ===
-    // 800 small motes orbiting the brain on slightly-eccentric circles.
-    // Each has its own radius/phase/y-tilt so the cloud never locks into a
-    // pattern. Additive blending so they add light to the scene.
-    const PARTICLES = 1100;
+    // 200 small motes pushed out to radius 4.0–7.0 so they don't crowd the
+    // cortex. Each has its own phase/tilt/speed so the cloud never locks
+    // into a pattern. Additive blending; small point size; gentle.
+    const PARTICLES = 200;
     const partGeom = new THREE.BufferGeometry();
     const partPos = new Float32Array(PARTICLES * 3);
     const partSeed = new Float32Array(PARTICLES * 4); // [radius, phase, tiltY, speed]
     for (let i = 0; i < PARTICLES; i++) {
-      const r = 1.6 + Math.random() * 3.5;
+      const r = 4.0 + Math.random() * 3.0;
       const phase = Math.random() * Math.PI * 2;
-      const tiltY = (Math.random() - 0.5) * 1.6;
-      const speed = 0.12 + Math.random() * 0.18;
+      const tiltY = (Math.random() - 0.5) * 4.0;
+      const speed = 0.04 + Math.random() * 0.08;
       partSeed[i * 4 + 0] = r;
       partSeed[i * 4 + 1] = phase;
       partSeed[i * 4 + 2] = tiltY;
@@ -122,24 +122,21 @@ export default function BrainSurface({ activity, elapsedSec, onReady, className 
         void main() {
           float r = seed.x;
           float a = seed.y + uTime * seed.w;
-          vec3 pos = vec3(cos(a) * r, seed.z + sin(a * 0.7) * 0.18, sin(a) * r);
+          vec3 pos = vec3(cos(a) * r, seed.z + sin(a * 0.4) * 0.3, sin(a) * r);
           vec4 mv = modelViewMatrix * vec4(pos, 1.0);
           gl_Position = projectionMatrix * mv;
-          // Fade with depth — distant motes are dim
-          vAlpha = clamp(1.0 / (1.0 + length(mv.xyz) * 0.18), 0.05, 0.85);
-          // Size shrinks with depth and varies with phase so they twinkle.
-          float twinkle = 0.55 + 0.45 * sin(uTime * 1.4 + seed.y * 5.0);
-          gl_PointSize = (3.6 - clamp(length(mv.xyz) * 0.4, 0.0, 2.6)) * twinkle * (300.0 / -mv.z);
+          vAlpha = clamp(1.0 / (1.0 + length(mv.xyz) * 0.25), 0.04, 0.45);
+          float twinkle = 0.55 + 0.45 * sin(uTime * 1.0 + seed.y * 5.0);
+          gl_PointSize = (1.4 - clamp(length(mv.xyz) * 0.16, 0.0, 1.0)) * twinkle * (220.0 / -mv.z);
         }
       `,
       fragmentShader: /* glsl */ `
         varying float vAlpha;
         void main() {
-          // Soft round disc with a hot center.
           vec2 d = gl_PointCoord - vec2(0.5);
           float r = length(d);
           if (r > 0.5) discard;
-          float core = pow(1.0 - r * 2.0, 1.6);
+          float core = pow(1.0 - r * 2.0, 1.8);
           vec3 col = mix(vec3(0.55, 0.45, 0.95), vec3(0.95, 0.85, 1.0), core);
           gl_FragColor = vec4(col * core, core * vAlpha);
         }
@@ -152,10 +149,8 @@ export default function BrainSurface({ activity, elapsedSec, onReady, className 
     scene.add(particles);
 
     let cortexGroup: THREE.Group | null = null;
-    let cerebellumGroup: THREE.Group | null = null;
     const cortexMaterials: THREE.ShaderMaterial[] = [];
     const haloMaterials: THREE.ShaderMaterial[] = [];
-    const cerebellumMaterials: THREE.MeshStandardMaterial[] = [];
 
     // Parcel-activity uniform: a 1-D data texture sized [parcels+1, 1] — the
     // last texel is the "no signal" sentinel that off-cortex vertices read.
@@ -339,35 +334,11 @@ export default function BrainSurface({ activity, elapsedSec, onReady, className 
         controls.maxDistance = dist * 4.5;
         controls.update();
 
-        // Cerebellum — the brain reads as one object only when the cauliflower
-        // is sitting beneath the cortex. Tinted darker so it doesn't compete
-        // with the cortex's activity but still catches a hint of the magenta.
-        loader.load(
-          `${BASE}meshes/human-cerebellum.glb`,
-          (cgltf) => {
-            cerebellumGroup = new THREE.Group();
-            cgltf.scene.traverse((obj) => {
-              if (obj instanceof THREE.Mesh) {
-                const cmat = new THREE.MeshStandardMaterial({
-                  color: new THREE.Color("#5a2eaa"),
-                  emissive: new THREE.Color("#2a0e60"),
-                  emissiveIntensity: 0.45,
-                  roughness: 0.7,
-                  metalness: 0.0,
-                  side: THREE.DoubleSide,
-                });
-                obj.material = cmat;
-                cerebellumMaterials.push(cmat);
-                cerebellumGroup!.add(obj);
-              }
-            });
-            scene.add(cerebellumGroup);
-            setReady(true);
-            onReady?.();
-          },
-          undefined,
-          () => { setReady(true); onReady?.(); },
-        );
+        // No cerebellum on this page — there's no fMRI signal coregistered
+        // for it (the EPI only covers cortex), so showing it dim and dead
+        // would imply more than the data supports.
+        setReady(true);
+        onReady?.();
       },
       undefined,
       (err) => { console.error("cortex load failed:", err); },
@@ -428,20 +399,17 @@ export default function BrainSurface({ activity, elapsedSec, onReady, className 
       controls.dispose();
       partGeom.dispose();
       partMat.dispose();
-      [cortexGroup, cerebellumGroup].forEach((g) => {
-        g?.traverse((obj) => {
-          if (obj instanceof THREE.Mesh) {
-            obj.geometry.dispose();
-            const m = obj.material;
-            if (Array.isArray(m)) m.forEach((mm) => mm.dispose());
-            else m.dispose();
-          }
-        });
+      cortexGroup?.traverse((obj) => {
+        if (obj instanceof THREE.Mesh) {
+          obj.geometry.dispose();
+          const m = obj.material;
+          if (Array.isArray(m)) m.forEach((mm) => mm.dispose());
+          else m.dispose();
+        }
       });
       activityTex.dispose();
       cortexMaterials.forEach((m) => m.dispose());
       haloMaterials.forEach((m) => m.dispose());
-      cerebellumMaterials.forEach((m) => m.dispose());
       renderer.dispose();
       if (renderer.domElement.parentNode) {
         renderer.domElement.parentNode.removeChild(renderer.domElement);

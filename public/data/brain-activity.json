@@ -11,13 +11,13 @@
   "task": "500daysofsummer",
   "movie": "(500) Days of Summer",
   "fileSourceUrl": "https://s3.amazonaws.com/openneuro.org/ds002837/derivatives/sub-1/func/sub-1_task-500daysofsummer_bold_blur_censor.nii.gz",
-  "preprocessingNotes": "Preprocessed by NNDb authors (AFNI; blurred + bandpass + ICA-censoring). Sampled to FreeSurfer pial vertices via nearest-voxel lookup in MNI N27 mm space. Z-scored per voxel, clipped to \u00b13\u03c3, parcellated into 512 k-means clusters on cortex coordinates, mean per parcel, smoothed temporally (3-frame triangular).",
-  "parcels": 512,
-  "frames": 160,
+  "preprocessingNotes": "BOLD preprocessed by NNDb authors (AFNI: blur + bandpass + ICA censoring), MNI N27 alignment at 3 mm. Sampled to FreeSurfer pial vertices via nearest-voxel lookup. Z-scored per voxel, parcellated into K=2000 k-means clusters on cortex coordinates (median 32 vertices per parcel; near-voxel spatial resolution). Per-parcel percentile normalization (5th\u201395th \u2192 [0, 1]) so each region uses the full visual range, gamma 0.85 to punch peaks. Real-time playback (TR = 1 s).",
+  "parcels": 2000,
+  "frames": 30,
   "trSeconds": 1.0,
-  "durationSeconds": 160.0,
+  "durationSeconds": 30.0,
   "vertexCount": 75006,
-  "valueRange": "[0, 255] uint8 \u2192 maps to z-score [-3, +3]",
+  "valueRange": "[0, 255] uint8; 0 = parcel 5th-percentile, 255 = 95th",
   "fmriVoxelsTouched": 20972,
   "fmriVoxelsInBrain": 17948
 }
