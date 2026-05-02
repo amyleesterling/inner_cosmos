@@ -622,6 +622,56 @@ export default function ZoomScene({ stage, apFireToken = 0 }: Props) {
         scene.add(humanBrainShell);
         humanBrainLoaded = true;
         updateProgress();
+
+        // Cerebellum lives in the same coordinate frame as the cortex
+        // (extract-cerebellum.py reuses the cortex's center+scale). Loaded
+        // inside the cortex callback so it's parented to humanBrainShell —
+        // fades + rotates as one. Materials get pushed into the SAME arrays
+        // as the cortex so opacity tracks cur.humanSolid / cur.humanWire.
+        // Slightly deeper purple so the cauliflower reads as a separate
+        // structure from the cortex above it.
+        loader.load(
+          `${BASE}meshes/human-cerebellum.glb`,
+          (cgltf) => {
+            const cMeshes: THREE.Mesh[] = [];
+            cgltf.scene.traverse((obj) => {
+              if (obj instanceof THREE.Mesh) cMeshes.push(obj);
+            });
+            for (const obj of cMeshes) {
+              const mat = new THREE.MeshStandardMaterial({
+                color: new THREE.Color("#9b58d4"),
+                emissive: new THREE.Color("#5e2aa8"),
+                emissiveIntensity: 0.28,
+                roughness: 0.75,
+                metalness: 0.0,
+                transparent: true,
+                opacity: 0.0,
+                side: THREE.DoubleSide,
+                depthWrite: true,
+              });
+              obj.material = mat;
+              humanBrainSolidMaterials.push(mat);
+
+              const cWireMat = new THREE.MeshBasicMaterial({
+                color: new THREE.Color("#e7b1ff"),
+                wireframe: true,
+                transparent: true,
+                opacity: 0.0,
+                blending: THREE.AdditiveBlending,
+                polygonOffset: true,
+                polygonOffsetFactor: -1,
+                polygonOffsetUnits: -1,
+                depthWrite: false,
+              });
+              const cWireMesh = new THREE.Mesh(obj.geometry, cWireMat);
+              obj.add(cWireMesh);
+              humanBrainWireMaterials.push(cWireMat);
+              humanBrainShell!.add(obj);
+            }
+          },
+          undefined,
+          (e) => console.error("cerebellum mesh", e),
+        );
       },
       undefined,
       (e) => console.error("human brain mesh", e),
