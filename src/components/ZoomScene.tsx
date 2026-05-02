@@ -1185,6 +1185,8 @@ export default function ZoomScene({
     let lastStage = -1;
     let apFiredAt = -1;       // wall-clock of the current AP cycle's start (-1 = idle)
     let apTokenSeen = -1;     // last apFireToken value we acted on
+    let apQueueDepth = 0;     // pending cycles to fire after the current one (capped MAX_AP_QUEUE)
+    const MAX_AP_QUEUE = 5;   // up to 5 spikes in flight, then further clicks ignored
     let apCharge = 0;         // 0..1 charge-up brightness during the lead-in
     let frameId = 0;
     const start = performance.now();
@@ -1354,10 +1356,19 @@ export default function ZoomScene({
           apFiredAt = t;
           apTokenSeen = apFireTokenRef.current;
         }
-        // User clicked the button → token incremented → restart cycle
+        // Each click increments the token. Treat the delta as queued
+        // cycles; cap so a button-mash doesn't run forever (MAX_AP_QUEUE).
+        // If currently idle, kick off the first one immediately and
+        // queue the rest; if mid-flight, just bump the queue.
         if (apFireTokenRef.current !== apTokenSeen) {
-          apFiredAt = t;
+          const delta = apFireTokenRef.current - apTokenSeen;
           apTokenSeen = apFireTokenRef.current;
+          if (apFiredAt < 0) {
+            apFiredAt = t;
+            apQueueDepth = Math.min(MAX_AP_QUEUE, apQueueDepth + delta - 1);
+          } else {
+            apQueueDepth = Math.min(MAX_AP_QUEUE, apQueueDepth + delta);
+          }
         }
         const stageT = apFiredAt < 0 ? -1 : t - apFiredAt;
         // No charge-up: the pulse fires the instant the user clicks. The
@@ -1371,6 +1382,14 @@ export default function ZoomScene({
         const SOMA_END  = 0.65;
         const PYRA_END  = 0.95;
         if (stageT < 0 || stageT >= LEAD_IN + CYCLE_LEN) {
+          // End of a cycle. If queue has more, kick the next one off
+          // immediately so the spikes read as a burst sequence.
+          if (apFiredAt >= 0 && stageT >= LEAD_IN + CYCLE_LEN && apQueueDepth > 0) {
+            apFiredAt = t;
+            apQueueDepth -= 1;
+          } else if (apFiredAt >= 0 && stageT >= LEAD_IN + CYCLE_LEN) {
+            apFiredAt = -1;
+          }
           // Idle (pre-fire OR post-cycle) — pulses off, no charge
           setBloom(axonBloom, 0);
           setBloom(pyramidBloom, 0);
@@ -1472,6 +1491,7 @@ export default function ZoomScene({
         if (s !== 7) {
           apFiredAt = -1;
           apTokenSeen = -1; // reset so re-entry auto-fires again
+          apQueueDepth = 0; // wipe pending spikes — fresh start on re-entry
         }
         setBloom(axonBloom, 0);
         setBloom(pyramidBloom, 0);
