@@ -1,0 +1,23 @@
+{
+  "schema": "brain-activity/1",
+  "dataset": {
+    "name": "Naturalistic Neuroimaging Database (NNDb)",
+    "openneuroId": "ds002837",
+    "doi": "10.18112/openneuro.ds002837.v2.0.0",
+    "license": "CC0",
+    "citation": "Aliko, S., Huang, J., Gheorghiu, F., Meliss, S., & Skipper, J. I. (2020). A naturalistic neuroimaging database for understanding the brain using ecological stimuli. Scientific Data, 7(1), 347."
+  },
+  "subject": "sub-1",
+  "task": "500daysofsummer",
+  "movie": "(500) Days of Summer",
+  "fileSourceUrl": "https://s3.amazonaws.com/openneuro.org/ds002837/derivatives/sub-1/func/sub-1_task-500daysofsummer_bold_blur_censor.nii.gz",
+  "preprocessingNotes": "Preprocessed by NNDb authors (AFNI; blurred + bandpass + ICA-censoring). Sampled to FreeSurfer pial vertices via nearest-voxel lookup in MNI N27 mm space. Z-scored per voxel, clipped to \u00b13\u03c3, parcellated into 512 k-means clusters on cortex coordinates, mean per parcel, smoothed temporally (3-frame triangular).",
+  "parcels": 512,
+  "frames": 160,
+  "trSeconds": 1.0,
+  "durationSeconds": 160.0,
+  "vertexCount": 75006,
+  "valueRange": "[0, 255] uint8 \u2192 maps to z-score [-3, +3]",
+  "fmriVoxelsTouched": 20972,
+  "fmriVoxelsInBrain": 17948
+}
