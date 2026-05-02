@@ -71,6 +71,11 @@ interface Props {
   // sets this true — the indicator is academic chrome that doesn't fit
   // the kid-friendly experience.
   hideProgress?: boolean;
+  // Replace the warm/cool keyed lighting with two equal pure-white front
+  // studio lights (and lift ambient). When the brain is recolored via a
+  // CSS hue-rotate, the warm/cool keys read as alien-tinted highlights;
+  // pure white front lights survive the rotation cleanly.
+  studioLighting?: boolean;
 }
 
 export default function ZoomScene({
@@ -80,6 +85,7 @@ export default function ZoomScene({
   particleColor,
   particleHotColor,
   hideProgress = false,
+  studioLighting = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef(stage);
@@ -125,13 +131,27 @@ export default function ZoomScene({
     // mesh.receiveShadow + castShadow) for true self-shadowing in the
     // sulci. Skipped for now — emissive reduction + cross-keys gets most
     // of the win without the perf cost.
-    scene.add(new THREE.AmbientLight(0xffffff, 0.18));
-    const keyWarm = new THREE.DirectionalLight(new THREE.Color("#fff4e0"), 1.05);
-    keyWarm.position.set(2.5, 3.0, 3.0);
-    scene.add(keyWarm);
-    const keyCool = new THREE.DirectionalLight(new THREE.Color("#a8c8ff"), 0.65);
-    keyCool.position.set(-2.5, 2.0, 1.5);
-    scene.add(keyCool);
+    if (studioLighting) {
+      // Two-key studio: equal pure-white front lights (left + right) so a
+      // CSS hue-rotate applied to the canvas doesn't bend warm/cool keys
+      // into alien-tinted highlights. Ambient lifted so the shadow side
+      // stays readable instead of going muddy.
+      scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+      const keyL = new THREE.DirectionalLight(0xffffff, 1.0);
+      keyL.position.set(-2.5, 1.5, 3.5);
+      scene.add(keyL);
+      const keyR = new THREE.DirectionalLight(0xffffff, 1.0);
+      keyR.position.set(2.5, 1.5, 3.5);
+      scene.add(keyR);
+    } else {
+      scene.add(new THREE.AmbientLight(0xffffff, 0.18));
+      const keyWarm = new THREE.DirectionalLight(new THREE.Color("#fff4e0"), 1.05);
+      keyWarm.position.set(2.5, 3.0, 3.0);
+      scene.add(keyWarm);
+      const keyCool = new THREE.DirectionalLight(new THREE.Color("#a8c8ff"), 0.65);
+      keyCool.position.set(-2.5, 2.0, 1.5);
+      scene.add(keyCool);
+    }
 
     // ---- Brain meshes + interior neuron dots ------------------------------
     // Stage 0 = human brain (the intro). Stages 1+ = mouse brain (where the

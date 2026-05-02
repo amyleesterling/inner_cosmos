@@ -22,17 +22,57 @@ const ZOOM_ACTIVITY = -1;
 interface KgStage {
   zoom: number;
   text: string;
+  /** Optional second line shown smaller beneath the main caption. */
+  subtitle?: string;
+  /** When true, the cluster legend (color-key for cell types) is shown. */
+  showLegend?: boolean;
 }
 
 const KG_STAGES: KgStage[] = [
   { zoom: 0, text: "This is your brain." },
   { zoom: 1, text: "And this is a mouse's brain." },
   { zoom: 2, text: "Let's go inside." },
-  { zoom: 4, text: "These are neurons." },
-  { zoom: 5, text: "Just one tree." },
-  { zoom: 6, text: "Where two trees almost touch…" },
-  { zoom: 7, text: "…tiny lightning." },
+  // Zoom 3 (the V1 highlight) is the camera-lerp bridge: whole mouse
+  // brain → V1 → cells. Re-included so the jump from "let's go inside"
+  // to "these are neurons" reads as one continuous zoom-in instead of
+  // a hard cut.
+  { zoom: 3, text: "Closer." },
+  {
+    zoom: 4,
+    text: "Neurons!",
+    subtitle: "There are many types of cells in the brain, but neurons are the stars.",
+    showLegend: true,
+  },
+  {
+    zoom: 5,
+    text: "One neuron.",
+    subtitle: "Your brain contains 86 billion!",
+  },
+  {
+    zoom: 6,
+    text: "Synapse",
+    subtitle: "Neurons connect and communicate through synapses.",
+  },
+  { zoom: 7, text: "Action potential!" },
+  // Same scene, different beat — the AP keeps firing in the background
+  // while the kid lands on the wow-stat that gives it scale.
+  {
+    zoom: 7,
+    text: "Neurons send signals faster than a cheetah runs!",
+    subtitle: "Every second your brain sends a quadrillion action potentials — 1,000,000,000,000,000.",
+  },
   { zoom: ZOOM_ACTIVITY, text: "Watch your brain sparkle." },
+];
+
+// Color/label key for the cluster stage — same colors as /explore so the
+// meshes on screen match the legend exactly.
+const CLUSTER_LEGEND: { color: string; label: string }[] = [
+  { color: "#5b7cff", label: "Pyramidal neuron" },
+  { color: "#b56fd8", label: "Basket cell" },
+  { color: "#ffd24a", label: "Chandelier cell" },
+  { color: "#3ee0bc", label: "Martinotti cell" },
+  { color: "#ffae3e", label: "Bipolar interneuron" },
+  { color: "#4a8bff", label: "Long-range axon" },
 ];
 
 export default function Kindergarten() {
@@ -129,7 +169,10 @@ export default function Kindergarten() {
           position: "absolute",
           inset: 0,
           filter: isBrainStage
-            ? "grayscale(1) sepia(1) saturate(6) hue-rotate(8deg) brightness(1.35) contrast(1.05)"
+            // Muted denim/dusty caribbean blue per Amy's swatch — slightly
+            // desaturated, slightly cooler than full caribbean, gentle
+            // brightness lift instead of high-key glow.
+            ? "hue-rotate(285deg) saturate(0.9) brightness(1.05)"
             : "none",
           transition: "filter 1.2s ease-out",
         }}
@@ -138,7 +181,11 @@ export default function Kindergarten() {
           <ZoomScene
             stage={stage.zoom}
             apFireToken={apFireToken}
-            particleScale={0.6}
+            particleScale={0.35}
+            particleColor="#ffffff"
+            particleHotColor="#ffffff"
+            hideProgress
+            studioLighting
           />
         )}
         {isActivity && activity && (
@@ -156,7 +203,12 @@ export default function Kindergarten() {
         )}
       </div>
 
-      <Caption text={stage.text} idx={idx} />
+      <Caption
+        text={stage.text}
+        subtitle={stage.subtitle}
+        showLegend={stage.showLegend}
+        idx={idx}
+      />
       <BottomBar
         idx={idx}
         count={KG_STAGES.length}
@@ -164,6 +216,27 @@ export default function Kindergarten() {
         onBack={back}
         onNext={advance}
       />
+
+      {/* Attribution — small, sans-serif, only on the first and last slides. */}
+      {(idx === 0 || isLast) && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: "1.5vh",
+            right: "2vw",
+            fontSize: 11,
+            color: "rgba(255, 245, 220, 0.45)",
+            fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", sans-serif',
+            letterSpacing: "0.02em",
+            zIndex: 240,
+            pointerEvents: "none",
+            textAlign: "right",
+            maxWidth: "60vw",
+          }}
+        >
+          Made by Amy Sterling for Sophia Sterling's Kindergarten Class · May 1, 2026
+        </div>
+      )}
     </div>
   );
 }
@@ -178,48 +251,160 @@ function RainbowTieDye({ opacity }: { opacity: number }) {
   return (
     <>
       <style>{`
-        @keyframes kg-rainbow-drift {
-          0%   { transform: scale(1.16) translate(-1.5%, -0.5%) rotate(0deg); }
-          50%  { transform: scale(1.24) translate(1.5%, 0.5%)   rotate(6deg); }
-          100% { transform: scale(1.16) translate(-1.5%, -0.5%) rotate(0deg); }
+        /* Undulating drift — wave-like S-curve in X and Y so the layer
+           rolls instead of just scaling. Different keyframes per layer
+           so they undulate out of sync (gas looking alive, not in lockstep). */
+        @keyframes kg-undulate-a {
+          0%   { transform: scale(1.18) translate(-2%, -1%); }
+          25%  { transform: scale(1.22) translate(1.5%, -2%); }
+          50%  { transform: scale(1.20) translate(2%, 1.5%); }
+          75%  { transform: scale(1.24) translate(-1%, 2%); }
+          100% { transform: scale(1.18) translate(-2%, -1%); }
+        }
+        @keyframes kg-undulate-b {
+          0%   { transform: scale(1.20) translate(2%, 1%); }
+          25%  { transform: scale(1.16) translate(-1.5%, 2%); }
+          50%  { transform: scale(1.22) translate(-2%, -1.5%); }
+          75%  { transform: scale(1.18) translate(1%, -2%); }
+          100% { transform: scale(1.20) translate(2%, 1%); }
+        }
+        @keyframes kg-undulate-c {
+          0%   { transform: scale(1.20) translate(0%, -1.5%) rotate(0deg); }
+          50%  { transform: scale(1.24) translate(0.5%, 1.5%) rotate(3deg); }
+          100% { transform: scale(1.20) translate(0%, -1.5%) rotate(0deg); }
+        }
+        /* Star twinkle — global opacity gentle pulse. */
+        @keyframes kg-stars-twinkle {
+          0%, 100% { opacity: 1;    }
+          50%      { opacity: 0.55; }
+        }
+        /* Star-bloom breathing — the brain-as-star inhales/exhales light. */
+        @keyframes kg-star-breathe {
+          0%, 100% { opacity: 0.92; transform: scale(1);    }
+          50%      { opacity: 1;    transform: scale(1.05); }
+        }
+        /* Nebula/galaxy: deep ink base + many large soft color clouds
+           overlapping with screen-blend so they mix organically (not blocky
+           crayon zones), an SVG turbulence layer on top for wispy gas
+           texture, and tiny stars sprinkled across. */
+        .kg-rainbow-bg {
+          position: absolute;
+          inset: 0;
+          background:
+            radial-gradient(circle at 50% 55%, #1a0a3a 0%, #07021a 60%, #02000a 100%);
         }
         .kg-rainbow-base {
           position: absolute;
-          inset: -10%;
-          /* Hand-tuned per the brief:
-             pink → golden yellow → teal green → light blue → dark blue
-             → teal blue → light purple → magenta. No hue-rotate here —
-             that animation would scramble the chosen palette. */
+          inset: -15%;
+          /* Soft, large, feathered clouds — no solid centers. Each cloud
+             reaches max color at the very middle then gradually fades to
+             transparent, so when they overlap (via screen blend) they
+             blend like real gas, not stamp on each other. */
           background:
-            radial-gradient(30% 26% at 20% 18%, #ff8fc8 0%, transparent 65%),  /* pink top-left */
-            radial-gradient(28% 24% at 50% 12%, #ffcb55 0%, transparent 65%),  /* golden yellow top */
-            radial-gradient(30% 26% at 82% 22%, #c89fff 0%, transparent 65%),  /* light purple top-right */
-            radial-gradient(30% 26% at 10% 50%, #93d4ff 0%, transparent 65%),  /* light blue mid-left */
-            radial-gradient(34% 30% at 50% 50%, #4fd9b3 0%, transparent 65%),  /* teal green center */
-            radial-gradient(28% 24% at 90% 50%, #d84cb6 0%, transparent 65%),  /* magenta mid-right */
-            radial-gradient(32% 28% at 22% 82%, #4fb6cc 0%, transparent 65%),  /* teal blue bottom-left */
-            radial-gradient(32% 28% at 78% 84%, #2c4ed0 0%, transparent 65%),  /* dark blue bottom-right */
-            linear-gradient(135deg, #ffd6e8 0%, #d6f0ff 45%, #d6e3ff 100%);
-          animation: kg-rainbow-drift 42s ease-in-out infinite;
+            radial-gradient(50% 45% at 18% 22%, rgba(255, 60, 150, 0.85) 0%, transparent 70%),  /* pink */
+            radial-gradient(46% 40% at 50% 10%, rgba(255, 170, 30, 0.78) 0%, transparent 72%),  /* gold */
+            radial-gradient(50% 44% at 84% 24%, rgba(140, 70, 255, 0.85) 0%, transparent 70%),  /* purple */
+            radial-gradient(48% 42% at 8% 56%,  rgba(60, 170, 255, 0.85) 0%, transparent 72%),  /* light blue */
+            radial-gradient(58% 50% at 52% 50%, rgba(40, 200, 140, 0.55) 0%, transparent 75%),  /* teal green soft center */
+            radial-gradient(46% 40% at 92% 56%, rgba(220, 40, 170, 0.85) 0%, transparent 70%),  /* magenta */
+            radial-gradient(52% 44% at 24% 88%, rgba(40, 160, 200, 0.85) 0%, transparent 72%),  /* teal blue */
+            radial-gradient(54% 46% at 78% 92%, rgba(40, 70, 220, 0.85) 0%, transparent 72%);   /* dark blue */
+          mix-blend-mode: screen;
+          animation: kg-undulate-a 70s ease-in-out infinite;
           will-change: transform;
         }
-        /* Dark purple vignette frames the canvas — pulls the eye toward
-           the brain at center. Transparent inside, deep purple at edges. */
+        /* Wispy gas texture — fractalNoise SVG that shifts at low frequency.
+           Multiplied at low opacity so it adds tendrils/swirls without
+           dominating. Real nebulas are wispy; flat gradients are not. */
+        .kg-rainbow-noise {
+          position: absolute;
+          inset: -20%;
+          opacity: 0.55;
+          mix-blend-mode: overlay;
+          pointer-events: none;
+          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1.4 -0.3'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+          background-size: cover;
+          animation: kg-undulate-b 110s ease-in-out infinite;
+        }
+        /* Stars — tiny white dots scattered as a CSS background. Three
+           layers at different sizes/distributions for parallax-y depth. */
+        .kg-rainbow-stars {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background-image:
+            radial-gradient(1.5px 1.5px at 12% 14%, rgba(255,255,255,0.95), transparent),
+            radial-gradient(1px 1px at 26% 32%, rgba(255,255,255,0.85), transparent),
+            radial-gradient(1.5px 1.5px at 44% 18%, rgba(255,255,255,0.95), transparent),
+            radial-gradient(1px 1px at 60% 28%, rgba(255,255,255,0.7), transparent),
+            radial-gradient(2px 2px at 78% 12%, rgba(255,250,220,0.95), transparent),
+            radial-gradient(1px 1px at 88% 36%, rgba(255,255,255,0.8), transparent),
+            radial-gradient(1.5px 1.5px at 8% 58%, rgba(255,255,255,0.85), transparent),
+            radial-gradient(1px 1px at 22% 72%, rgba(255,255,255,0.7), transparent),
+            radial-gradient(1.5px 1.5px at 38% 86%, rgba(255,250,220,0.9), transparent),
+            radial-gradient(1px 1px at 54% 64%, rgba(255,255,255,0.7), transparent),
+            radial-gradient(2px 2px at 70% 78%, rgba(255,255,255,0.95), transparent),
+            radial-gradient(1px 1px at 84% 84%, rgba(255,255,255,0.7), transparent),
+            radial-gradient(1.5px 1.5px at 96% 64%, rgba(255,250,220,0.9), transparent),
+            radial-gradient(1px 1px at 4% 38%, rgba(255,255,255,0.7), transparent),
+            radial-gradient(1px 1px at 32% 6%, rgba(255,255,255,0.7), transparent);
+          background-size: 100% 100%;
+          animation: kg-stars-twinkle 7s ease-in-out infinite;
+        }
+        /* Dark purple vignette — pulls the corners deep so center stage
+           is the brain. Stronger than before to support "darker background". */
         .kg-rainbow-vignette {
           position: absolute;
           inset: 0;
           background:
-            radial-gradient(78% 68% at 50% 50%, transparent 0%, transparent 55%, rgba(48, 14, 82, 0.45) 82%, rgba(26, 6, 50, 0.82) 100%);
+            radial-gradient(78% 68% at 50% 50%, transparent 0%, transparent 50%, rgba(20, 6, 40, 0.55) 78%, rgba(8, 2, 20, 0.92) 100%);
           pointer-events: none;
         }
-        /* Soft elliptical shadow behind the brain — gives the mesh
-           something to "sit on" instead of floating. */
+        /* Star-bloom behind the brain — the brain becomes the radiant
+           heart of the nebula. Two layered halos: a tight warm core that
+           sells "this thing is emitting light" and a soft outer haze that
+           bathes the surrounding gas in a warmer key. */
         .kg-brain-shadow {
           position: absolute;
           inset: 0;
           background:
-            radial-gradient(26% 20% at 50% 50%, rgba(20, 6, 40, 0.40) 0%, rgba(20, 6, 40, 0.18) 50%, transparent 78%);
+            radial-gradient(11% 9% at 50% 48%, rgba(255, 235, 150, 0.95) 0%, rgba(255, 200, 80, 0.55) 30%, rgba(255, 160, 40, 0.18) 60%, transparent 80%),
+            radial-gradient(36% 30% at 50% 48%, rgba(255, 200, 100, 0.32) 0%, rgba(255, 170, 60, 0.10) 50%, transparent 78%);
           pointer-events: none;
+          mix-blend-mode: screen;
+          animation: kg-star-breathe 6s ease-in-out infinite;
+        }
+        /* Galactic dust band — a sweeping diagonal of denser gas, like
+           the Milky Way's plane or the warm shoulder of a Hubble nebula. */
+        .kg-rainbow-band {
+          position: absolute;
+          inset: -20%;
+          background:
+            linear-gradient(112deg,
+              transparent 0%,
+              transparent 28%,
+              rgba(255, 100, 180, 0.18) 38%,
+              rgba(180, 90, 255, 0.28) 48%,
+              rgba(80, 130, 255, 0.22) 58%,
+              transparent 70%,
+              transparent 100%);
+          mix-blend-mode: screen;
+          filter: blur(40px);
+          animation: kg-undulate-c 130s ease-in-out infinite;
+          will-change: transform;
+        }
+        /* Second turbulence pass at higher frequency — fine wisps + tendrils
+           on top of the broad gas blobs, so the eye reads "structure" not
+           "smooth gradient." */
+        .kg-rainbow-wisps {
+          position: absolute;
+          inset: -25%;
+          opacity: 0.4;
+          mix-blend-mode: soft-light;
+          pointer-events: none;
+          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='800'><filter id='w'><feTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1.6 -0.4'/></filter><rect width='100%' height='100%' filter='url(%23w)'/></svg>");
+          background-size: cover;
+          animation: kg-undulate-b 95s ease-in-out infinite reverse;
         }
       `}</style>
       <div
@@ -232,7 +417,12 @@ function RainbowTieDye({ opacity }: { opacity: number }) {
           zIndex: 0,
         }}
       >
+        <div className="kg-rainbow-bg" />
         <div className="kg-rainbow-base" />
+        <div className="kg-rainbow-band" />
+        <div className="kg-rainbow-noise" />
+        <div className="kg-rainbow-wisps" />
+        <div className="kg-rainbow-stars" />
         <div className="kg-rainbow-vignette" />
         <div className="kg-brain-shadow" />
       </div>
@@ -243,14 +433,24 @@ function RainbowTieDye({ opacity }: { opacity: number }) {
 /* ---------------------------------------------------------------------------
  * Caption — kid-friendly text, fades + drifts up between stages.
  * ------------------------------------------------------------------------- */
-function Caption({ text, idx }: { text: string; idx: number }) {
+function Caption({
+  text,
+  subtitle,
+  showLegend,
+  idx,
+}: {
+  text: string;
+  subtitle?: string;
+  showLegend?: boolean;
+  idx: number;
+}) {
   return (
     <div
       style={{
         position: "absolute",
         left: 0,
         right: 0,
-        bottom: "14vh",
+        bottom: "12vh",
         display: "grid",
         placeItems: "center",
         zIndex: 200,
@@ -265,18 +465,73 @@ function Caption({ text, idx }: { text: string; idx: number }) {
           animate={{ opacity: 1, y: 0,  filter: "blur(0px)" }}
           exit={{    opacity: 0, y: -8, filter: "blur(6px)" }}
           transition={{ duration: 0.9, ease: [0.16, 0.8, 0.24, 1] }}
-          style={{
-            fontSize: "clamp(2.2rem, 5vw, 4.6rem)",
-            fontWeight: 600,
-            color: "#fff7e0",
-            letterSpacing: "-0.01em",
-            textAlign: "center",
-            textShadow:
-              "0 2px 24px rgba(0,0,0,0.85), 0 0 38px rgba(255, 200, 110, 0.35)",
-            fontFamily: '"Fraunces", "Inter", system-ui, sans-serif',
-          }}
+          style={{ textAlign: "center", maxWidth: "min(90vw, 920px)" }}
         >
-          {text}
+          <div
+            style={{
+              fontSize: "clamp(2.2rem, 5vw, 4.6rem)",
+              fontWeight: 600,
+              color: "#fff7e0",
+              letterSpacing: "-0.01em",
+              textShadow:
+                "0 2px 24px rgba(0,0,0,0.85), 0 0 38px rgba(255, 200, 110, 0.35)",
+              fontFamily: '"Fraunces", "Inter", system-ui, sans-serif',
+            }}
+          >
+            {text}
+          </div>
+          {subtitle && (
+            <div
+              style={{
+                marginTop: "0.5em",
+                fontSize: "clamp(0.95rem, 1.5vw, 1.3rem)",
+                fontWeight: 400,
+                color: "rgba(255, 247, 224, 0.78)",
+                fontFamily: '"Fraunces", "Inter", system-ui, sans-serif',
+                textShadow: "0 1px 12px rgba(0,0,0,0.7)",
+              }}
+            >
+              {subtitle}
+            </div>
+          )}
+          {showLegend && (
+            <div
+              style={{
+                marginTop: "1em",
+                display: "flex",
+                flexWrap: "wrap",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: "6px 16px",
+                fontSize: "clamp(11px, 1vw, 13px)",
+                color: "rgba(255, 247, 224, 0.85)",
+                fontFamily: 'Inter, system-ui, sans-serif',
+              }}
+            >
+              {CLUSTER_LEGEND.map((item) => (
+                <span
+                  key={item.label}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 9,
+                      height: 9,
+                      borderRadius: 999,
+                      background: item.color,
+                      boxShadow: `0 0 8px ${item.color}99`,
+                    }}
+                  />
+                  {item.label}
+                </span>
+              ))}
+            </div>
+          )}
         </motion.div>
       </AnimatePresence>
     </div>
