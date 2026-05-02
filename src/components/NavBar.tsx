@@ -3,8 +3,8 @@ import { Link, useLocation } from "react-router-dom";
 export default function NavBar() {
   const { pathname } = useLocation();
 
-  // /kindergarten is its own immersive experience — no chrome.
-  if (pathname === "/kindergarten") return null;
+  // /kindergarten and /brain are standalone immersive experiences — no chrome.
+  if (pathname === "/kindergarten" || pathname === "/brain") return null;
 
   return (
     <header className="fixed top-0 inset-x-0 z-30 px-5 sm:px-8 py-4 flex items-center justify-between pointer-events-none">

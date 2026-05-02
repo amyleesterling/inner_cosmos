@@ -4,6 +4,7 @@ import Meet from "./pages/Meet";
 import MeetDetail from "./pages/MeetDetail";
 import Explore from "./pages/Explore";
 import Activity from "./pages/Activity";
+import Brain from "./pages/Brain";
 import Kindergarten from "./pages/Kindergarten";
 import NavBar from "./components/NavBar";
 
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/explore" element={<Explore />} />
         <Route path="/explore/:stage" element={<Explore />} />
         <Route path="/activity" element={<Activity />} />
+        <Route path="/brain" element={<Brain />} />
         <Route path="/kindergarten" element={<Kindergarten />} />
       </Routes>
     </BrowserRouter>
