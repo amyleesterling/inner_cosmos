@@ -441,10 +441,10 @@ export default function ZoomScene({ stage, apFireToken = 0, particleScale = 1 }:
     };
     // Violet motes for the human brain — sparse + smaller so they read as
     // distant pinpricks rather than crowded fluffy blobs.
-    const humanParticles = makeParticleCloud(700, 0.95, 2.6, "#c08bff", "#fff5ff", 26 * particleScale);
+    const humanParticles = makeParticleCloud(320, 1.0, 2.5, "#c08bff", "#fff5ff", 26 * particleScale);
     scene.add(humanParticles.points);
     // Cyan motes for the mouse brain — same treatment.
-    const mouseParticles = makeParticleCloud(620, 0.85, 2.4, "#7ed9ff", "#eafaff", 24 * particleScale);
+    const mouseParticles = makeParticleCloud(280, 0.9, 2.3, "#7ed9ff", "#eafaff", 24 * particleScale);
     scene.add(mouseParticles.points);
     // Mouse-brain hologram overlay — Prometheus-style: dotted topographic
     // contours wrapping the surface, a vertical scanning bar, and a bright
