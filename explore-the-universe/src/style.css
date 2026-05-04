@@ -196,6 +196,26 @@ section.stop.intro {
   color: var(--text-soft);
 }
 
+.card .attribution {
+  margin: 12px 0 0;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-quiet);
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+.card .attribution a {
+  color: var(--text-quiet);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding-bottom: 1px;
+  transition: color 0.3s, border-color 0.3s;
+}
+.card .attribution a:hover {
+  color: var(--text-soft);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
 /* Intro card — the headline. */
 .intro .card .sentence {
   font-size: clamp(2rem, 5vw, 4rem);

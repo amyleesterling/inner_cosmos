@@ -12,6 +12,9 @@ export type Stop = {
   scaleLabel: string;
   /** The killer sentence — what changes at this scale. */
   sentence: string;
+  /** Optional small line under the sentence — provenance, citation, the
+   *  source the hero was generated from. Quiet by design. */
+  attribution?: { text: string; href?: string };
 };
 
 export const STOPS: Stop[] = [
@@ -35,6 +38,10 @@ export const STOPS: Stop[] = [
     exp: -4,
     scaleLabel: "100 micrometers",
     sentence: "A single cell wide as a thought, deep as a memory.",
+    attribution: {
+      text: "MICrONS cell #864691135610562311",
+      href: "https://www.microns-explorer.org/cortical-mm3",
+    },
   },
   {
     id: "human",

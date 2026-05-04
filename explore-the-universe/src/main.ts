@@ -81,6 +81,15 @@ root.innerHTML = `
             </p>
             <h2 class="sentence">${s.sentence}</h2>
             <p class="name">${s.name}</p>
+            ${
+              s.attribution
+                ? `<p class="attribution">${
+                    s.attribution.href
+                      ? `<a href="${s.attribution.href}" target="_blank" rel="noreferrer">${s.attribution.text}</a>`
+                      : s.attribution.text
+                  }</p>`
+                : ""
+            }
           </div>
         </section>
       `,
