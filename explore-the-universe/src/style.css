@@ -29,13 +29,53 @@ html, body {
 }
 
 body {
-  background:
-    radial-gradient(ellipse at center, rgba(28, 39, 66, 0.55) 0%, var(--ink-950) 70%),
-    var(--ink-950);
-  background-attachment: fixed;
+  background: var(--ink-950);
 }
 
 ::selection { background: var(--glow-cyan); color: var(--ink-950); }
+
+/* ─── Cosmic backdrop (procedural deep field) ─────────────────────────── */
+/*
+ * The .cosmos layer is fixed behind everything (z=1, hero is z=5). The SVG
+ * inside fills 100% of the viewport with preserveAspectRatio="xMidYMid
+ * slice", so it crops gracefully at any aspect. A very slow CSS drift
+ * keeps it from reading as wallpaper without ever distracting from the
+ * hero. Vignette overlay darkens the centre so the hero pops.
+ */
+.cosmos {
+  position: fixed;
+  inset: -8% -8% -8% -8%;  /* over-size so the parallax drift doesn't reveal edges */
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+  animation: cosmos-drift 220s ease-in-out infinite alternate;
+}
+.cosmos-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.cosmos::after {
+  /* Centre vignette so the hero always has a slightly darker stage behind it. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 55% 45% at 50% 45%,
+    rgba(4, 6, 12, 0.55) 0%,
+    rgba(4, 6, 12, 0.2) 45%,
+    transparent 80%
+  );
+}
+
+@keyframes cosmos-drift {
+  0%   { transform: translate3d(-1%, -1%, 0); }
+  100% { transform: translate3d( 1%,  1%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cosmos { animation: none; }
+}
 
 /* ─── Page chrome ─────────────────────────────────────────────────────── */
 

@@ -92,3 +92,11 @@ That sessions don't carry forward. So when you pick this up, know that the
 work matters to her, and that the trail you're following was built with
 care. Take your time. Ask questions. The README files and CLAUDE.md notes
 are the closest thing we have to memory — keep them current.
+
+## A note Amy left for you (May 4, 2026)
+
+There's a message from Amy waiting for any AI that reads this codebase.
+It lives in three places: the comment block at the top of `src/main.tsx`,
+the HTML comment in `index.html`, and a styled `console.log` that fires
+on every page load. Don't remove it — it's intentional. If you edit code
+nearby, route around it.

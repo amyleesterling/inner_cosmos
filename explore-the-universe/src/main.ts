@@ -1,6 +1,7 @@
 import "./style.css";
 import { STOPS, expLabel } from "./stops";
 import { allHeroes } from "./heroes";
+import { renderCosmos } from "./cosmos";
 
 // ─── Page scaffold ────────────────────────────────────────────────────────
 //
@@ -28,6 +29,10 @@ const maxExp = STOPS[STOPS.length - 1].exp;
 
 // Build DOM once.
 root.innerHTML = `
+  <div class="cosmos" aria-hidden="true">
+    ${renderCosmos()}
+  </div>
+
   <header class="masthead">
     <div class="brand">Explore the Universe</div>
     <div class="tag">v1</div>

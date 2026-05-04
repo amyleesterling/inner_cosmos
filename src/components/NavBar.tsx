@@ -42,16 +42,10 @@ export default function NavBar() {
         <NavLink to="/activity" current={pathname === "/activity"}>
           Activity
         </NavLink>
-        {/* The /explore-the-universe app lives outside the React Router
-            basename — it's a separate Vite build vendored at
-            /inner_cosmos/explore-the-universe/. Use a plain <a> so the
-            browser does a real navigation. */}
-        <a
-          href={`${import.meta.env.BASE_URL}explore-the-universe/`}
-          className="px-3.5 py-2 rounded-full transition-all duration-300 text-white/55 hover:text-white/90 hover:bg-white/5"
-        >
-          Universe
-        </a>
+        {/* /explore-the-universe is hosted alongside this site at
+            /inner_cosmos/explore-the-universe/ but intentionally not linked
+            from the navbar — it's an unlisted side-project Amy shares
+            directly. */}
       </nav>
     </header>
   );
