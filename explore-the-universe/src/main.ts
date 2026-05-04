@@ -102,7 +102,24 @@ root.innerHTML = `
   </main>
 
   <footer class="credit">
-    Built for the love of scale ·
+    <span>
+      Created by
+      <a href="https://x.com/amyneurons/" target="_blank" rel="noreferrer">Amy Sterling</a>
+    </span>
+    <span class="dot">·</span>
+    <a class="share" href="https://twitter.com/intent/tweet?url=https%3A%2F%2Famyleesterling.github.io%2Finner_cosmos%2Fexplore-the-universe%2F&text=A%20journey%20through%20the%20powers%20of%20ten%20%E2%80%94%20and%20the%20changing%20rules%20of%20reality."
+       target="_blank" rel="noreferrer" aria-label="Share on X">
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true">
+        <path d="M18.244 2H21.5l-7.5 8.572L23 22h-6.81l-5.34-6.97L4.62 22H1.36l8.04-9.19L1 2h6.99l4.83 6.388L18.244 2Zm-2.39 18h1.78L7.27 4H5.36l10.494 16Z"/>
+      </svg>
+    </a>
+    <a class="share" href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Famyleesterling.github.io%2Finner_cosmos%2Fexplore-the-universe%2F"
+       target="_blank" rel="noreferrer" aria-label="Share on Facebook">
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true">
+        <path d="M14 9h3V5h-3c-2.21 0-4 1.79-4 4v2H7v4h3v8h4v-8h3l1-4h-4V9c0-.55.45-1 1-1Z"/>
+      </svg>
+    </a>
+    <span class="dot">·</span>
     <a href="https://github.com/amyleesterling/explore-the-universe" target="_blank" rel="noreferrer">source</a>
   </footer>
 `;
