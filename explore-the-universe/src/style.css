@@ -379,23 +379,45 @@ section.stop.intro {
 footer.credit {
   position: relative;
   z-index: 10;
-  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 10px;
   padding: 60px 20px 40px;
-  font-size: 11px;
-  letter-spacing: 0.2em;
+  font-size: 10px;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--text-quiet);
 }
+footer.credit .dot { opacity: 0.45; }
 footer.credit a {
   color: var(--text-soft);
   text-decoration: none;
-  border-bottom: 1px solid rgba(255,255,255,0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   padding-bottom: 1px;
   transition: color 0.3s, border-color 0.3s;
 }
 footer.credit a:hover {
   color: var(--text);
-  border-color: rgba(255,255,255,0.5);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+footer.credit a.share {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  color: var(--text-quiet);
+  transition: color 0.3s, border-color 0.3s, background 0.3s;
+}
+footer.credit a.share:hover {
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 /* Reduce motion — respect users who don't want the breathing/rotation. */
