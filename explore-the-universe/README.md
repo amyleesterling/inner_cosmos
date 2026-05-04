@@ -58,8 +58,13 @@ npm run build
 npm run preview
 ```
 
-`vite.config.ts` sets `base: '/explore-the-universe/'` for the GitHub Pages
-deploy; in `dev` it's `'/'`.
+While vendored inside inner_cosmos, the live URL is
+`https://amyleesterling.github.io/inner_cosmos/explore-the-universe/` and
+`vite.config.ts` sets `base: '/inner_cosmos/explore-the-universe/'` to match.
+The inner_cosmos deploy workflow (`.github/workflows/deploy.yml`) builds this
+subdirectory and copies its `dist/` into the main Pages artifact under
+`/explore-the-universe/`. After spin-out into its own repo, change the base
+back to `/explore-the-universe/` (or whatever the new Pages path is).
 
 ## Architecture
 

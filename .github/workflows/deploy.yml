@@ -28,6 +28,11 @@ jobs:
       # Copy index.html → 404.html so client-side routes survive a refresh
       # on GitHub Pages (e.g. /inner_cosmos/meet/lightning-tree).
       - run: cp dist/index.html dist/404.html
+      # Build the vendored explore-the-universe app and drop its dist into
+      # the main dist so it serves at /inner_cosmos/explore-the-universe/.
+      - run: npm --prefix explore-the-universe ci
+      - run: npm --prefix explore-the-universe run build
+      - run: mkdir -p dist/explore-the-universe && cp -r explore-the-universe/dist/. dist/explore-the-universe/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
