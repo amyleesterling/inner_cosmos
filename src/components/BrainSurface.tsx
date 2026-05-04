@@ -53,10 +53,12 @@ export default function BrainSurface({ activity, elapsedSec, onReady, className 
       alpha: true,
       powerPreference: "high-performance",
     });
-    // Allow up to 2.5× for retina phones and 5K monitors. Caps the cost on
-    // ridiculous DPRs (some Chromebooks report 3–4) without leaving any
-    // sharpness on the table for normal devices.
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.5));
+    // Cap at 1.75 — high enough that retina phones look sharp, low enough
+    // that we don't blow out a mobile GPU's framebuffer. iPhones report DPR
+    // 3, so 2.5 cap meant a 7× cost; with the DoubleSide cortex + additive
+    // halo shell + 4000-parcel data texture, that was crashing iOS Safari's
+    // WebGL context and leaving the page entirely black.
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
     renderer.setSize(w, h);
     renderer.setClearColor(0x000000, 0);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
