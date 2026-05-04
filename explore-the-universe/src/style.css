@@ -1,0 +1,349 @@
+:root {
+  --ink-950: #04060c;
+  --ink-900: #070b16;
+  --ink-800: #0c1322;
+  --ink-700: #131c2f;
+  --glow-cyan: #7ee0ff;
+  --glow-magenta: #ff7ee0;
+  --glow-violet: #b78bff;
+  --glow-warm: #ffd9a8;
+  --text: rgba(245, 245, 250, 0.92);
+  --text-soft: rgba(245, 245, 250, 0.55);
+  --text-quiet: rgba(245, 245, 250, 0.35);
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Fraunces", "Inter", serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--ink-950);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+body {
+  background:
+    radial-gradient(ellipse at center, rgba(28, 39, 66, 0.55) 0%, var(--ink-950) 70%),
+    var(--ink-950);
+  background-attachment: fixed;
+}
+
+::selection { background: var(--glow-cyan); color: var(--ink-950); }
+
+/* ─── Page chrome ─────────────────────────────────────────────────────── */
+
+.masthead {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: clamp(16px, 2.5vw, 28px) clamp(20px, 3vw, 40px);
+  z-index: 30;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  pointer-events: none;
+}
+
+.masthead .brand {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  opacity: 0.92;
+}
+
+.masthead .tag {
+  font-size: 10px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--text-quiet);
+}
+
+/* ─── Hero stage (fixed, all 8 SVGs stacked at centre) ────────────────── */
+
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero {
+  position: absolute;
+  width: min(78vmin, 720px);
+  height: min(78vmin, 720px);
+  /* Pulled up slightly so the sentence card below has breathing room. */
+  transform: translateY(-7vh);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform, opacity;
+  /* Inline style sets opacity + scale per scroll frame. */
+}
+
+.hero .hero-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 60px rgba(126, 224, 255, 0.08));
+  animation: breathe 9s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.97; transform: scale(1); }
+  50%      { opacity: 1;    transform: scale(1.015); }
+}
+
+/* Some heroes want a slow rotation on top of the breathe. */
+.hero[data-stop="solar"] .hero-svg,
+.hero[data-stop="galaxy"] .hero-svg {
+  animation: rotate 240s linear infinite, breathe 9s ease-in-out infinite;
+}
+.hero[data-stop="galaxy"] .hero-svg { animation-duration: 360s, 9s; }
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Top + bottom vignettes so the hero never crowds the masthead or the card. */
+.scrim-top, .scrim-bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 8;
+  pointer-events: none;
+}
+.scrim-top {
+  top: 0; height: 18vh;
+  background: linear-gradient(to bottom, var(--ink-950), transparent);
+}
+.scrim-bottom {
+  bottom: 0; height: 38vh;
+  background: linear-gradient(to top, var(--ink-950) 5%, rgba(4, 6, 12, 0.6) 50%, transparent);
+}
+
+/* ─── Sections (one per stop, in normal flow, ferry the cards past) ──── */
+
+main.track {
+  position: relative;
+  z-index: 10;
+  /* Section heights set per-element in JS so the first/last get extra space
+     (intro hero + outro). */
+}
+
+section.stop {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 clamp(20px, 4vw, 64px) clamp(48px, 10vh, 120px);
+  pointer-events: none;
+}
+
+section.stop.intro {
+  justify-content: center;
+  padding-bottom: 0;
+}
+
+.card {
+  max-width: 36rem;
+  margin: 0 auto;
+  text-align: center;
+  pointer-events: auto;
+}
+
+.card .kicker {
+  font-size: 10px;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--text-quiet);
+  margin: 0 0 14px;
+}
+
+.card .kicker .scale-num {
+  color: var(--text-soft);
+  margin-right: 10px;
+}
+
+.card .sentence {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(1.5rem, 3.6vw, 2.6rem);
+  line-height: 1.18;
+  letter-spacing: -0.015em;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.card .name {
+  margin: 14px 0 0;
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+/* Intro card — the headline. */
+.intro .card .sentence {
+  font-size: clamp(2rem, 5vw, 4rem);
+  line-height: 1.08;
+}
+.intro .card .sub {
+  margin: 22px auto 0;
+  max-width: 28rem;
+  color: var(--text-soft);
+  font-size: clamp(0.95rem, 1.2vw, 1.05rem);
+  font-weight: 300;
+  line-height: 1.55;
+  text-wrap: balance;
+}
+
+.intro .scroll-hint {
+  margin-top: 60px;
+  font-size: 10px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--text-quiet);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+  animation: scroll-pulse 2.4s ease-in-out infinite;
+}
+.intro .scroll-hint::after {
+  content: "";
+  width: 1px;
+  height: 18px;
+  background: linear-gradient(to bottom, var(--text-quiet), transparent);
+}
+
+@keyframes scroll-pulse {
+  0%, 100% { opacity: 0.5; transform: translateY(0); }
+  50%      { opacity: 1;   transform: translateY(4px); }
+}
+
+/* ─── Scale ladder (right edge) ───────────────────────────────────────── */
+
+.ladder {
+  position: fixed;
+  top: 50%;
+  right: clamp(14px, 2vw, 32px);
+  transform: translateY(-50%);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: 56vh;
+  pointer-events: none;
+}
+
+.ladder .rail {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.18) 12%, rgba(255,255,255,0.18) 88%, transparent);
+}
+
+.ladder .rung {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text-quiet);
+  white-space: nowrap;
+  pointer-events: auto;
+  cursor: pointer;
+  transition: color 0.4s ease, opacity 0.4s ease;
+  opacity: 0.6;
+  /* Move label left of the rail. */
+  flex-direction: row-reverse;
+}
+
+.ladder .rung .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.45);
+  transition: background 0.4s ease, transform 0.4s ease, box-shadow 0.4s ease;
+}
+
+.ladder .rung.active {
+  color: var(--text);
+  opacity: 1;
+}
+.ladder .rung.active .dot {
+  background: var(--glow-cyan);
+  transform: scale(1.6);
+  box-shadow: 0 0 12px var(--glow-cyan), 0 0 28px rgba(126, 224, 255, 0.5);
+}
+
+.ladder .indicator {
+  position: absolute;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid var(--glow-cyan);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: top 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  box-shadow: 0 0 14px rgba(126, 224, 255, 0.4);
+}
+
+@media (max-width: 640px) {
+  .ladder .rung span.label { display: none; }
+  .ladder { height: 48vh; right: 14px; }
+}
+
+/* ─── Footer credit ────────────────────────────────────────────────────── */
+
+footer.credit {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  padding: 60px 20px 40px;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-quiet);
+}
+footer.credit a {
+  color: var(--text-soft);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+  padding-bottom: 1px;
+  transition: color 0.3s, border-color 0.3s;
+}
+footer.credit a:hover {
+  color: var(--text);
+  border-color: rgba(255,255,255,0.5);
+}
+
+/* Reduce motion — respect users who don't want the breathing/rotation. */
+@media (prefers-reduced-motion: reduce) {
+  .hero .hero-svg,
+  .hero[data-stop="solar"] .hero-svg,
+  .hero[data-stop="galaxy"] .hero-svg {
+    animation: none !important;
+  }
+  .intro .scroll-hint { animation: none; }
+}
