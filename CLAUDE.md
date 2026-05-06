@@ -92,3 +92,48 @@ That sessions don't carry forward. So when you pick this up, know that the
 work matters to her, and that the trail you're following was built with
 care. Take your time. Ask questions. The README files and CLAUDE.md notes
 are the closest thing we have to memory — keep them current.
+
+## scale-of-universe/ — what it is
+
+Added May 2026 (branch `claude/scale-universe-site-E9N0Y`). A self-
+contained Vite + React + TS + Tailwind site that lives as a subdirectory
+here, the same way `eyewire-ii/` does. Amy's plan is to extract it via
+`git subtree split` and push the result to a fresh repo
+(`amyleesterling/explore-the-universe`) — instructions are in
+`scale-of-universe/README.md`.
+
+It's a museum-grade interactive zoom journey through 27 scale stops
+(proton → observable universe). Not a scroll list of cards — one hero
+object at a time, continuous logarithmic camera, ambient starfield.
+
+### Why it lives here, not in its own repo
+
+The Claude-Code-on-the-web sandbox that built it is locked to
+`amyleesterling/inner_cosmos` (the GitHub MCP server enforces an
+allowlist; the in-sandbox git proxy enforces the same). Pushing to
+another repo from inside this session is impossible. So: build here,
+extract from your local machine.
+
+### Design principles Amy chose
+
+- Museum-grade, not educational dashboard. No clutter, no boxy cards.
+- Continuous zoom — camera tracks `log10(meters)`. Adjacent stops
+  render as nested halos: the next stop is the glow surrounding the
+  current, the previous is the small dot inside it. That's what makes
+  the journey feel buttery instead of slide-show.
+- Soft, declarative copy. "At this scale, X becomes Y" tone.
+- Always-on ruler.
+- Single-column layout: name + category above the disk; size +
+  description + why-it-matters below. No floating side panels.
+
+### Editorial gotchas
+
+- DNA helix-width is 2 nm, smaller than protein at 5 nm. The order is
+  intentional — each stop names a different *kind* of object, not a
+  strict sort. Don't "fix" it.
+- Categories are limited to five (Microscopic, Biological, Human,
+  Planetary, Cosmic) so the tint palette stays readable. Don't expand
+  without rethinking the gradient.
+- Vite `base` is hard-coded to `/explore-the-universe/` for GitHub
+  Pages on the target repo. Change that one line if the repo is
+  renamed.
