@@ -2,6 +2,13 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import ZoomScene from "../components/ZoomScene";
+import CellSwarm from "../components/CellSwarm";
+import {
+  loadActivityManifest,
+  loadActivityTraces,
+  type ActivityManifest,
+  type ActivityTraces,
+} from "../data/activityCells";
 // Hand-curated legend for the cluster stage. Color-by-type: every
 // pyramidal subtype shares one "Pyramidal neuron" entry, since they're
 // all the same broad class even if the subtypes (L2/3, L5 thick-tufted,
@@ -30,52 +37,58 @@ function LegendDot({ color, label }: { color: string; label: string }) {
 
 const STAGES = [
   {
-    eyebrow: "Stage 1 of 8",
+    eyebrow: "Stage 1 of 9",
     title: "Your brain",
     subtitle:
       "Every thought. Every memory and feeling. You happen here. In the beautiful human brain. About 86 billion cells, talking to each other in patterns we're only beginning to understand.",
   },
   {
-    eyebrow: "Stage 2 of 8",
+    eyebrow: "Stage 2 of 9",
     title: "Next to a mouse brain",
     subtitle:
       "About 15 times smaller in every direction, roughly the volume of a peanut. Inside that peanut: 70 million neurons, connected by ~200 billion synapses. Mice are a key model organism, helping scientists uncover the principles that also shape the human brain. Drag to look around.",
   },
   {
-    eyebrow: "Stage 3 of 8",
+    eyebrow: "Stage 3 of 9",
     title: "Inside the mouse brain",
     subtitle:
       "This is the mesh of an actual mouse brain from the Allen Institute. The dots inside are placeholders for some of the ~70 million neurons that live in here.",
   },
   {
-    eyebrow: "Stage 4 of 8",
+    eyebrow: "Stage 4 of 9",
     title: "Primary visual cortex",
     subtitle:
       "Where the eye meets the brain. About a teaspoon of tissue at the back of the cortex, the first place signals from the retina turn into something the rest of the brain can use. Sight begins to become perception. The cells you'll meet next all came from this region.",
   },
   {
-    eyebrow: "Stage 5 of 8",
+    eyebrow: "Stage 5 of 9",
     title: "A piece of cortex",
     subtitle:
       "MICrONS reconstructed about a cubic millimeter of this region. Inside that cube: roughly 200,000 cells (neurons + glia), wired together by ~523 million synapses. Ten of those cells are shown here, drag to look around.",
   },
   {
-    eyebrow: "Stage 6 of 8",
+    eyebrow: "Stage 6 of 9",
     title: "A neuron",
     subtitle:
       "One cell. Thousands of connections. The upper branches, called dendrites, receive signals. The cell sends its own signals out through its axon, making synapses with other cells, which connect to more cells. Thus a neural network is born, representing reality and experience.",
   },
   {
-    eyebrow: "Stage 7 of 8",
+    eyebrow: "Stage 7 of 9",
     title: "One synapse",
     subtitle:
       "An axon from a cell somewhere far away in the brain reaches up to form a synapse. It connects with the blue cell, a tufted pyramidal neuron that lives deep in cortex. The blue cell is excitatory: when it sends a signal out its own axon, it will encourage downstream cells to send their signals too.",
   },
   {
-    eyebrow: "Stage 8 of 8",
+    eyebrow: "Stage 8 of 9",
     title: "Action potential",
     subtitle:
       "The signals neurons send are called action potentials. Watch the signal travel: a pulse races down the axon to the synapse, briefly flashes as it crosses, and then ignites a new pulse that travels down the pyramidal cell. This is one neuron, talking to the next. Your brain sends on the order of a quadrillion (1,000,000,000,000,000) electrical signals every second.",
+  },
+  {
+    eyebrow: "Stage 9 of 9",
+    title: "Activity",
+    subtitle:
+      "Now multiply that one signal by hundreds of cells, all firing at once. These are real pyramidal neurons from the MICrONS cubic millimeter dataset, glowing in time with their measured calcium activity while a mouse watched a movie. Drag to rotate.",
   },
 ];
 
@@ -124,6 +137,44 @@ export default function Explore() {
   // present icon in the controls row, or by pressing "p".
   const [presentMode, setPresentMode] = useState(false);
   const last = STAGES.length - 1;
+  const isActivityStage = stage === last;
+
+  // Activity-stage data: lazy-loaded the first time the user reaches the
+  // last slide. Same dataset the standalone /activity page uses.
+  const [activityData, setActivityData] = useState<{
+    manifest: ActivityManifest;
+    traces: ActivityTraces;
+  } | null>(null);
+  const [activityElapsed, setActivityElapsed] = useState(0);
+  useEffect(() => {
+    if (!isActivityStage || activityData) return;
+    let cancelled = false;
+    Promise.all([loadActivityManifest(), loadActivityTraces()])
+      .then(([manifest, traces]) => {
+        if (!cancelled) setActivityData({ manifest, traces });
+      })
+      .catch((err) => console.warn("[explore] activity not loaded:", err));
+    return () => { cancelled = true; };
+  }, [isActivityStage, activityData]);
+  useEffect(() => {
+    if (!isActivityStage || !activityData) return;
+    let prevTs: number | null = null;
+    let frameId = 0;
+    const tick = (now: number) => {
+      if (prevTs !== null) {
+        const dt = (now - prevTs) / 1000;
+        setActivityElapsed((p) => {
+          const total = activityData.manifest.seconds;
+          const next = p + dt;
+          return next >= total ? next - total : next;
+        });
+      }
+      prevTs = now;
+      frameId = requestAnimationFrame(tick);
+    };
+    frameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameId);
+  }, [isActivityStage, activityData]);
 
   // Toggle a body class so NavBar (rendered outside this component) can
   // hide itself in presentation mode without needing a context Provider.
@@ -184,9 +235,25 @@ export default function Explore() {
         }}
       />
 
-      {/* 3D scene fills the viewport behind the UI */}
+      {/* 3D scene fills the viewport behind the UI. Stage 9 swaps the
+          synapse/AP scene for the calcium-activity swarm. */}
       <div className="fixed inset-0 z-[1]">
-        <ZoomScene stage={stage} apFireToken={apFireToken} />
+        {isActivityStage ? (
+          activityData ? (
+            <CellSwarm
+              manifest={activityData.manifest}
+              traces={activityData.traces}
+              elapsedSec={activityElapsed}
+              className="absolute inset-0"
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center text-white/40 text-[11px] uppercase tracking-[0.3em]">
+              loading swarm…
+            </div>
+          )
+        ) : (
+          <ZoomScene stage={stage} apFireToken={apFireToken} />
+        )}
       </div>
 
       {/* Top vignette */}
@@ -422,6 +489,25 @@ export default function Explore() {
                 </svg>
               </button>
 
+              {/* On the AP stage (7), replay sits alongside the Next button
+                  that advances to the activity finale. On the activity stage
+                  (last), only the "Meet a neuron" CTA — the swarm auto-loops
+                  on its own, no replay needed. */}
+              {stage === 7 && (
+                <button
+                  onClick={() => setApFireToken((n) => n + 1)}
+                  className="group px-5 py-2.5 rounded-full glass-strong hover:bg-white/[0.08] transition flex items-center gap-2 cursor-pointer text-sm font-medium"
+                  style={{
+                    boxShadow: "0 0 18px rgba(142,218,255,0.18), inset 0 0 0 1px rgba(142,218,255,0.25)",
+                  }}
+                  aria-label="Send action potential"
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="transition-transform group-hover:scale-110">
+                    <path d="M9 1L2 9h5l-1 6 7-8H8l1-6z" stroke="#8edaff" strokeWidth="1.4" strokeLinejoin="round" fill="rgba(142,218,255,0.18)" />
+                  </svg>
+                  <span className="whitespace-nowrap">Send action potential</span>
+                </button>
+              )}
               {!isLast ? (
                 <button
                   onClick={() => {
@@ -431,38 +517,28 @@ export default function Explore() {
                   className="group px-6 py-2.5 rounded-full glass-strong hover:bg-white/[0.08] transition flex items-center gap-2.5 cursor-pointer text-sm font-medium"
                 >
                   <span>
-                    {stage === 0 ? "Explore" : stage === 6 ? "Send signal" : "Closer"}
+                    {stage === 0
+                      ? "Explore"
+                      : stage === 6
+                      ? "Send signal"
+                      : stage === 7
+                      ? "Activity"
+                      : "Closer"}
                   </span>
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="transition-transform group-hover:translate-x-0.5">
                     <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </button>
               ) : (
-                <>
-                  {/* Replay button — fires another AP cycle on demand. */}
-                  <button
-                    onClick={() => setApFireToken((n) => n + 1)}
-                    className="group px-5 py-2.5 rounded-full glass-strong hover:bg-white/[0.08] transition flex items-center gap-2 cursor-pointer text-sm font-medium"
-                    style={{
-                      boxShadow: "0 0 18px rgba(142,218,255,0.18), inset 0 0 0 1px rgba(142,218,255,0.25)",
-                    }}
-                    aria-label="Send action potential"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="transition-transform group-hover:scale-110">
-                      <path d="M9 1L2 9h5l-1 6 7-8H8l1-6z" stroke="#8edaff" strokeWidth="1.4" strokeLinejoin="round" fill="rgba(142,218,255,0.18)" />
-                    </svg>
-                    <span className="whitespace-nowrap">Send action potential</span>
-                  </button>
-                  <Link
-                    to="/meet"
-                    className="group px-6 py-2.5 rounded-full glass-strong hover:bg-white/[0.08] transition flex items-center gap-2.5 text-sm font-medium"
-                  >
-                    <span className="whitespace-nowrap">Meet a neuron</span>
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="transition-transform group-hover:translate-x-0.5">
-                      <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </Link>
-                </>
+                <Link
+                  to="/meet"
+                  className="group px-6 py-2.5 rounded-full glass-strong hover:bg-white/[0.08] transition flex items-center gap-2.5 text-sm font-medium"
+                >
+                  <span className="whitespace-nowrap">Meet a neuron</span>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="transition-transform group-hover:translate-x-0.5">
+                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </Link>
               )}
 
               {/* Collapse toggle — hides title/subtitle so the 3D scene
