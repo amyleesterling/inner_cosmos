@@ -474,7 +474,7 @@ export default function Explore() {
                 <main> is pointer-events-none to let canvas drag through.
                 When the text is collapsed we lift the controls to sit closer
                 to where the title block was, so they don't float in space. */}
-            <div className={`flex items-center justify-center gap-3 pointer-events-auto ${textCollapsed ? "mt-0" : "mt-10"}`}>
+            <div className={`flex flex-wrap items-center justify-center gap-x-3 gap-y-2.5 pointer-events-auto ${textCollapsed ? "mt-0" : "mt-10"}`}>
               <button
                 onClick={() => {
                   setStage((s) => Math.max(0, s - 1));
@@ -558,7 +558,7 @@ export default function Explore() {
                   Press "p" to toggle anywhere; "Esc" exits. */}
               <button
                 onClick={() => setPresentMode(true)}
-                className="p-2.5 rounded-full glass hover:bg-white/[0.08] transition cursor-pointer"
+                className="hidden sm:inline-flex p-2.5 rounded-full glass hover:bg-white/[0.08] transition cursor-pointer"
                 aria-label="Presentation mode (P)"
                 title="Presentation mode (P)"
               >
@@ -569,7 +569,7 @@ export default function Explore() {
             </div>
 
             {!textCollapsed && (
-              <p className="mt-6 text-[10px] uppercase tracking-[0.3em] text-white/30">
+              <p className="hidden sm:block mt-6 text-[10px] uppercase tracking-[0.3em] text-white/30">
                 Use ← → keys
               </p>
             )}
