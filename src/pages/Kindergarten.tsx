@@ -238,9 +238,12 @@ export default function Kindergarten() {
           position: "absolute",
           inset: 0,
           filter: isBrainStage
-            // Bright sky blue — lifted brightness + boosted saturation for
-            // a kid-friendly "happy blue" instead of the dusty denim swatch.
-            ? "hue-rotate(275deg) saturate(1.25) brightness(1.3)"
+            // Pearlescent white. Saturation is dropped almost all the way so
+            // the cyan/violet hologram reads as a luminous off-white surface;
+            // a small hue rotation keeps the faintest cool-pearl cast in the
+            // highlights so it doesn't go dead grey. Brightness lifted to
+            // make it glow against the nebula background.
+            ? "hue-rotate(200deg) saturate(0.12) brightness(1.55) contrast(0.95)"
             : "none",
           // On the cheetah stage, fade the neuron scene out at +2s so the
           // cheetah has the stage to itself when it runs across.
