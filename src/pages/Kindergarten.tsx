@@ -56,14 +56,14 @@ const KG_STAGES: KgStage[] = [
   {
     zoom: 7,
     text: "Action potential!",
-    subtitle: "The language of neurons — an electrical impulse that travels down a branch to zing other cells.",
+    subtitle: "The language of neurons, an electrical impulse that travels down a branch to zing other cells.",
   },
   // Same scene, different beat — the AP keeps firing in the background
   // while the kid lands on the wow-stat that gives it scale.
   {
     zoom: 7,
     text: "Neurons send signals faster than a cheetah runs!",
-    subtitle: "Every second your brain sends a quadrillion action potentials — 1,000,000,000,000,000.",
+    subtitle: "Every second your brain sends a quadrillion action potentials, 1,000,000,000,000,000.",
   },
   { zoom: ZOOM_ACTIVITY, text: "Watch your brain sparkle." },
 ];
@@ -182,10 +182,9 @@ export default function Kindergarten() {
           position: "absolute",
           inset: 0,
           filter: isBrainStage
-            // Muted denim/dusty caribbean blue per Amy's swatch — slightly
-            // desaturated, slightly cooler than full caribbean, gentle
-            // brightness lift instead of high-key glow.
-            ? "hue-rotate(285deg) saturate(0.9) brightness(1.05)"
+            // Bright sky blue — lifted brightness + boosted saturation for
+            // a kid-friendly "happy blue" instead of the dusty denim swatch.
+            ? "hue-rotate(275deg) saturate(1.25) brightness(1.3)"
             : "none",
           transition: "filter 1.2s ease-out",
         }}
