@@ -1223,6 +1223,21 @@ export default function ZoomScene({
     let apQueueDepth = 0;     // pending cycles to fire after the current one (capped MAX_AP_QUEUE)
     const MAX_AP_QUEUE = 5;   // up to 5 spikes in flight, then further clicks ignored
     let apCharge = 0;         // 0..1 charge-up brightness during the lead-in
+    // /kindergarten step 1 -> 2 (stage 0 -> 4) skips the original mouse-brain
+    // bridge stages. To keep that jump reading as a single "zoom INTO the
+    // brain" motion instead of "brain shrinks and disappears," intercept the
+    // 0 -> 4 transition with a 2.5s scripted flight: dive in toward the
+    // brain, dissolve it close-up, pull back to frame the cluster. -1 = idle.
+    let kgZoomInStart = -1;
+    const KG_ZOOM_TOTAL = 2.5;
+    const KG_ZOOM_PHASE_A = 1.2; // dive in
+    const KG_ZOOM_PHASE_B = 0.5; // brain dissolves
+    // Phase C (retreat to cluster) is whatever's left.
+    const kgStage0Pos = new THREE.Vector3(0.4, 0.3, 2.9);
+    const kgStage4Pos = new THREE.Vector3(0.4, 0.2, 3.6);
+    const kgInsidePos = new THREE.Vector3(0.4, 0.3, 0.5);
+    const kgConstantLook = new THREE.Vector3(0, -0.4, 0);
+    const kgSmoothstep = (x: number) => x * x * (3 - 2 * x);
     let frameId = 0;
     const start = performance.now();
     const animate = () => {
@@ -1232,6 +1247,10 @@ export default function ZoomScene({
         const tc = stageCameras(s, v1Right);
         targetCamPos.copy(tc.pos);
         targetCamLook.copy(tc.look);
+        // Detect the /kindergarten step 1 -> 2 jump (stage 0 -> 4) and arm
+        // the scripted zoom-INTO-the-brain flight. Other transitions cancel
+        // any pending flight so the user can back out of it cleanly.
+        kgZoomInStart = lastStage === 0 && s === 4 ? t : -1;
         lastStage = s;
         // New stage: scripted camera takes back over from any user-orbited
         // view, lerping to the new waypoint.
@@ -1300,6 +1319,46 @@ export default function ZoomScene({
       cur.hero += (target.hero - cur.hero) * cellsK;
       cur.synapsePair += (target.synapsePair - cur.synapsePair) * k;
       cur.synapseMarker += (target.synapseMarker - cur.synapseMarker) * k;
+
+      // /kindergarten "zoom INTO the brain" timeline override. Runs AFTER
+      // the per-stage opacity lerp so it stomps the chase toward stage 4
+      // targets; the camera lerp downstream picks up our overridden
+      // targetCamPos so the camera tracks the scripted flight path.
+      if (kgZoomInStart >= 0) {
+        const elapsed = t - kgZoomInStart;
+        if (elapsed >= KG_ZOOM_TOTAL) {
+          kgZoomInStart = -1;
+        } else if (elapsed < KG_ZOOM_PHASE_A) {
+          // Phase A — punch in toward the brain. Brain stays at full opacity
+          // so it visually grows; cells stay hidden.
+          const u = kgSmoothstep(elapsed / KG_ZOOM_PHASE_A);
+          targetCamPos.lerpVectors(kgStage0Pos, kgInsidePos, u);
+          targetCamLook.copy(kgConstantLook);
+          cur.humanSolid = 1.0;
+          cur.humanWire = 0.07;
+          cur.cells = 0;
+          cur.hero = 0;
+        } else if (elapsed < KG_ZOOM_PHASE_A + KG_ZOOM_PHASE_B) {
+          // Phase B — camera holds close, brain dissolves. Cells still 0.
+          const u = kgSmoothstep((elapsed - KG_ZOOM_PHASE_A) / KG_ZOOM_PHASE_B);
+          targetCamPos.copy(kgInsidePos);
+          targetCamLook.copy(kgConstantLook);
+          cur.humanSolid = 1.0 - u;
+          cur.humanWire = 0.07 * (1.0 - u);
+          cur.cells = 0;
+          cur.hero = 0;
+        } else {
+          // Phase C — retreat to cluster framing while cells fade in.
+          const phaseCdur = KG_ZOOM_TOTAL - KG_ZOOM_PHASE_A - KG_ZOOM_PHASE_B;
+          const u = kgSmoothstep((elapsed - KG_ZOOM_PHASE_A - KG_ZOOM_PHASE_B) / phaseCdur);
+          targetCamPos.lerpVectors(kgInsidePos, kgStage4Pos, u);
+          targetCamLook.copy(kgConstantLook);
+          cur.humanSolid = 0;
+          cur.humanWire = 0;
+          cur.cells = 0.9 * u;
+          cur.hero = 0.9 * u;
+        }
+      }
 
       humanBrainSolidMaterials.forEach((m) => (m.opacity = cur.humanSolid));
       humanBrainWireMaterials.forEach((m) => (m.opacity = cur.humanWire));

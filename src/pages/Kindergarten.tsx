@@ -102,10 +102,28 @@ export default function Kindergarten() {
   const stage = KG_STAGES[idx];
   const isLast = idx === KG_STAGES.length - 1;
   const isActivity = stage.zoom === ZOOM_ACTIVITY;
+
+  // ZoomScene runs a 2.5s scripted "zoom INTO the brain" flight on the
+  // stage 0 -> 4 jump (kindergarten step 1 -> 2). During that window the
+  // human brain mesh is still on screen — keep the sky-blue CSS retint
+  // applied so the brain stays bright cyan while it grows, otherwise its
+  // native violet shows through mid-flight.
+  const prevZoomRef = useRef(stage.zoom);
+  const [inBrainZoomFlight, setInBrainZoomFlight] = useState(false);
+  useEffect(() => {
+    const prev = prevZoomRef.current;
+    prevZoomRef.current = stage.zoom;
+    if (prev === 0 && stage.zoom === 4) {
+      setInBrainZoomFlight(true);
+      const id = window.setTimeout(() => setInBrainZoomFlight(false), 2500);
+      return () => window.clearTimeout(id);
+    }
+  }, [stage.zoom]);
+
   // CSS filter retones the violet/cyan hologram into a bright sky blue.
-  // After dropping the mouse-brain bridge stages, only the human-brain
-  // hero shot (zoom 0) gets the filter.
-  const isBrainStage = stage.zoom === 0;
+  // Applied on the human-brain hero shot AND through the scripted
+  // zoom-INTO-the-brain flight so the cyan holds while the brain grows.
+  const isBrainStage = stage.zoom === 0 || inBrainZoomFlight;
 
   useEffect(() => {
     let aborted = false;
