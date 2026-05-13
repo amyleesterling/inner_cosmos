@@ -198,8 +198,9 @@ export default function ZoomScene({
       sprite.scale.set(scale, scale, 1);
       return { sprite, mat, tex };
     };
-    const axonBloom = makeBloomSprite([255, 216, 96], 0.32);     // gold
-    const pyramidBloom = makeBloomSprite([136, 207, 255], 0.32); // blue
+    // AP pulse blooms + trails are pooled (apSlots, below) so multiple
+    // taps of the kindergarten zap button can fire overlapping action
+    // potentials instead of queueing them one after another.
     const synapseBloom = makeBloomSprite([156, 232, 192], 0.07); // soft green-cyan, tight
     // Stage-0 halo behind the human brain — large violet bloom that
     // makes the brain feel lit from within rather than floating flat
@@ -220,13 +221,10 @@ export default function ZoomScene({
     mouseHaloBloom.mat.depthTest = false;
     mouseHaloBloom.sprite.renderOrder = -10;
     scene.add(mouseHaloBloom.sprite);
-    scene.add(axonBloom.sprite);
-    scene.add(pyramidBloom.sprite);
     scene.add(synapseBloom.sprite);
     synapseBloom.sprite.position.set(0, 0, 0);
-    // Aliases used by animation block below
-    const apAxonPulse = axonBloom.sprite;
-    const apPyramidPulse = pyramidBloom.sprite;
+    // AP pulse sprites live in the pooled apSlots created after makeTrail
+    // is defined — see below.
 
     // -------- Comet trails behind the AP pulses ------------------------
     // Small ring buffer of recent pulse positions, drawn as fading dots
@@ -285,10 +283,35 @@ export default function ZoomScene({
       points.frustumCulled = false; // positions update per frame, BB stale
       return { points, mat, positions, geom };
     };
-    const trailGold = makeTrail("#ffe28a", 70);
-    const trailBlue = makeTrail("#9ad4ff", 70);
-    scene.add(trailGold.points);
-    scene.add(trailBlue.points);
+    // ---- AP slot pool ----------------------------------------------------
+    // Each slot owns its own pair of pulse blooms (gold axon + blue
+    // pyramid) and its own pair of trails, so the per-frame animation can
+    // run N cycles in parallel — one per active slot. firedAt = -1 means
+    // the slot is free; on each kindergarten zap-button click we grab the
+    // first free slot and stamp its firedAt with the current wall-clock.
+    const MAX_AP_CONCURRENT = 8;
+    type ApSlot = {
+      axonBloom: ReturnType<typeof makeBloomSprite>;
+      pyramidBloom: ReturnType<typeof makeBloomSprite>;
+      trailGold: ReturnType<typeof makeTrail>;
+      trailBlue: ReturnType<typeof makeTrail>;
+      firedAt: number;
+    };
+    const apSlots: ApSlot[] = [];
+    for (let i = 0; i < MAX_AP_CONCURRENT; i++) {
+      const slot: ApSlot = {
+        axonBloom: makeBloomSprite([255, 216, 96], 0.32),
+        pyramidBloom: makeBloomSprite([136, 207, 255], 0.32),
+        trailGold: makeTrail("#ffe28a", 70),
+        trailBlue: makeTrail("#9ad4ff", 70),
+        firedAt: -1,
+      };
+      scene.add(slot.axonBloom.sprite);
+      scene.add(slot.pyramidBloom.sprite);
+      scene.add(slot.trailGold.points);
+      scene.add(slot.trailBlue.points);
+      apSlots.push(slot);
+    }
 
     // Stamp the trail's positions: position 0 = head (current pulse loc),
     // positions 1..N = points behind it on the active path. We sample the
@@ -1218,11 +1241,7 @@ export default function ZoomScene({
     });
 
     let lastStage = -1;
-    let apFiredAt = -1;       // wall-clock of the current AP cycle's start (-1 = idle)
-    let apTokenSeen = -1;     // last apFireToken value we acted on
-    let apQueueDepth = 0;     // pending cycles to fire after the current one (capped MAX_AP_QUEUE)
-    const MAX_AP_QUEUE = 5;   // up to 5 spikes in flight, then further clicks ignored
-    let apCharge = 0;         // 0..1 charge-up brightness during the lead-in
+    let apTokenSeen = -1;     // last apFireToken value we acted on; pool state (firedAt) lives on the slots
     // /kindergarten step 1 -> 2 (stage 0 -> 4) skips the original mouse-brain
     // bridge stages. To keep that jump reading as a single "zoom INTO the
     // brain" motion instead of "brain shrinks and disappears," intercept the
@@ -1442,9 +1461,11 @@ export default function ZoomScene({
         mouseParticles.points.scale.setScalar(brainShell.scale.x);
       }
 
-      // Action-potential animation — only on stage 7. 2-second lead-in
-      // before the first pulse, then the cycle repeats. Sprite-based bloom
-      // gives true soft edges.
+      // Action-potential animation — only on stage 7. Each apSlot runs an
+      // independent 4-second cycle: gold pulse along Tendril → cross flash
+      // at the synapse → blue pulse climbing Aura. Multiple slots can be
+      // active simultaneously so the kindergarten zap button supports
+      // overlapping firings instead of queueing.
       const setBloom = (
         bloom: { mat: THREE.SpriteMaterial },
         intensity: number,
@@ -1452,78 +1473,64 @@ export default function ZoomScene({
         bloom.mat.opacity = intensity;
       };
 
-      // Action-potential animation. ONE cycle per fire-token (the user
-      // owns the cadence): the first token is auto-emitted on stage 7
-      // entry, subsequent tokens come from the on-screen "Send action
-      // potential" button. Cycle = charge-up at synapse → gold pulse
-      // along Tendril → cross flash → blue pulse along Aura → idle.
-      const TOKEN_AUTOFIRE_FIRST = 0; // sentinel; first apTokenSeen so auto-fire happens once on entry
-      apCharge = 0;
+      const resetSlotVisuals = (slot: ApSlot) => {
+        setBloom(slot.axonBloom, 0);
+        setBloom(slot.pyramidBloom, 0);
+        slot.axonBloom.sprite.visible = false;
+        slot.pyramidBloom.sprite.visible = false;
+        slot.trailGold.mat.uniforms.uOpacity.value = 0;
+        slot.trailBlue.mat.uniforms.uOpacity.value = 0;
+      };
+
+      const TOKEN_AUTOFIRE_FIRST = 0; // sentinel: first time we see the token, autofire
       if (s === 7 && cur.synapsePair > 0.05) {
-        // Auto-fire the first time we land on the AP stage
+        // Auto-fire one spike the first time we land on the AP stage so
+        // the kid sees something before they tap the button.
         if (apTokenSeen < TOKEN_AUTOFIRE_FIRST) {
-          apFiredAt = t;
           apTokenSeen = apFireTokenRef.current;
+          const free = apSlots.find((sl) => sl.firedAt < 0);
+          if (free) free.firedAt = t;
         }
-        // Each click increments the token. Treat the delta as queued
-        // cycles; cap so a button-mash doesn't run forever (MAX_AP_QUEUE).
-        // If currently idle, kick off the first one immediately and
-        // queue the rest; if mid-flight, just bump the queue.
+        // Each button click bumps apFireToken. For every increment, grab a
+        // free slot and stamp its firedAt with the current wall-clock. If
+        // all 8 slots are busy the extra clicks no-op — the visual cap
+        // keeps the screen readable even with a button-mash.
         if (apFireTokenRef.current !== apTokenSeen) {
-          const delta = apFireTokenRef.current - apTokenSeen;
+          let toFire = apFireTokenRef.current - apTokenSeen;
           apTokenSeen = apFireTokenRef.current;
-          if (apFiredAt < 0) {
-            apFiredAt = t;
-            apQueueDepth = Math.min(MAX_AP_QUEUE, apQueueDepth + delta - 1);
-          } else {
-            apQueueDepth = Math.min(MAX_AP_QUEUE, apQueueDepth + delta);
+          for (const slot of apSlots) {
+            if (toFire <= 0) break;
+            if (slot.firedAt < 0) {
+              slot.firedAt = t;
+              toFire--;
+            }
           }
         }
-        const stageT = apFiredAt < 0 ? -1 : t - apFiredAt;
-        // No charge-up: the pulse fires the instant the user clicks. The
-        // earlier 0.95s ramp + 0.20s release felt like a 1+ second delay
-        // between click and visible motion.
-        const CHARGE = 0;
-        const LEAD_IN = 0;
-        const CYCLE_LEN = 4.0;     // single AP cycle, no looping
+
+        const CYCLE_LEN = 4.0;
         const AXON_END  = 0.30;
         const CROSS_END = 0.38;
         const SOMA_END  = 0.65;
         const PYRA_END  = 0.95;
-        if (stageT < 0 || stageT >= LEAD_IN + CYCLE_LEN) {
-          // End of a cycle. If queue has more, kick the next one off
-          // immediately so the spikes read as a burst sequence.
-          if (apFiredAt >= 0 && stageT >= LEAD_IN + CYCLE_LEN && apQueueDepth > 0) {
-            apFiredAt = t;
-            apQueueDepth -= 1;
-          } else if (apFiredAt >= 0 && stageT >= LEAD_IN + CYCLE_LEN) {
-            apFiredAt = -1;
+        const TRAIL_SPAN_U = 0.10;
+        const trailStep = TRAIL_SPAN_U / (TRAIL_LEN - 1);
+
+        for (const slot of apSlots) {
+          if (slot.firedAt < 0) {
+            resetSlotVisuals(slot);
+            continue;
           }
-          // Idle (pre-fire OR post-cycle) — pulses off, no charge
-          setBloom(axonBloom, 0);
-          setBloom(pyramidBloom, 0);
-          apAxonPulse.visible = false;
-          apPyramidPulse.visible = false;
-          apCharge = 0;
-        } else if (stageT < LEAD_IN) {
-          // Charging at the synapse — bloom intensifies + grows briefly
-          if (stageT < CHARGE) {
-            apCharge = stageT / CHARGE;          // 0 → 1 ease-in
-          } else {
-            apCharge = 1 - (stageT - CHARGE) / (LEAD_IN - CHARGE); // 1 → 0 release
+          const stageT = t - slot.firedAt;
+          if (stageT >= CYCLE_LEN) {
+            slot.firedAt = -1;
+            resetSlotVisuals(slot);
+            continue;
           }
-          setBloom(axonBloom, 0);
-          setBloom(pyramidBloom, 0);
-          apAxonPulse.visible = false;
-          apPyramidPulse.visible = false;
-        } else {
-          const animT = stageT - LEAD_IN;
-          const phase = animT / CYCLE_LEN;
-          // Trail sampling: the tail extends 0.10 of the active path
-          // behind the head (about 10% of the segment), spread across
-          // TRAIL_LEN points.
-          const TRAIL_SPAN_U = 0.10;
-          const trailStep = TRAIL_SPAN_U / (TRAIL_LEN - 1);
+          const phase = stageT / CYCLE_LEN;
+          const { axonBloom, pyramidBloom, trailGold, trailBlue } = slot;
+          const apAxonPulse = axonBloom.sprite;
+          const apPyramidPulse = pyramidBloom.sprite;
+
           if (phase < AXON_END) {
             const u = phase / AXON_END;
             if (tendrilPath) {
@@ -1535,7 +1542,6 @@ export default function ZoomScene({
             setBloom(pyramidBloom, 0);
             apAxonPulse.visible = true;
             apPyramidPulse.visible = false;
-            // Trail follows the gold pulse along Tendril
             stampTrail(trailGold, tendrilPath, u, FALLBACK_TENDRIL_FAR, trailStep);
             trailGold.mat.uniforms.uOpacity.value = cur.synapsePair * 0.85;
             trailBlue.mat.uniforms.uOpacity.value = 0;
@@ -1547,8 +1553,6 @@ export default function ZoomScene({
             setBloom(pyramidBloom, cur.synapsePair * 0.95 * u);
             apAxonPulse.visible = true;
             apPyramidPulse.visible = true;
-            // Crossing flash: collapse both trails toward origin so they
-            // don't visually trail off in the wrong direction.
             stampTrail(trailGold, tendrilPath, 1.0, FALLBACK_TENDRIL_FAR, trailStep);
             trailGold.mat.uniforms.uOpacity.value = cur.synapsePair * 0.85 * (1 - u);
             trailBlue.mat.uniforms.uOpacity.value = 0;
@@ -1563,7 +1567,6 @@ export default function ZoomScene({
             setBloom(pyramidBloom, cur.synapsePair * 0.95);
             apAxonPulse.visible = false;
             apPyramidPulse.visible = true;
-            // Trail follows the blue pulse along the apical dendrite
             stampTrail(trailBlue, auraApicalPath, u, FALLBACK_AURA_SOMA, trailStep);
             trailGold.mat.uniforms.uOpacity.value = 0;
             trailBlue.mat.uniforms.uOpacity.value = cur.synapsePair * 0.85;
@@ -1578,46 +1581,23 @@ export default function ZoomScene({
             setBloom(pyramidBloom, cur.synapsePair * 0.95);
             apAxonPulse.visible = false;
             apPyramidPulse.visible = true;
-            // Trail continues behind the blue pulse on the axon
             stampTrail(trailBlue, auraAxonPath, u, FALLBACK_AURA_AXON_END, trailStep);
             trailGold.mat.uniforms.uOpacity.value = 0;
             trailBlue.mat.uniforms.uOpacity.value = cur.synapsePair * 0.85;
           } else {
-            setBloom(axonBloom, 0);
-            setBloom(pyramidBloom, 0);
-            apAxonPulse.visible = false;
-            apPyramidPulse.visible = false;
-            trailGold.mat.uniforms.uOpacity.value = 0;
-            trailBlue.mat.uniforms.uOpacity.value = 0;
+            resetSlotVisuals(slot);
           }
-        }
-        // Trails always hidden during charge-up + idle phases
-        if (stageT < 0 || stageT < LEAD_IN || stageT >= LEAD_IN + CYCLE_LEN) {
-          trailGold.mat.uniforms.uOpacity.value = 0;
-          trailBlue.mat.uniforms.uOpacity.value = 0;
         }
       } else {
         if (s !== 7) {
-          apFiredAt = -1;
           apTokenSeen = -1; // reset so re-entry auto-fires again
-          apQueueDepth = 0; // wipe pending spikes — fresh start on re-entry
+          for (const slot of apSlots) slot.firedAt = -1;
         }
-        setBloom(axonBloom, 0);
-        setBloom(pyramidBloom, 0);
-        apAxonPulse.visible = false;
-        apPyramidPulse.visible = false;
-        trailGold.mat.uniforms.uOpacity.value = 0;
-        trailBlue.mat.uniforms.uOpacity.value = 0;
+        for (const slot of apSlots) resetSlotVisuals(slot);
       }
-      // Boost the synapse-contact bloom during charge-up so the user
-      // sees energy gathering at the synapse before the pulse fires.
-      if (apCharge > 0) {
-        synapseBloom.mat.opacity = cur.synapseMarker * (1 + apCharge * 1.6);
-        synapseBloom.sprite.scale.setScalar(0.07 * (1 + apCharge * 0.7));
-        synapseBloom.sprite.visible = true;
-      } else {
-        synapseBloom.sprite.scale.setScalar(0.07);
-      }
+      // The charge-up bloom is gone now that pulses fire instantly; keep
+      // the synapse-contact sprite at its base scale.
+      synapseBloom.sprite.scale.setScalar(0.07);
 
       for (const n of featuredNeurons) {
         setCellOpacity(n.id, n.id === HERO_ID ? cur.hero : cur.cells);
@@ -1747,10 +1727,20 @@ export default function ZoomScene({
           }
         });
       });
-      [axonBloom, pyramidBloom, synapseBloom, humanHaloBloom, mouseHaloBloom].forEach(({ mat, tex }) => {
+      [synapseBloom, humanHaloBloom, mouseHaloBloom].forEach(({ mat, tex }) => {
         mat.dispose();
         tex.dispose();
       });
+      for (const slot of apSlots) {
+        slot.axonBloom.mat.dispose();
+        slot.axonBloom.tex.dispose();
+        slot.pyramidBloom.mat.dispose();
+        slot.pyramidBloom.tex.dispose();
+        slot.trailGold.mat.dispose();
+        slot.trailGold.geom.dispose();
+        slot.trailBlue.mat.dispose();
+        slot.trailBlue.geom.dispose();
+      }
       Object.values(cellGroups).forEach((g) => {
         g.traverse((obj) => {
           if (obj instanceof THREE.Mesh) {

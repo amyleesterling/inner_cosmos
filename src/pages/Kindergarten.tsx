@@ -61,7 +61,7 @@ const KG_STAGES: KgStage[] = [
   {
     zoom: 7,
     text: "Neurons send signals faster than a cheetah runs!",
-    subtitle: "Every second your brain sends a quadrillion action potentials, 1,000,000,000,000,000.",
+    subtitle: "Your brain sends billions of electrical spikes every second.",
   },
   { zoom: ZOOM_ACTIVITY, text: "Watch your brain sparkle." },
 ];
@@ -163,6 +163,22 @@ export default function Kindergarten() {
     return () => window.clearInterval(interval);
   }, [stage.zoom]);
 
+  // "Neurons send signals faster than a cheetah runs!" (idx 5) — after the
+  // kid has had ~2s to read the line, fade the neuron scene out and run a
+  // cheetah across the page so the comparison lands as a visual punchline.
+  // The cheetah is reset whenever we leave the stage so re-entry replays.
+  const CHEETAH_STAGE_IDX = 5;
+  const [cheetahRunning, setCheetahRunning] = useState(false);
+  useEffect(() => {
+    if (idx !== CHEETAH_STAGE_IDX) {
+      setCheetahRunning(false);
+      return;
+    }
+    setCheetahRunning(false);
+    const id = window.setTimeout(() => setCheetahRunning(true), 2000);
+    return () => window.clearTimeout(id);
+  }, [idx]);
+
   // Pushing a new history entry per stage means teachers can share any
   // /kindergarten/N link AND the browser back button rewinds one stage
   // at a time. Wrapping past the last stage loops back to stage 1.
@@ -226,7 +242,10 @@ export default function Kindergarten() {
             // a kid-friendly "happy blue" instead of the dusty denim swatch.
             ? "hue-rotate(275deg) saturate(1.25) brightness(1.3)"
             : "none",
-          transition: "filter 1.2s ease-out",
+          // On the cheetah stage, fade the neuron scene out at +2s so the
+          // cheetah has the stage to itself when it runs across.
+          opacity: cheetahRunning ? 0 : 1,
+          transition: "filter 1.2s ease-out, opacity 1.0s ease-out",
         }}
       >
         {!isActivity && (
@@ -271,10 +290,15 @@ export default function Kindergarten() {
 
       {/* Action-potential trigger — kids tap to fire the AP on demand. The
           auto-fire interval keeps running in the background so something is
-          always happening, but the button gives them agency. */}
-      {stage.zoom === 7 && (
+          always happening, but the button gives them agency. Hidden while
+          the cheetah is running so it doesn't compete with the punchline. */}
+      {stage.zoom === 7 && !cheetahRunning && (
         <ZapButton onFire={() => setApFireToken((t) => t + 1)} />
       )}
+
+      {/* Cheetah punchline — runs left to right while the kid is reading
+          the "faster than a cheetah" line on stage 6. */}
+      {cheetahRunning && <CheetahRun />}
 
       {/* Attribution — small, sans-serif, only on the first and last slides. */}
       {(idx === 0 || isLast) && (
@@ -705,80 +729,131 @@ function ChevronButton({
 }
 
 /* ---------------------------------------------------------------------------
- * ZapButton — kid-tappable lightning bolt that fires one extra action
- * potential per tap. Sits above the progress dots on the AP stages. The
- * pulse animation telegraphs "tap me"; an inline press transform replaces
- * the animation while the finger is down so the press lands with weight.
+ * CheetahRun — a cheetah dashes left to right across the page. Plays once
+ * when triggered and leaves the page empty by design (the caption is the
+ * thing on screen by then). The slight Y bob + tail trail sells motion
+ * since the emoji itself is static.
  * ------------------------------------------------------------------------- */
-function ZapButton({ onFire }: { onFire: () => void }) {
-  const idle = "kg-zap-pulse 2.4s ease-in-out infinite";
+function CheetahRun() {
   return (
     <>
       <style>{`
-        @keyframes kg-zap-pulse {
-          0%, 100% {
-            transform: translate(-50%, 0) scale(1);
-            box-shadow:
-              0 6px 28px rgba(255, 200, 80, 0.42),
-              0 0 50px rgba(255, 180, 40, 0.30);
-          }
-          50% {
-            transform: translate(-50%, 0) scale(1.06);
-            box-shadow:
-              0 10px 38px rgba(255, 220, 100, 0.65),
-              0 0 76px rgba(255, 200, 60, 0.50);
-          }
+        @keyframes kg-cheetah-dash {
+          0%   { transform: translateX(-30vw) translateY(0)    rotate(-2deg); }
+          15%  { transform: translateX(0vw)   translateY(-14px) rotate(-2deg); }
+          30%  { transform: translateX(20vw)  translateY(0)    rotate(-2deg); }
+          45%  { transform: translateX(45vw)  translateY(-14px) rotate(-2deg); }
+          60%  { transform: translateX(65vw)  translateY(0)    rotate(-2deg); }
+          75%  { transform: translateX(85vw)  translateY(-14px) rotate(-2deg); }
+          100% { transform: translateX(135vw) translateY(0)    rotate(-2deg); }
+        }
+        @keyframes kg-cheetah-trail {
+          0%, 100% { opacity: 0.0; transform: scaleX(1); }
+          15%      { opacity: 0.45; transform: scaleX(1.05); }
+          50%      { opacity: 0.55; transform: scaleX(1.15); }
+          90%      { opacity: 0.30; transform: scaleX(1.05); }
         }
       `}</style>
-      <button
-        type="button"
-        onClick={onFire}
-        aria-label="Fire an action potential"
+      <div
         style={{
           position: "absolute",
-          bottom: "22dvh",
-          left: "50%",
-          transform: "translate(-50%, 0)",
-          width: 92,
-          height: 92,
-          borderRadius: 999,
-          border: "2.5px solid rgba(255, 235, 130, 0.95)",
-          background:
-            "radial-gradient(circle at 50% 35%, rgba(255, 245, 170, 0.98) 0%, rgba(255, 185, 50, 0.72) 65%, rgba(255, 130, 0, 0.45) 100%)",
-          color: "#2a1400",
-          cursor: "pointer",
-          zIndex: 220,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          animation: idle,
-          touchAction: "manipulation",
-          WebkitTapHighlightColor: "transparent",
-          padding: 0,
-        }}
-        onPointerDown={(e) => {
-          e.currentTarget.style.animation = "none";
-          e.currentTarget.style.transform = "translate(-50%, 0) scale(0.88)";
-        }}
-        onPointerUp={(e) => {
-          e.currentTarget.style.transform = "translate(-50%, 0) scale(1)";
-          e.currentTarget.style.animation = idle;
-        }}
-        onPointerLeave={(e) => {
-          e.currentTarget.style.transform = "translate(-50%, 0) scale(1)";
-          e.currentTarget.style.animation = idle;
+          top: "42%",
+          left: 0,
+          width: "120px",
+          height: "120px",
+          zIndex: 180,
+          pointerEvents: "none",
+          animation: "kg-cheetah-dash 2.6s cubic-bezier(0.45, 0.05, 0.55, 0.95) forwards",
+          willChange: "transform",
         }}
       >
-        <svg
-          width="48"
-          height="48"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          aria-hidden="true"
+        {/* Soft golden speed-streak trailing the cheetah */}
+        <div
+          style={{
+            position: "absolute",
+            top: "50%",
+            right: "70%",
+            width: "200px",
+            height: "10px",
+            transformOrigin: "right center",
+            background:
+              "linear-gradient(to left, rgba(255, 210, 110, 0.7), rgba(255, 210, 110, 0.0))",
+            filter: "blur(3px)",
+            animation: "kg-cheetah-trail 2.6s ease-in-out forwards",
+          }}
+        />
+        <div
+          style={{
+            fontSize: "clamp(72px, 12vh, 132px)",
+            lineHeight: 1,
+            filter: "drop-shadow(0 4px 14px rgba(0,0,0,0.55))",
+          }}
         >
-          <path d="M11 15H6l7-14v8h5l-7 14v-8z" />
-        </svg>
-      </button>
+          {"🐆"}
+        </div>
+      </div>
     </>
+  );
+}
+
+/* ---------------------------------------------------------------------------
+ * ZapButton — kid-tappable lightning bolt that fires one extra action
+ * potential per tap. Pinned bottom-right so it stays out of the caption
+ * column on the long "neurons send signals faster than a cheetah" line.
+ * Static (no idle pulse) per Amy's spec; only the press scale + a steady
+ * glow communicate interactivity.
+ * ------------------------------------------------------------------------- */
+function ZapButton({ onFire }: { onFire: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onFire}
+      aria-label="Fire an action potential"
+      style={{
+        position: "absolute",
+        // Bottom-right corner, low enough to clear the caption + subtitle
+        // even when the line wraps long ("...faster than a cheetah runs!").
+        // Sits alongside the progress-dots row.
+        bottom: "max(env(safe-area-inset-bottom, 0px) + 14px, 3.5dvh)",
+        right: "max(env(safe-area-inset-right, 0px) + 18px, 4.5vw)",
+        width: 68,
+        height: 68,
+        borderRadius: 999,
+        border: "2.5px solid rgba(255, 235, 130, 0.95)",
+        background:
+          "radial-gradient(circle at 50% 35%, rgba(255, 245, 170, 0.98) 0%, rgba(255, 185, 50, 0.72) 65%, rgba(255, 130, 0, 0.45) 100%)",
+        color: "#2a1400",
+        cursor: "pointer",
+        zIndex: 220,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        boxShadow:
+          "0 6px 24px rgba(255, 200, 80, 0.40), 0 0 44px rgba(255, 180, 40, 0.26)",
+        touchAction: "manipulation",
+        WebkitTapHighlightColor: "transparent",
+        padding: 0,
+        transition: "transform 120ms cubic-bezier(0.16,0.8,0.24,1)",
+      }}
+      onPointerDown={(e) => {
+        e.currentTarget.style.transform = "scale(0.88)";
+      }}
+      onPointerUp={(e) => {
+        e.currentTarget.style.transform = "scale(1)";
+      }}
+      onPointerLeave={(e) => {
+        e.currentTarget.style.transform = "scale(1)";
+      }}
+    >
+      <svg
+        width="40"
+        height="40"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        aria-hidden="true"
+      >
+        <path d="M11 15H6l7-14v8h5l-7 14v-8z" />
+      </svg>
+    </button>
   );
 }
