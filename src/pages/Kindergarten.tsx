@@ -729,68 +729,60 @@ function ChevronButton({
 }
 
 /* ---------------------------------------------------------------------------
- * CheetahRun — a cheetah dashes left to right across the page. Plays once
- * when triggered and leaves the page empty by design (the caption is the
- * thing on screen by then). The slight Y bob + tail trail sells motion
- * since the emoji itself is static.
+ * CheetahRun — a side-view cheetah video plays its run cycle in place
+ * while the wrapping element translates across the screen, left to right.
+ * The Kling-generated clip is rendered on a near-black background; we use
+ * `mix-blend-mode: screen` to drop that backdrop onto the dark page so the
+ * cheetah floats rather than sitting in a visible rectangle.
  * ------------------------------------------------------------------------- */
 function CheetahRun() {
   return (
     <>
       <style>{`
         @keyframes kg-cheetah-dash {
-          0%   { transform: translateX(-30vw) translateY(0)    rotate(-2deg); }
-          15%  { transform: translateX(0vw)   translateY(-14px) rotate(-2deg); }
-          30%  { transform: translateX(20vw)  translateY(0)    rotate(-2deg); }
-          45%  { transform: translateX(45vw)  translateY(-14px) rotate(-2deg); }
-          60%  { transform: translateX(65vw)  translateY(0)    rotate(-2deg); }
-          75%  { transform: translateX(85vw)  translateY(-14px) rotate(-2deg); }
-          100% { transform: translateX(135vw) translateY(0)    rotate(-2deg); }
-        }
-        @keyframes kg-cheetah-trail {
-          0%, 100% { opacity: 0.0; transform: scaleX(1); }
-          15%      { opacity: 0.45; transform: scaleX(1.05); }
-          50%      { opacity: 0.55; transform: scaleX(1.15); }
-          90%      { opacity: 0.30; transform: scaleX(1.05); }
+          0%   { transform: translateX(-45vw); }
+          100% { transform: translateX(145vw); }
         }
       `}</style>
       <div
         style={{
           position: "absolute",
-          top: "42%",
+          top: "32%",
           left: 0,
-          width: "120px",
-          height: "120px",
+          width: "clamp(300px, 42vw, 560px)",
           zIndex: 180,
           pointerEvents: "none",
-          animation: "kg-cheetah-dash 2.6s cubic-bezier(0.45, 0.05, 0.55, 0.95) forwards",
+          // Linear + 3.6s so the kid actually has time to track the
+          // cheetah across the screen instead of it whipping past.
+          animation: "kg-cheetah-dash 3.6s linear forwards",
           willChange: "transform",
         }}
       >
-        {/* Soft golden speed-streak trailing the cheetah */}
-        <div
-          style={{
-            position: "absolute",
-            top: "50%",
-            right: "70%",
-            width: "200px",
-            height: "10px",
-            transformOrigin: "right center",
-            background:
-              "linear-gradient(to left, rgba(255, 210, 110, 0.7), rgba(255, 210, 110, 0.0))",
-            filter: "blur(3px)",
-            animation: "kg-cheetah-trail 2.6s ease-in-out forwards",
+        <video
+          autoPlay
+          muted
+          playsInline
+          loop
+          ref={(v) => {
+            // Kling exports at "real-time" pace — bumping the rate makes
+            // the leg cycle read as a sprint at this scale.
+            if (v) v.playbackRate = 1.6;
           }}
-        />
-        <div
           style={{
-            fontSize: "clamp(72px, 12vh, 132px)",
-            lineHeight: 1,
-            filter: "drop-shadow(0 4px 14px rgba(0,0,0,0.55))",
+            width: "100%",
+            display: "block",
+            filter: "drop-shadow(0 18px 26px rgba(0,0,0,0.45))",
           }}
         >
-          {"🐆"}
-        </div>
+          {/* WebM with VP9 alpha channel — the dark Kling backdrop has
+              been chroma-keyed out so the cheetah floats over the page
+              without a visible rectangle. */}
+          <source src={`${import.meta.env.BASE_URL}cheetah-run.webm`} type="video/webm" />
+          {/* Fallback to the original MP4 for browsers that can't decode
+              VP9 alpha (older Safari). On those, the dark backdrop will
+              show as a faint rectangle but the cheetah still runs. */}
+          <source src={`${import.meta.env.BASE_URL}cheetah-run.mp4`} type="video/mp4" />
+        </video>
       </div>
     </>
   );
