@@ -729,33 +729,30 @@ function ChevronButton({
 }
 
 /* ---------------------------------------------------------------------------
- * CheetahRun — a side-view cheetah video plays its run cycle in place
- * while the wrapping element translates across the screen, left to right.
- * The Kling-generated clip is rendered on a near-black background; we use
- * `mix-blend-mode: screen` to drop that backdrop onto the dark page so the
- * cheetah floats rather than sitting in a visible rectangle.
+ * CheetahRun — a side-view cheetah video runs its loop in place, centered
+ * on the page. The Kling-generated clip is alpha-keyed (WebM with VP8
+ * alpha) so the backdrop drops cleanly onto the kindergarten dark page.
+ * Soft fade-in on mount so the cheetah doesn't pop in.
  * ------------------------------------------------------------------------- */
 function CheetahRun() {
   return (
     <>
       <style>{`
-        @keyframes kg-cheetah-dash {
-          0%   { transform: translateX(-45vw); }
-          100% { transform: translateX(145vw); }
+        @keyframes kg-cheetah-fade-in {
+          0%   { opacity: 0; }
+          100% { opacity: 1; }
         }
       `}</style>
       <div
         style={{
           position: "absolute",
-          top: "32%",
-          left: 0,
-          width: "clamp(300px, 42vw, 560px)",
+          top: "28%",
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "clamp(320px, 48vw, 620px)",
           zIndex: 180,
           pointerEvents: "none",
-          // Linear + 3.6s so the kid actually has time to track the
-          // cheetah across the screen instead of it whipping past.
-          animation: "kg-cheetah-dash 3.6s linear forwards",
-          willChange: "transform",
+          animation: "kg-cheetah-fade-in 0.6s ease-out forwards",
         }}
       >
         <video
