@@ -60,7 +60,7 @@ const KG_STAGES: KgStage[] = [
   // while the kid lands on the wow-stat that gives it scale.
   {
     zoom: 7,
-    text: "Neurons send signals faster than a cheetah runs!",
+    text: "Your neurons can send signals faster than…",
     subtitle: "Your brain sends billions of electrical spikes every second.",
   },
   { zoom: ZOOM_ACTIVITY, text: "Watch your brain sparkle." },
@@ -163,10 +163,10 @@ export default function Kindergarten() {
     return () => window.clearInterval(interval);
   }, [stage.zoom]);
 
-  // "Neurons send signals faster than a cheetah runs!" (idx 5) — after the
-  // kid has had ~2s to read the line, fade the neuron scene out and run a
-  // cheetah across the page so the comparison lands as a visual punchline.
-  // The cheetah is reset whenever we leave the stage so re-entry replays.
+  // "Your neurons can send signals faster than…" (idx 5) — the caption
+  // trails off and the cheetah is the punchline. Quick delay before the
+  // cheetah arrives so the comparison lands soon after the kid reads
+  // "faster than…". Resets when leaving the stage so re-entry replays.
   const CHEETAH_STAGE_IDX = 5;
   const [cheetahRunning, setCheetahRunning] = useState(false);
   useEffect(() => {
@@ -175,7 +175,7 @@ export default function Kindergarten() {
       return;
     }
     setCheetahRunning(false);
-    const id = window.setTimeout(() => setCheetahRunning(true), 2000);
+    const id = window.setTimeout(() => setCheetahRunning(true), 1300);
     return () => window.clearTimeout(id);
   }, [idx]);
 
@@ -245,7 +245,7 @@ export default function Kindergarten() {
           // On the cheetah stage, fade the neuron scene out at +2s so the
           // cheetah has the stage to itself when it runs across.
           opacity: cheetahRunning ? 0 : 1,
-          transition: "filter 1.2s ease-out, opacity 1.0s ease-out",
+          transition: "filter 1.2s ease-out, opacity 0.45s ease-out",
         }}
       >
         {!isActivity && (
@@ -752,7 +752,7 @@ function CheetahRun() {
           width: "clamp(320px, 48vw, 620px)",
           zIndex: 180,
           pointerEvents: "none",
-          animation: "kg-cheetah-fade-in 0.6s ease-out forwards",
+          animation: "kg-cheetah-fade-in 0.3s ease-out forwards",
         }}
       >
         <video
