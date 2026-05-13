@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import ZoomScene from "../components/ZoomScene";
 import CellSwarm from "../components/CellSwarm";
@@ -30,13 +31,10 @@ interface KgStage {
 
 const KG_STAGES: KgStage[] = [
   { zoom: 0, text: "This is your brain." },
-  { zoom: 1, text: "And this is a mouse's brain." },
-  { zoom: 2, text: "Let's go inside." },
-  // Zoom 3 (the V1 highlight) is the camera-lerp bridge: whole mouse
-  // brain → V1 → cells. Re-included so the jump from "let's go inside"
-  // to "these are neurons" reads as one continuous zoom-in instead of
-  // a hard cut.
-  { zoom: 3, text: "Closer." },
+  // Mouse-brain bridge stages (whole mouse brain → "let's go inside" → V1
+  // highlight) intentionally removed. ZoomScene's camera lerps over the
+  // multi-stage gap when zoom jumps 0 → 4, so the kid sees a single
+  // continuous zoom-in from "your brain" straight onto the neuron cluster.
   {
     zoom: 4,
     text: "Neurons!",
@@ -80,7 +78,18 @@ const CLUSTER_LEGEND: { color: string; label: string }[] = [
 ];
 
 export default function Kindergarten() {
-  const [idx, setIdx] = useState(0);
+  // URL is the source of truth so teachers can share /kindergarten/3 etc.
+  // and the page lands on that exact stage. Bare /kindergarten == stage 1.
+  // params.stage is 1-indexed for human-readable share links; idx is 0-indexed
+  // for the KG_STAGES array.
+  const params = useParams<{ stage?: string }>();
+  const navigate = useNavigate();
+  const parsedStage = params.stage ? parseInt(params.stage, 10) : 1;
+  const safeStage = Number.isFinite(parsedStage) && parsedStage >= 1 && parsedStage <= KG_STAGES.length
+    ? parsedStage
+    : 1;
+  const idx = safeStage - 1;
+
   const [apFireToken, setApFireToken] = useState(0);
 
   const [activity, setActivity] = useState<{
@@ -93,8 +102,10 @@ export default function Kindergarten() {
   const stage = KG_STAGES[idx];
   const isLast = idx === KG_STAGES.length - 1;
   const isActivity = stage.zoom === ZOOM_ACTIVITY;
-  // CSS filter to retone the violet/cyan hologram brain to warm gold.
-  const isBrainStage = stage.zoom === 0 || stage.zoom === 1;
+  // CSS filter retones the violet/cyan hologram into a bright sky blue.
+  // After dropping the mouse-brain bridge stages, only the human-brain
+  // hero shot (zoom 0) gets the filter.
+  const isBrainStage = stage.zoom === 0;
 
   useEffect(() => {
     let aborted = false;
@@ -134,8 +145,15 @@ export default function Kindergarten() {
     return () => window.clearInterval(interval);
   }, [stage.zoom]);
 
-  function advance() { setIdx((i) => (i < KG_STAGES.length - 1 ? i + 1 : 0)); }
-  function back() { setIdx((i) => (i > 0 ? i - 1 : i)); }
+  // Pushing a new history entry per stage means teachers can share any
+  // /kindergarten/N link AND the browser back button rewinds one stage
+  // at a time. Wrapping past the last stage loops back to stage 1.
+  function goTo(nextIdx: number) {
+    const safe = Math.max(0, Math.min(KG_STAGES.length - 1, nextIdx));
+    navigate(`/kindergarten/${safe + 1}`);
+  }
+  function advance() { goTo(idx < KG_STAGES.length - 1 ? idx + 1 : 0); }
+  function back() { if (idx > 0) goTo(idx - 1); }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -147,10 +165,14 @@ export default function Kindergarten() {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+    // advance/back read `idx` from the closure — rebind when it changes
+    // so the keyboard always navigates from the visible stage.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idx]);
 
-  // Tie-dye fades as we go deeper. Strong on stages 0-1, gone by stage 3.
-  const tieDyeOpacity = idx <= 1 ? 1 : idx === 2 ? 0.55 : 0;
+  // Tie-dye only on the single remaining brain stage; CSS transition
+  // (1.6s ease-out) handles the soft fade-out into the cluster scene.
+  const tieDyeOpacity = idx === 0 ? 1 : 0;
 
   return (
     <div
@@ -228,6 +250,13 @@ export default function Kindergarten() {
         onBack={back}
         onNext={advance}
       />
+
+      {/* Action-potential trigger — kids tap to fire the AP on demand. The
+          auto-fire interval keeps running in the background so something is
+          always happening, but the button gives them agency. */}
+      {stage.zoom === 7 && (
+        <ZapButton onFire={() => setApFireToken((t) => t + 1)} />
+      )}
 
       {/* Attribution — small, sans-serif, only on the first and last slides. */}
       {(idx === 0 || isLast) && (
@@ -654,5 +683,84 @@ function ChevronButton({
     >
       {isNext ? (loop ? "↻" : "›") : "‹"}
     </button>
+  );
+}
+
+/* ---------------------------------------------------------------------------
+ * ZapButton — kid-tappable lightning bolt that fires one extra action
+ * potential per tap. Sits above the progress dots on the AP stages. The
+ * pulse animation telegraphs "tap me"; an inline press transform replaces
+ * the animation while the finger is down so the press lands with weight.
+ * ------------------------------------------------------------------------- */
+function ZapButton({ onFire }: { onFire: () => void }) {
+  const idle = "kg-zap-pulse 2.4s ease-in-out infinite";
+  return (
+    <>
+      <style>{`
+        @keyframes kg-zap-pulse {
+          0%, 100% {
+            transform: translate(-50%, 0) scale(1);
+            box-shadow:
+              0 6px 28px rgba(255, 200, 80, 0.42),
+              0 0 50px rgba(255, 180, 40, 0.30);
+          }
+          50% {
+            transform: translate(-50%, 0) scale(1.06);
+            box-shadow:
+              0 10px 38px rgba(255, 220, 100, 0.65),
+              0 0 76px rgba(255, 200, 60, 0.50);
+          }
+        }
+      `}</style>
+      <button
+        type="button"
+        onClick={onFire}
+        aria-label="Fire an action potential"
+        style={{
+          position: "absolute",
+          bottom: "22dvh",
+          left: "50%",
+          transform: "translate(-50%, 0)",
+          width: 92,
+          height: 92,
+          borderRadius: 999,
+          border: "2.5px solid rgba(255, 235, 130, 0.95)",
+          background:
+            "radial-gradient(circle at 50% 35%, rgba(255, 245, 170, 0.98) 0%, rgba(255, 185, 50, 0.72) 65%, rgba(255, 130, 0, 0.45) 100%)",
+          color: "#2a1400",
+          cursor: "pointer",
+          zIndex: 220,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          animation: idle,
+          touchAction: "manipulation",
+          WebkitTapHighlightColor: "transparent",
+          padding: 0,
+        }}
+        onPointerDown={(e) => {
+          e.currentTarget.style.animation = "none";
+          e.currentTarget.style.transform = "translate(-50%, 0) scale(0.88)";
+        }}
+        onPointerUp={(e) => {
+          e.currentTarget.style.transform = "translate(-50%, 0) scale(1)";
+          e.currentTarget.style.animation = idle;
+        }}
+        onPointerLeave={(e) => {
+          e.currentTarget.style.transform = "translate(-50%, 0) scale(1)";
+          e.currentTarget.style.animation = idle;
+        }}
+      >
+        <svg
+          width="48"
+          height="48"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path d="M11 15H6l7-14v8h5l-7 14v-8z" />
+        </svg>
+      </button>
+    </>
   );
 }

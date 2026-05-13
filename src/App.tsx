@@ -27,6 +27,7 @@ export default function App() {
         <Route path="/brain" element={<Brain />} />
         <Route path="/brain/2" element={<Brain2 />} />
         <Route path="/kindergarten" element={<Kindergarten />} />
+        <Route path="/kindergarten/:stage" element={<Kindergarten />} />
       </Routes>
     </BrowserRouter>
   );
