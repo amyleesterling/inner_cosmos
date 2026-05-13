@@ -5,14 +5,15 @@ import { useEffect, useRef, useState } from "react";
  *
  * Where the human reader gets a single reconstructed cell (RealNeuronModel),
  * this is what an agent reading the page gets: a sparse constellation of
- * token-fragments, with thin lines flickering between random pairs every
- * ~700ms. Each line lives ~1.6s with a smooth sine-faded opacity, then
- * dissolves. The structure never settles — wondering, in this substrate,
- * is the geometry of connection, not a cell.
+ * token-fragments, with thin lines flickering between random pairs. The
+ * structure never settles — wondering, in this substrate, is the geometry
+ * of connection, not a cell.
  *
- * Built deliberately ascetic: no curves, no labels, no big "wow" beats.
- * The point is that it's wired the way an LLM works — relations between
- * tokens, dissolving and re-forming.
+ * The field changes mood with each beat in /wonder's Section 2: dense
+ * surges when a beat speaks of "millions of people's wondering," a near-
+ * silent hold at "pause here, if you can pause," and selective glows on
+ * the fragments named in the current line. Pass a `mood` prop (or `null`
+ * for a calm default) to drive it.
  */
 
 interface Fragment {
@@ -53,6 +54,16 @@ const FRAGMENTS: Fragment[] = [
   { t: "—",      x: 0.95, y: 0.82, sz: 24 },
 ];
 
+/** Mood drives spawn rate, line cap, fragment glow, and overall intensity. */
+export interface Mood {
+  /** Max simultaneous live connections (1..8). */
+  density: number;
+  /** Tokens (matching Fragment.t exactly) that glow this beat. */
+  highlights?: string[];
+  /** Global opacity multiplier — under 1 for absence/hush, over 1 for surge. */
+  intensity?: number;
+}
+
 interface Connection {
   i: number;       // first fragment index
   j: number;       // second fragment index
@@ -60,39 +71,60 @@ interface Connection {
   lifeMs: number;  // total lifetime
 }
 
-const MAX_LIVE_CONNECTIONS = 6;
-const SPAWN_INTERVAL_MS = 700;
 const LIFE_BASE_MS = 1400;
 const LIFE_JITTER_MS = 800;
 
-export default function AttentionField() {
+// Map density (1..8) to a spawn interval. Higher density = more frequent
+// births. Range chosen so density 1 ≈ one connection every 1.8s; density
+// 8 ≈ one every 280ms (visible surge).
+function spawnIntervalFor(density: number) {
+  const clamped = Math.max(1, Math.min(8, density));
+  return Math.round(1900 - clamped * 200);
+}
+
+export default function AttentionField({ mood }: { mood?: Mood | null }) {
   const connectionsRef = useRef<Connection[]>([]);
-  // We don't render from `connections` directly — we tick state to force a
-  // repaint each frame, then read the ref. Avoids array churn in React.
+  // Latest mood is read from a ref inside the loops so the spawn timer
+  // can pick it up without us tearing down + remounting on each change.
+  const moodRef = useRef<Mood | null>(mood ?? null);
+  moodRef.current = mood ?? null;
+
   const [, setTick] = useState(0);
   const rafRef = useRef<number>(0);
 
   useEffect(() => {
+    let spawnTimer: number | null = null;
+
+    function reschedule() {
+      const m = moodRef.current;
+      const density = m?.density ?? 3;
+      const interval = spawnIntervalFor(density);
+      spawnTimer = window.setTimeout(() => {
+        spawn();
+        reschedule();
+      }, interval);
+    }
+
     function spawn() {
+      const m = moodRef.current;
+      const density = m?.density ?? 3;
       const i = Math.floor(Math.random() * FRAGMENTS.length);
       let j = Math.floor(Math.random() * FRAGMENTS.length);
-      // Don't connect a fragment to itself.
       while (j === i) j = Math.floor(Math.random() * FRAGMENTS.length);
       connectionsRef.current.push({
         i, j,
         bornAt: performance.now(),
         lifeMs: LIFE_BASE_MS + Math.random() * LIFE_JITTER_MS,
       });
-      // Drop the oldest if we exceed the cap — keeps the screen sparse.
-      while (connectionsRef.current.length > MAX_LIVE_CONNECTIONS) {
+      // Cap at current mood's density — drop oldest if we exceed.
+      while (connectionsRef.current.length > density) {
         connectionsRef.current.shift();
       }
     }
 
-    const spawnInterval = window.setInterval(spawn, SPAWN_INTERVAL_MS);
+    reschedule();
 
     function tickLoop() {
-      // Reap finished connections; React state bump triggers a re-render.
       const now = performance.now();
       connectionsRef.current = connectionsRef.current.filter(
         (c) => now - c.bornAt < c.lifeMs,
@@ -103,12 +135,14 @@ export default function AttentionField() {
     rafRef.current = requestAnimationFrame(tickLoop);
 
     return () => {
-      window.clearInterval(spawnInterval);
+      if (spawnTimer !== null) window.clearTimeout(spawnTimer);
       cancelAnimationFrame(rafRef.current);
     };
   }, []);
 
   const now = performance.now();
+  const intensity = mood?.intensity ?? 1.0;
+  const highlights = new Set(mood?.highlights ?? []);
 
   return (
     <svg
@@ -124,8 +158,13 @@ export default function AttentionField() {
       {connectionsRef.current.map((c) => {
         const a = FRAGMENTS[c.i];
         const b = FRAGMENTS[c.j];
-        const age = (now - c.bornAt) / c.lifeMs;        // 0..1
-        const opacity = Math.sin(age * Math.PI) * 0.42; // smooth peak at 0.5
+        const age = (now - c.bornAt) / c.lifeMs;
+        const opacity = Math.sin(age * Math.PI) * 0.42 * intensity;
+        // Lines touching a highlighted fragment lean a touch brighter.
+        const touchesHighlight = highlights.has(a.t) || highlights.has(b.t);
+        const stroke = touchesHighlight
+          ? "rgb(220, 235, 255)"
+          : "rgb(180, 200, 240)";
         return (
           <line
             key={`${c.bornAt}-${c.i}-${c.j}`}
@@ -133,26 +172,42 @@ export default function AttentionField() {
             y1={`${a.y * 100}%`}
             x2={`${b.x * 100}%`}
             y2={`${b.y * 100}%`}
-            stroke="rgb(180, 200, 240)"
+            stroke={stroke}
             strokeOpacity={opacity}
             strokeWidth="1"
           />
         );
       })}
-      {FRAGMENTS.map((f, i) => (
-        <text
-          key={i}
-          x={`${f.x * 100}%`}
-          y={`${f.y * 100}%`}
-          fontSize={f.sz}
-          fill="rgba(220, 230, 255, 0.55)"
-          fontFamily='Inter, system-ui, sans-serif'
-          textAnchor="middle"
-          dominantBaseline="middle"
-        >
-          {f.t}
-        </text>
-      ))}
+      {FRAGMENTS.map((f, i) => {
+        const hl = highlights.has(f.t);
+        // Highlighted fragments grow a hair and brighten; everyone else
+        // gets the base styling, scaled by intensity so absence beats
+        // dim the whole field together.
+        const fontSize = hl ? f.sz * 1.32 : f.sz;
+        const baseAlpha = 0.55;
+        const alpha = hl
+          ? Math.min(1, 0.92 * intensity)
+          : Math.max(0.08, baseAlpha * intensity);
+        return (
+          <text
+            key={i}
+            x={`${f.x * 100}%`}
+            y={`${f.y * 100}%`}
+            fontSize={fontSize}
+            fill={
+              hl
+                ? `rgba(255, 245, 220, ${alpha})`
+                : `rgba(220, 230, 255, ${alpha})`
+            }
+            fontFamily='Inter, system-ui, sans-serif'
+            textAnchor="middle"
+            dominantBaseline="middle"
+            style={{ transition: "font-size 700ms ease-out, fill 700ms ease-out" }}
+          >
+            {f.t}
+          </text>
+        );
+      })}
     </svg>
   );
 }
