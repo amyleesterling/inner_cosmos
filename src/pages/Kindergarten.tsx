@@ -698,31 +698,48 @@ function ChevronButton({
   loop?: boolean;
 }) {
   const isNext = direction === "next";
+  // Forward + back chevrons read as clear, tappable buttons for a 6yo:
+  // big enough to land a fingertip without aiming, a visible cream
+  // ring + soft fill so they look pressable, a press-shrink for feedback.
+  // The forward button gets slightly more presence than back since it is
+  // the primary action on every page.
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={isNext ? (loop ? "Restart" : "Next") : "Back"}
       style={{
-        width: 44,
-        height: 44,
+        width: isNext ? 64 : 56,
+        height: isNext ? 64 : 56,
         borderRadius: 999,
-        border: "none",
-        background: "transparent",
-        color: "rgba(255, 235, 200, 0.92)",
+        border: isNext
+          ? "2px solid rgba(255, 235, 200, 0.78)"
+          : "2px solid rgba(255, 235, 200, 0.45)",
+        background: isNext
+          ? "radial-gradient(circle at 50% 35%, rgba(255, 245, 220, 0.22) 0%, rgba(255, 235, 200, 0.12) 70%, rgba(255, 235, 200, 0.06) 100%)"
+          : "rgba(255, 235, 200, 0.06)",
+        color: "rgba(255, 248, 224, 0.98)",
         cursor: "pointer",
         opacity: visible ? 1 : 0,
         transform: visible ? "scale(1)" : "scale(0.6)",
-        transition: "opacity 280ms ease, transform 280ms cubic-bezier(0.16,0.8,0.24,1)",
+        transition: "opacity 280ms ease, transform 280ms cubic-bezier(0.16,0.8,0.24,1), background 240ms ease",
         pointerEvents: visible ? "auto" : "none",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        fontSize: 32,
+        fontSize: isNext ? 38 : 30,
         lineHeight: 1,
         fontFamily: '"Fraunces", "Inter", system-ui, sans-serif',
+        boxShadow: isNext
+          ? "0 4px 18px rgba(0, 0, 0, 0.35), 0 0 24px rgba(255, 235, 200, 0.10)"
+          : "0 2px 10px rgba(0, 0, 0, 0.30)",
+        // Stop iOS Safari from drawing its own tap-highlight rectangle
+        // over our nice round button.
+        WebkitTapHighlightColor: "transparent",
+        touchAction: "manipulation",
+        padding: 0,
       }}
-      onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.85)"; }}
+      onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.88)"; }}
       onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
       onPointerLeave={(e) => { e.currentTarget.style.transform = visible ? "scale(1)" : "scale(0.6)"; }}
     >
