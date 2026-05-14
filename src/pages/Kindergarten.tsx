@@ -698,48 +698,43 @@ function ChevronButton({
   loop?: boolean;
 }) {
   const isNext = direction === "next";
-  // Forward + back chevrons read as clear, tappable buttons for a 6yo:
-  // big enough to land a fingertip without aiming, a visible cream
-  // ring + soft fill so they look pressable, a press-shrink for feedback.
-  // The forward button gets slightly more presence than back since it is
-  // the primary action on every page.
+  // Only the forward arrow reads as a chunky tappable button — that's the
+  // primary action on every page and a 6yo needs an unmistakable target.
+  // Back stays as a thin chevron so it doesn't compete with the next
+  // button visually; mistapping it is also less consequential.
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={isNext ? (loop ? "Restart" : "Next") : "Back"}
       style={{
-        width: isNext ? 64 : 56,
-        height: isNext ? 64 : 56,
+        width: isNext ? 64 : 44,
+        height: isNext ? 64 : 44,
         borderRadius: 999,
-        border: isNext
-          ? "2px solid rgba(255, 235, 200, 0.78)"
-          : "2px solid rgba(255, 235, 200, 0.45)",
+        border: isNext ? "2px solid rgba(255, 235, 200, 0.78)" : "none",
         background: isNext
           ? "radial-gradient(circle at 50% 35%, rgba(255, 245, 220, 0.22) 0%, rgba(255, 235, 200, 0.12) 70%, rgba(255, 235, 200, 0.06) 100%)"
-          : "rgba(255, 235, 200, 0.06)",
-        color: "rgba(255, 248, 224, 0.98)",
+          : "transparent",
+        color: isNext ? "rgba(255, 248, 224, 0.98)" : "rgba(255, 235, 200, 0.92)",
         cursor: "pointer",
         opacity: visible ? 1 : 0,
         transform: visible ? "scale(1)" : "scale(0.6)",
-        transition: "opacity 280ms ease, transform 280ms cubic-bezier(0.16,0.8,0.24,1), background 240ms ease",
+        transition: "opacity 280ms ease, transform 280ms cubic-bezier(0.16,0.8,0.24,1)",
         pointerEvents: visible ? "auto" : "none",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        fontSize: isNext ? 38 : 30,
+        fontSize: isNext ? 38 : 32,
         lineHeight: 1,
         fontFamily: '"Fraunces", "Inter", system-ui, sans-serif',
         boxShadow: isNext
           ? "0 4px 18px rgba(0, 0, 0, 0.35), 0 0 24px rgba(255, 235, 200, 0.10)"
-          : "0 2px 10px rgba(0, 0, 0, 0.30)",
-        // Stop iOS Safari from drawing its own tap-highlight rectangle
-        // over our nice round button.
+          : "none",
         WebkitTapHighlightColor: "transparent",
         touchAction: "manipulation",
         padding: 0,
       }}
-      onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.88)"; }}
+      onPointerDown={(e) => { e.currentTarget.style.transform = isNext ? "scale(0.88)" : "scale(0.85)"; }}
       onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
       onPointerLeave={(e) => { e.currentTarget.style.transform = visible ? "scale(1)" : "scale(0.6)"; }}
     >
