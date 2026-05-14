@@ -238,12 +238,13 @@ export default function Kindergarten() {
           position: "absolute",
           inset: 0,
           filter: isBrainStage
-            // Pearlescent white. Saturation is dropped almost all the way so
-            // the cyan/violet hologram reads as a luminous off-white surface;
-            // a small hue rotation keeps the faintest cool-pearl cast in the
-            // highlights so it doesn't go dead grey. Brightness lifted to
-            // make it glow against the nebula background.
-            ? "hue-rotate(200deg) saturate(0.12) brightness(1.55) contrast(0.95)"
+            // Icy crystal. Underlying mesh renders as violet/lavender; we
+            // rotate the hue backward to land on a true ice-blue (~210°),
+            // moderate saturation, hard contrast so the wireframe
+            // triangles read as faceted edges and deep folds darken into
+            // refractive shadows in glass. Drop-shadow halo sells the
+            // refractive feel against the nebula.
+            ? "hue-rotate(310deg) saturate(0.65) brightness(1.1) contrast(1.7) drop-shadow(0 0 24px rgba(180, 230, 255, 0.55))"
             : "none",
           // On the cheetah stage, fade the neuron scene out at +2s so the
           // cheetah has the stage to itself when it runs across.
